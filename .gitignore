@@ -1,0 +1,60 @@
+# .gitignore (no secrets)
+Set-Content -Encoding utf8 .gitignore @'
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+*.env
+.env.*
+!/.env.example
+secrets/
+*.key
+*.pem
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & caches
+*.log
+*.cache/
+.cache/
+pytest_cache/
+coverage/
+htmlcov/
+
+# Builds
+build/
+dist/
+
+# Generated outputs
+data/
+outputs/
+*.db
+*.sqlite
+articles_raw*.json
+articles_with_bias*.json
+clustered_articles*.json
+grouped_articles*.json
+grouped_articles_filtered*.json
+grouped_articles_final*.json
+topic_summaries*.json
+embeddings_cache.json
+summaries_cache.json
+trust_log_*.json
+unmapped_bias.json
+Archive/*.json
+
+# Frontend (if added later)
+node_modules/
+'@

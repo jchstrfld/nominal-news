@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily News Summary</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    #status {
+      display: inline-block;
+      margin-left: 10px;
+      font-weight: bold;
+      color: #555;
+    }
+    .fade-out {
+      opacity: 0;
+      transition: opacity 1s ease-out;
+    }
+    .articles-start {
+      margin-top: 16px;
+    }
+    /* Left-align chart + legend together, fixed 200px height, full width, no vertical margins */
+    .chart-container {
+      width: 100%;
+      height: 200px;
+      margin: 16px 0 0 0;
+      display: flex;               /* chart + legend in a row */
+      justify-content: flex-start; /* left-align the whole block */
+      align-items: center;         /* vertical align */
+      gap: 12px;                   /* space between pie and legend */
+    }
+    .chart-title {
+      margin: 0;
+    }
+    /* Fix the pie area so the canvas doesn't expand to full row */
+    .pie-wrap {
+      width: 220px;   /* adjust if you want a smaller/larger pie */
+      height: 200px;  /* matches container height */
+      display: block;
+    }
+    .legend-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.9rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      line-height: 1.2;
+    }
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex: 0 0 12px;
+    }
+    .chip {
+      display: inline-block;
+      background-color: #eef;
+      color: #333;
+      padding: 4px 8px;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      text-decoration: none;
+      margin: 2px;
+    }
+    .sources-collapsible summary { cursor: pointer; 
+    }
+    .article-sources { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; 
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗞️ Daily Consensus News Summary</h1>
+
+    <form method="get" action="/" onsubmit="showStatus()">
+      <label for="date">Test a specific date:</label>
+      <input type="date" id="date" name="date" value="{{ requested_date or '' }}">
+      <label><input type="checkbox" id="summarizeOnly" name="summarizeOnly"> Summarize only</label>
+      <button type="submit">Run</button>
+      <span id="status"></span>
+    </form>
+
+    <script>
+      function showStatus() {
+        const status = document.getElementById('status');
+        status.textContent = "Running pipeline...";
+        status.classList.remove("fade-out");
+      }
+
+      window.addEventListener("load", () => {
+        const summariesLength = {{ summaries|length or 0 }};
+        const status = document.getElementById('status');
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has("date")) {
+          if (summariesLength > 0) {
+            status.textContent = "✅ Done!";
+            setTimeout(() => status.classList.add("fade-out"), 5000);
+          } else {
+            status.textContent = "⚠️ No articles found.";
+          }
+        }
+      });
+    </script>
+
+    <div class="articles-start">
+    {% for topic in summaries %}
+      <div class="card">
+        <h2>{{ topic.topic_title }}</h2>
+
+        {% if topic.summary %}
+          <p><strong>Summary:</strong> {{ topic.summary }}</p>
+        {% endif %}
+
+        {% if topic.takeaways and topic.takeaways|length > 0 %}
+          <p><strong>Key Takeaways:</strong></p>
+          <ul>
+            {% for takeaway in topic.takeaways %}
+              <li>{{ takeaway }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if topic.bias_distribution and topic.bias_distribution|length > 0 %}
+          <p class="chart-title"><strong>Source Political Lean:</strong></p>
+          <div class="chart-container">
+            <div class="pie-wrap">
+              <!-- canvas fills its own fixed pie area -->
+              <canvas id="biasChart{{ loop.index }}" style="width: 100%; height: 100%;"></canvas>
+            </div>
+            <!-- custom DOM legend will be injected here -->
+            <div class="legend-wrap" id="biasLegend{{ loop.index }}"></div>
+          </div>
+        {% endif %}
+
+        {% if topic.html_chips %}
+        {% set chips_list = topic.html_chips.split('</a>') %}
+        {% set chips_list = chips_list[:-1] %} {# remove last empty from split #}
+        {% set first_chips = chips_list[:12] %}
+        {% set remaining_chips = chips_list[12:] %}
+
+        <p style="margin-top: 16px;"><strong>Sources ({{ topic.num_sources }})</strong></p>
+        <div class="article-sources">
+          {{ first_chips | join('</a>') | safe }}{% if first_chips %}</a>{% endif %}
+          {% if remaining_chips %}
+          <details class="sources-collapsible">
+            <summary>Show more</summary>
+            {{ remaining_chips | join('</a>') | safe }}</a>
+          </details>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {% if topic.fallback_summary %}
+        <p class="fallback">⚠️ This summary was generated from fallback content due to weak article cohesion.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener("load", function () {
+      const colorMap = {
+        "Far Left": "#0B36B8",
+        "Left": "#275BF5",
+        "Center": "#894AB3",
+        "Right": "#EB4040",
+        "Far Right": "#C43D31",
+        "Unknown": "#C6C6C6"
+      };
+
+      const biasOrder = ["Far Left", "Left", "Center", "Right", "Far Right", "Unknown"];
+
+      const biasData = JSON.parse(`{{ summaries | map(attribute='bias_distribution') | map('default', {}) | list | tojson | safe }}`);
+      biasData.forEach((bias, index) => {
+        const canvas = document.getElementById(`biasChart${index + 1}`);
+        const legendEl = document.getElementById(`biasLegend${index + 1}`);
+        if (!canvas || !legendEl) return;
+
+        // Ensure total reaches 100 by padding with Unknown if needed
+        let total = 0;
+        biasOrder.forEach(key => { total += bias[key] || 0; });
+        if (total < 100) {
+          bias["Unknown"] = (bias["Unknown"] || 0) + (100 - total);
+        }
+
+        const orderedLabels = biasOrder.filter(key => key in bias);
+        const labels = orderedLabels.map(key => `${key} ${bias[key]}%`);
+        const values = orderedLabels.map(key => bias[key]);
+        const colors = orderedLabels.map(key => colorMap[key] || "#888");
+
+        const ctx = canvas.getContext("2d");
+        new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Bias Distribution',
+              data: values,
+              backgroundColor: colors
+            }]
+          },
+          options: {
+            maintainAspectRatio: false, // fill 200px container height
+            plugins: {
+              legend: { display: false }, // use our custom DOM legend
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const percentage = context.parsed || 0;
+                    return `${percentage}%`;
+                  }
+                }
+              }
+            },
+            layout: { padding: 0 }
+          }
+        });
+
+        // Build DOM legend next to the pie
+        legendEl.innerHTML = labels.map((label, i) => `
+          <div class="legend-item">
+            <span class="legend-swatch" style="background:${colors[i]}"></span>
+            <span>${label}</span>
+          </div>
+        `).join('');
+      });
+    });
+  </script>
+</body>
+</html>

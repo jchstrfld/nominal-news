@@ -1,0 +1,7 @@
+python-dotenv
+# git+https://github.com/openai/swarm.git 
+streamlit 
+duckduckgo-search
+openai==0.28.1
+feedparser
+scikit-learn
