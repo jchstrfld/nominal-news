@@ -1,2 +1,2 @@
 ## 📰 Nominal News
-A high-signal, low-noise news application for those wanting to be critically informed without the mental and emotional cost from attention-seeking, outrage-driven, 24/7 social and legacy news services.
+A high-signal, low-noise news application for those wanting to be critically informed without the mental and emotional cost of always-on mainstream and social news sources.
