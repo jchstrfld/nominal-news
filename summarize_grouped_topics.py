@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 import argparse
 import tiktoken
+import difflib, re
 
 # ✅ NEW: summaries cache helpers (add summaries_cache.py next to this file)
 from summaries_cache import (
@@ -162,7 +163,86 @@ def extract_body_and_takeaways(summary_text):
         summary = summary_text or ""
     return summary.strip(), takeaways
 
-# ✅ NEW: load summaries cache once
+# --- Safety valve: collapse near-duplicate topics after summarization (no tokens) ---
+_STOPWORDS = {
+    "a","an","the","and","or","but","to","of","for","in","on","at","over","under","after","before",
+    "with","without","by","from","as","about","into","during","including","until","against","among",
+    "between","through","because","so","since","due","has","have","had","is","was","are","were",
+    "be","been","being","will","would","should","may","might","can","could"
+}
+
+def _norm_title_tokens(text: str):
+    text = (text or "").lower()
+    text = re.sub(r"[^a-z0-9\s]+", " ", text)
+    toks = [w for w in text.split() if len(w) > 2 and w not in _STOPWORDS]
+    return toks
+
+def _jaccard(a, b):
+    A, B = set(a), set(b)
+    if not A or not B:
+        return 0.0
+    return len(A & B) / len(A | B)
+
+def _overlap_ratio(urls_a, urls_b):
+    s1 = set(urls_a or [])
+    s2 = set(urls_b or [])
+    if not s1 or not s2:
+        return 0.0
+    # overlap measured against the smaller set to be strict
+    return len(s1 & s2) / max(1, min(len(s1), len(s2)))
+
+def _seq_ratio(a: str, b: str):
+    return difflib.SequenceMatcher(None, a or "", b or "").ratio()
+
+def _looks_like_duplicate(x: dict, y: dict, url_thresh: float, title_thresh: float, body_thresh: float):
+    title_x = x.get("topic_title") or ""
+    title_y = y.get("topic_title") or ""
+    body_x  = (x.get("summary") or "")[:600]
+    body_y  = (y.get("summary") or "")[:600]
+    urls_x  = x.get("sources") or []
+    urls_y  = y.get("sources") or []
+
+    # URL overlap (exact URLs) — strong signal
+    url_ov = _overlap_ratio(urls_x, urls_y)
+
+    # Title similarity (character + token Jaccard) — catches near rephrasings
+    t_ratio = _seq_ratio(title_x.lower(), title_y.lower())
+    t_jacc  = _jaccard(_norm_title_tokens(title_x), _norm_title_tokens(title_y))
+
+    # Body similarity — backstop if titles differ but summaries are essentially the same
+    b_ratio = _seq_ratio(body_x.lower(), body_y.lower())
+
+    return (url_ov >= url_thresh) and ((t_ratio >= title_thresh) or (t_jacc >= 0.70) or (b_ratio >= body_thresh))
+
+def dedupe_topic_summaries(items, url_overlap=0.50, title_sim=0.86, body_sim=0.88):
+    """
+    Keeps the first (higher-ranked) item and merges later duplicates into it.
+    - No OpenAI calls. Pure string/URL math.
+    - Preserves existing order/ranking from clustering.
+    """
+    result = []
+    for cand in items:
+        merged = False
+        for kept in result:
+            if _looks_like_duplicate(kept, cand, url_overlap, title_sim, body_sim):
+                # Merge sources & counts into the higher-ranked 'kept' card
+                merged_sources = list({*(kept.get("sources") or []), *(cand.get("sources") or [])})
+                kept["sources"] = merged_sources
+                kept["num_sources"] = len(merged_sources)
+                # We intentionally do NOT touch title/summary/takeaways/bias/html_chips of the winner.
+                merged = True
+                break
+        if not merged:
+            result.append(cand)
+    # Respect your MAX_CLUSTERS cap
+    try:
+        return result[:MAX_CLUSTERS]
+    except NameError:
+        # If MAX_CLUSTERS is defined later, slice when calling instead.
+        return result
+# --- end safety valve ---
+
+# load summaries cache once
 summ_cache = load_summ_cache()
 summ_cache_dirty = False
 
@@ -207,6 +287,14 @@ for idx, cluster in enumerate(top_clusters):
         "num_sources": len(all_articles),
         "html_chips": make_html_chips(all_articles)
     })
+
+# ✅ Safety valve — de‑duplicate near‑identical topic cards before writing JSON
+summaries = dedupe_topic_summaries(
+    summaries,
+    url_overlap=0.50,  # require ≥ 50% URL overlap
+    title_sim=0.86,    # high title similarity
+    body_sim=0.88      # high body similarity
+)
 
 # ✅ NEW: save cache if we wrote anything
 if summ_cache_dirty:
