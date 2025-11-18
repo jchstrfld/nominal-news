@@ -14,229 +14,412 @@ CANONICAL = {
     "far left": "Far Left",
     "left": "Left",
     "center-left": "Left",
-    "centre-left": "Left",
     "center": "Center",
-    "centre": "Center",
-    "neutral": "Center",
-    "right": "Right",
+    "lean-left": "Left",
+    "lean left": "Left",
     "center-right": "Right",
-    "centre-right": "Right",
+    "right": "Right",
+    "lean-right": "Right",
+    "lean right": "Right",
     "far-right": "Far Right",
     "far right": "Far Right",
+    "unknown": "Unknown",
+    "": "Unknown",
+    None: "Unknown",
 }
 
-def canonicalize(label: str, default="Center") -> str:
-    if not label:
-        return default
-    key = label.strip().lower()
-    return CANONICAL.get(key, default)
+def canonicalize(raw: str | None) -> str:
+    if raw is None:
+        return "Unknown"
+    v = str(raw).strip().lower()
+    return CANONICAL.get(v, raw.title() if raw else "Unknown")
 
 # ----------------------------
-# Your original NAME-BASED map (kept intact)
+# Original NAME-BASED map (kept intact)
 # Values may be lowercased or dashed; we canonicalize on output.
 # ----------------------------
 bias_map = {
-    # Far‑Left
+    # -------------------------
+    # FAR-LEFT
+    # -------------------------
+    "AlterNet": "far-left",
     "Democracy Now": "far-left",
     "Jacobin": "far-left",
-    "The Intercept": "far-left",
-    "SF Chronicle": "far-left",         # Manually set via AllSides
 
-    # Left
+    # -------------------------
+    # LEFT  (includes Lean Left)
+    # -------------------------
+    "AJC": "left",
+    "Al Jazeera": "left",                       # often rated Lean Left
+    "Amnesty International": "left",
+    "The Atlantic": "left",
+    "Bloomberg Opinion": "left",
+    "BuzzFeed News": "left",
+    "CBC News": "left",
+    "Chicago Reader": "left",
+    "City Limits": "left",
     "CNN": "left",
+    "Current Affairs": "left",
+    "Daily Mirror": "left",
+    "El País": "left",
+    "Global Voices": "left",
+    "Grist": "left",
     "The Guardian": "left",
-    "MSNBC": "left",
+    "Haaretz": "left",
     "HuffPost": "left",
+    "Human Rights Watch": "left",
+    "Iowa Capital Dispatch": "left",
+    "LA Times": "left",
+    "Mediaite": "left",
+    "The Nation": "left",                        # moved from far-left → left (consensus Lean Left/Left)
     "New York Times": "left",
     "NPR": "left",
-    "The Independent": "left",
+    "Philadelphia Inquirer": "left",
     "Politico": "left",
+    "ProPublica": "left",
     "Rolling Stone": "left",
-    "Amnesty International": "left",
-    "Human Rights Watch": "left",
-    "The Baffler": "left",
-    "Star Tribune": "left",             # Manually via AllSides
-    "AJC": "left",                      # Manually via AllSides
-    "Philadelphia Inquirer": "left",    # Manually via AllSides
-    "City Limits": "left",              # Manually via AllSides
-    "Chicago Reader": "left",           # Manually via mediabiasfactcheck.com
-    "Grist": "left",                    # Manually via AllSides
-    "Global Voices": "left",            # Manually via mediabiasfactcheck.com
-    "Westword": "center",               # Manually via AllSides
+    "Slate": "left",                             # moved from far-left → left (consensus Lean Left)
+    "The Hindu": "left",
+    "The Independent": "left",
+    "The Intercept": "left",                     # moved from far-left → left (consensus Left/Lean Left)
+    "The New Yorker": "left",
+    "Time": "left",
+    "Vox": "left",
+    "Washington Post": "left",
+    "Yahoo News": "left",
 
-    # Center
-    "Reuters": "center",
-    "Associated Press": "center",
-    "BBC News": "center",
-    "DW": "center",
-    "Deutsche Welle": "center",
-    "Al Jazeera": "center",
+    # -------------------------
+    # CENTER
+    # -------------------------
+    "ABC News": "center",
     "AFP": "center",
-    "NPR News": "center",
-    "USA Today": "center",
+    "AP": "center",
+    "Associated Press": "center",                # moved from left → center (consensus Center)
     "Axios": "center",
-    "The Hill": "center",
-    "NBC News": "center",
-    "Pew Research Center": "center",
-    "RAND Corporation": "center",
-    "Urban Institute": "center",
-    "KFF": "center",
-    "Science News": "center",
-    "Johns Hopkins Hub": "center",
-    "The Conversation": "center",
-    "Harvard Gazette": "center",
-    "Princeton News": "center",
-    "University of Michigan News": "center",
-    "Penn State News": "center",
-    "UC Berkeley News": "center",
-    "University of Chicago News": "center",
-    "UNC Chapel Hill News": "center",
-    "University of Washington News": "center",
-    "University of Texas News": "center",
-    "University at Buffalo News": "center",
-    "World Health Organization": "center",
-    "UN News": "center",
-    "OECD": "center",
-    "NASA": "center",
-    "NOAA": "center",
-    "CDC": "center",
-    "Foreign Policy": "center",
-    "Smithsonian Magazine": "center",
-    "Stat News": "center",
-    "Education Week": "center",
-    "Inside Climate News": "center",
-    "Pitchfork": "center",                      # Unable to source for bias
-    "AllAfrica": "center",
-
-    # Local / Regional (defaulted center)
-    "WGN": "center",
-    "KHOU": "center",
-    "KDFW": "center",
-    "KABC": "center",
-    "WXYZ": "center",
-    "WPVI": "center",
-    "KIRO": "center",
-    "WCVB": "center",
-    "KTLA": "center",
-    "Chicago Sun-Times": "center",
-    "Houston Chronicle": "center",
-    "Newsday": "center",
-    "NBC4 Washington": "center",
-    "WUSA9": "center",
-    "KIRO7": "center",
-    "Billy Penn": "center",                 # Unable to source for bias
-    "Phoenix New Times": "center",
+    "Barron's": "center",
+    "BBC News": "center",
+    "Bloomberg": "center",
+    "Business Insider": "center",
+    "CBS News": "center",
+    "Christian Science Monitor": "center",
+    "CNBC": "center",
+    "CTV News": "center",
+    "DW": "center",
+    "Denver Post": "center",
+    "Deutsche Welle": "center",
+    "Financial Times": "center",
+    "Forbes": "center",
+    "France 24": "center",
     "Gothamist": "center",
-    "Willamette Week": "center",            # Unable to source for bias
+    "Japan Times": "center",
+    "MarketWatch": "center",
+    "MSN": "center",
+    "NBC News": "center",
+    "NewsNation": "center",
+    "Newsweek": "center",
+    "New York Daily News": "center",
+    "New Zealand Herald": "center",
+    "Nikkei Asia": "center",
+    "NPR News": "center",
+    "PBS NewsHour": "center",
+    "Phoenix New Times": "center",
+    "Quartz": "center",
+    "Reason": "center",
+    "Reuters": "center",
+    "RTÉ": "center",
+    "Scientific American": "center",
+    "Semafor": "center",
+    "Sky News": "center",
+    "South China Morning Post": "center",
+    "STAT News": "center",
+    "Straight Arrow News": "center",
+    "The Economist": "center",
+    "The Hill": "center",
+    "The Times of India": "center",
+    "USA Today": "center",
+    "Wall Street Journal": "center",             # news side (opinion has separate entries below)
+    "Westword": "center",
+    "WGN - Chicago": "center",
+    "WUSA9": "center",
+    "Yahoo Finance": "center",
 
-    # Right
-    "The Wall Street Journal": "right",
-    "Fox News": "right",
-    "Washington Examiner": "right",
-    "WSJ.com": "right",
+    # -------------------------
+    # RIGHT  (includes Lean Right)
+    # -------------------------
     "AEI": "right",
+    "Blaze Media": "right",
+    "Boston Herald": "right",
+    "CBN": "right",
     "City Journal": "right",
-    "RealClearPolitics": "right",
+    "Daily Caller": "right",
+    "Daily Mail": "right",
+    "The Daily Telegraph (Australia)": "right",
     "The Dispatch": "right",
-    "The Bulwark": "right",
+    "The Federalist": "right",
+    "Financial Post": "right",
+    "Fox Business": "right",
+    "Fox News": "right",
+    "The Jerusalem Post": "right",
+    "Just the News": "right",                    # moved from center → right (consensus Right/Lean Right)
+    "National Post": "right",
     "National Review": "right",
-    "Commentary Magazine": "right",
+    "Newsmax": "right",
+    "New York Post": "right",
+    "RealClearPolitics": "right",
+    "The Spectator": "right",
+    "The Straits Times": "center",
+    "The Telegraph": "right",
+    "The Times (UK)": "right",
+    "The Wall Street Journal": "right",          # opinion page/brand
+    "Upward News": "right",
+    "Washington Examiner": "right",
+    "Washington Free Beacon": "right",
     "Washington Times": "right",
+    "ZeroHedge": "right",
 
-    # Far‑Right
+    # -------------------------
+    # FAR-RIGHT
+    # -------------------------
     "Breitbart": "far-right",
+    "OAN": "far-right",                           # moved from right → far-right (align OANN)
     "OANN": "far-right",
-    "Epoch Times": "far-right",
-    "The Gateway Pundit": "far-right"
+    "The Daily Signal": "far-right",
+    "The Daily Wire": "far-right",
+    "The Epoch Times": "right",                   # moved from center → right (consensus Right/Far-Right)
+    "The Gateway Pundit": "far-right",
+    "The Post Millennial": "far-right",
+
+    # -------------------------
+    # GLOBAL / SPECIALTY ADDS (keep conservative, many rate these as center-ish)
+    # -------------------------
+    "Ars Technica": "left",
+    "Der Spiegel": "center",
+    "El Mundo": "center",
+    "Engadget": "center",
+    "Financial News (Dow Jones)": "center",
+    "Fortune": "center",
+    "Le Figaro": "right",
+    "Le Monde": "left",
+    "NPR Science": "center",
+    "STAT": "center",
+    "TechCrunch": "center",
+    "The Globe and Mail": "center",
+    "The Information": "center",
+    "The Japan News (Yomiuri)": "right",
+    "The Times of Israel": "center",
+    "Wired": "left"
 }
 
-# Normalize NAME keys for quick lookup by source name
-name_bias_map = {k.strip().lower(): v for k, v in bias_map.items()}
-
 # ----------------------------
-# Domain aliases (domain -> Display Name)
-# Kept exactly as you provided
+# Provide a DOMAIN→display-name map.
+# Used when converting a domain to the name-based map above (name_bias_map)
 # ----------------------------
 domain_aliases = {
-    "bbc.co.uk": "BBC News",
-    "cnn.com": "CNN",
-    "msnbc.com": "MSNBC",
-    "theguardian.com": "The Guardian",
-    "huffpost.com": "HuffPost",
-    "nytimes.com": "New York Times",
-    "npr.org": "NPR",
-    "usatoday.com": "USA Today",
-    "axios.com": "Axios",
-    "thehill.com": "The Hill",
-    "nbcnews.com": "NBC News",
-    "pewresearch.org": "Pew Research Center",
-    "rand.org": "RAND Corporation",
-    "urban.org": "Urban Institute",
-    "kff.org": "Kaiser Family Foundation (KFF)",
-    "sciencenews.org": "Science News",
-    "hub.jhu.edu": "Johns Hopkins Hub",
-    "theconversation.com": "The Conversation",
-    "news.harvard.edu": "Harvard Gazette",
-    "princeton.edu": "Princeton News",
-    "news.umich.edu": "University of Michigan News",
-    "news.psu.edu": "Penn State News",
-    "news.berkeley.edu": "UC Berkeley News",
-    "news.uchicago.edu": "University of Chicago News",
-    "unc.edu": "UNC Chapel Hill News",
-    "washington.edu": "University of Washington News",
-    "utexas.edu": "University of Texas News",
-    "buffalo.edu": "University at Buffalo News",
-    "worldhealthorganization.int": "World Health Organization",
-    "un.org": "United Nations News",
-    "oecd.org": "OECD",
-    "nasa.gov": "NASA",
-    "noaa.gov": "NOAA",
-    "cdc.gov": "CDC",
-    "foreignpolicy.com": "Foreign Policy",
-    "globalvoices.org": "Global Voices",
-    "smithsonianmag.com": "Smithsonian Magazine",
-    "statnews.com": "Stat News",
-    "edweek.org": "Education Week",
-    "insideclimatenews.org": "Inside Climate News",
-    "grist.org": "Grist",
-    "pitchfork.com": "Pitchfork",
-    "allafrica.com": "AllAfrica",
-    "wgntv.com": "WGN - Chicago",
-    "khou.com": "KHOU - Houston",
-    "fox4news.com": "KDFW - Dallas/Fort Worth",
-    "kabc.com": "KABC - Los Angeles",
-    "wxyz.com": "WXYZ - Detroit",
-    "wcvb.com": "WCVB - Boston",
-    "ktla.com": "KTLA - Los Angeles",
-    "chicago.suntimes.com": "Chicago Sun-Times",
-    "chron.com": "Houston Chronicle",
-    "newsday.com": "Newsday",
-    "nbcwashington.com": "NBC4 Washington",
-    "wusa9.com": "WUSA9 - Washington, D.C.",
-    "kiro7.com": "KIRO - Seattle",
-    "westword.com": "Denver Westword",
-    "citylimits.org": "City Limits",
-    "billypenn.com": "Billy Penn",
-    "phoenixnewtimes.com": "Phoenix New Times",
-    "chicagoreader.com": "Chicago Reader",
-    "gothamist.com": "Gothamist",
-    "startribune.com": "Star Tribune",
-    "wweek.com": "Willamette Week",
-    "ajc.com": "Atlanta Journal-Constitution (AJC)",
-    "sfchronicle.com": "San Francisco Chronicle",
-    "inquirer.com": "Philadelphia Inquirer",
+    # --- A ---
+    "abc.net.au": "ABC News",
+    "abcnews.go.com": "ABC News",
     "aei.org": "American Enterprise Institute (AEI)",
-    "city-journal.org": "City Journal",
-    "realclearpolitics.com": "RealClearPolitics",
-    "thedispatch.com": "The Dispatch",
-    "thebulwark.com": "The Bulwark",
-    "nationalreview.com": "National Review",
-    "commentary.org": "Commentary Magazine",
-    "washingtontimes.com": "Washington Times",
+    "ajc.com": "Atlanta Journal-Constitution (AJC)",
+    "aljazeera.com": "Al Jazeera",
+    "allafrica.com": "AllAfrica",
+    "apnews.com": "Associated Press",
+    "arstechnica.com": "Ars Technica",
+    "asia.nikkei.com": "Nikkei Asia",
+    "axios.com": "Axios",
+
+    # --- B ---
+    "barrons.com": "Barron's",
+    "bbc.co.uk": "BBC News",
+    "bbc.com": "BBC News",
+    "billypenn.com": "Billy Penn",
+    "bloomberg.com": "Bloomberg",
+    "bostonherald.com": "Boston Herald",
     "breitbart.com": "Breitbart",
-    "oann.com": "One Amereica News Network (OANN)",
+    "businessinsider.com": "Business Insider",
+    "buzzfeednews.com": "BuzzFeed News",
+
+    # --- C ---
+    "cbc.ca": "CBC News",
+    "cbsnews.com": "CBS News",
+    "cbn.com": "CBN",
+    "chicago.suntimes.com": "Chicago Sun-Times",
+    "chicagoreader.com": "Chicago Reader",
+    "chron.com": "Houston Chronicle",
+    "city-journal.org": "City Journal",
+    "cnbc.com": "CNBC",
+    "cnn.com": "CNN",
+    "commentary.org": "Commentary Magazine",
+    "csmonitor.com": "Christian Science Monitor",
+    "ctvnews.ca": "CTV News",
+    "currentaffairs.org": "Current Affairs",
+
+    # --- D ---
+    "dailycaller.com": "Daily Caller",
+    "dailytelegraph.com.au": "The Daily Telegraph (Australia)",
+    "dailymail.co.uk": "Daily Mail",
+    "dailymaillive.co.uk": "Daily Mail",
+    "dailysignal.com": "The Daily Signal",
+    "dailywire.com": "The Daily Wire",
+    "denverpost.com": "Denver Post",
+    "dw.com": "DW (Deutsche Welle)",
+
+    # --- E ---
+    "economist.com": "The Economist",
+    "elmundo.es": "El Mundo",
+    "elpais.com": "El País",
+    "engadget.com": "Engadget",
+    "euronews.com": "Euronews",
+
+    # --- F ---
+    "finance.yahoo.com": "Yahoo Finance",
+    "financialnews.com": "Financial News (Dow Jones)",
+    "financialpost.com": "Financial Post",
+    "fnlondon.com": "Financial News (Dow Jones)",
+    "forbes.com": "Forbes",
+    "fortune.com": "Fortune",
+    "foxbusiness.com": "Fox Business",
+    "foxnews.com": "Fox News",
+    "france24.com": "France 24",
+    "ft.com": "Financial Times",
+
+    # --- G ---
+    "globeandmail.com": "The Globe and Mail",
+    "gothamist.com": "Gothamist",
+    "guardian.co.uk": "The Guardian",
+    "haaretz.com": "Haaretz",
+
+    # --- H ---
+    "huffpost.com": "HuffPost",
+
+    # --- I ---
+    "ijr.com": "Independent Journal Review",
+    "independent.co.uk": "The Independent",
+    "informationweek.com": "InformationWeek",
+    "inquirer.com": "Philadelphia Inquirer",
+    "iowacapitaldispatch.com": "Iowa Capital Dispatch",
+
+    # --- J ---
+    "japantimes.co.jp": "Japan Times",
+    "jpost.com": "The Jerusalem Post",
+
+    # --- K ---
+    "kabc.com": "KABC - Los Angeles",
+    "kff.org": "Kaiser Family Foundation (KFF)",
+    "kiro7.com": "KIRO7 - Seattle",
+    "khou.com": "KHOU - Houston",
+    "kqed.org": "KQED - San Francisco",
+
+    # --- L ---
+    "lefigaro.fr": "Le Figaro",
+    "lemonde.fr": "Le Monde",
+    "latimes.com": "LA Times",
+
+    # --- M ---
+    "marketwatch.com": "MarketWatch",
+    "mediaite.com": "Mediaite",
+    "mirror.co.uk": "Daily Mirror",
+    "motherjones.com": "Mother Jones",
+    "msn.com": "MSN",
+    "msnbc.com": "MSNBC",
+
+    # --- N ---
+    "nationalobserver.com": "National Observer",
+    "nationalpost.com": "National Post",
+    "nationalreview.com": "National Review",
+    "nbcnews.com": "NBC News",
+    "nbcwashington.com": "NBC4 Washington",
+    "newyorker.com": "The New Yorker",
+    "news.sky.com": "Sky News",
+    "news.yahoo.com": "Yahoo News",
+    "newsday.com": "Newsday",
+    "newsnationnow.com": "NewsNation",
+    "newsweek.com": "Newsweek",
+    "npr.org": "NPR",
+    "nydailynews.com": "New York Daily News",
+    "nypost.com": "New York Post",
+    "nyt.com": "New York Times",
+    "nytimes.com": "New York Times",
+    "nzherald.co.nz": "New Zealand Herald",
+
+    # --- O ---
+    "oann.com": "One America News Network (OANN)",
+    "opinionjournal.com": "The Wall Street Journal",  # opinion-branded subdomain
+
+    # --- P ---
+    "pbs.org": "PBS NewsHour",
+    "pewresearch.org": "Pew Research Center",
+    "phoenixnewtimes.com": "Phoenix New Times",
+    "pitchfork.com": "Pitchfork",
+    "politico.com": "Politico",
+    "postmillennial.com": "The Post Millennial",
+    "propublica.org": "ProPublica",
+
+    # --- Q ---
+    "qz.com": "Quartz",
+
+    # --- R ---
+    "rand.org": "RAND Corporation",
+    "rawstory.com": "Raw Story",
+    "reason.com": "Reason",
+    "realclearpolitics.com": "RealClearPolitics",
+    "reuters.com": "Reuters",
+    "rollingstone.com": "Rolling Stone",
+    "rte.ie": "RTÉ",
+    "rt.com": "RT",
+
+    # --- S ---
+    "scientificamerican.com": "Scientific American",
+    "scmp.com": "South China Morning Post",
+    "sfchronicle.com": "San Francisco Chronicle",
+    "semafor.com": "Semafor",
+    "sky.com": "Sky News",
+    "slate.com": "Slate",
+    "spectator.co.uk": "The Spectator",
+    "spiegel.de": "Der Spiegel",
+    "statnews.com": "STAT News",
+    "startribune.com": "Star Tribune",
+    "straitstimes.com": "The Straits Times",
+    "straightarrownews.com": "Straight Arrow News",
+
+    # --- T ---
+    "techcrunch.com": "TechCrunch",
+    "telegraph.co.uk": "The Telegraph",
+    "the-japan-news.com": "The Japan News (Yomiuri)",
+    "theinformation.com": "The Information",
+    "theatlantic.com": "The Atlantic",
+    "thedispatch.com": "The Dispatch",
     "theepochtimes.com": "Epoch Times",
-    "thegatewaypundit.com": "The Gateway Pundit"
+    "thegatewaypundit.com": "The Gateway Pundit",
+    "theglobeandmail.com": "The Globe and Mail",
+    "theguardian.com": "The Guardian",
+    "thehindu.com": "The Hindu",
+    "thehill.com": "The Hill",
+    "thenation.com": "The Nation",
+    "thetimes.co.uk": "The Times (UK)",
+    "thestar.com.my": "The Star (Malaysia)",
+    "timesofisrael.com": "The Times of Israel",
+    "timesofindia.indiatimes.com": "The Times of India",
+    "time.com": "Time",
+
+    # --- U ---
+    "upward.news": "Upward News",
+    "usatoday.com": "USA Today",
+
+    # --- V ---
+    "vox.com": "Vox",
+    "venturebeat.com": "VentureBeat",
+
+    # --- W ---
+    "washingtonexaminer.com": "Washington Examiner",
+    "washingtonpost.com": "Washington Post",
+    "washingtontimes.com": "Washington Times",
+    "westword.com": "Denver Westword",
+    "wgntv.com": "WGN - Chicago",
+    "willametteweek.com": "Willamette Week",
+    "wired.com": "Wired",
+    "wsj.com": "Wall Street Journal",
+    "wusa9.com": "WUSA9 - Washington, D.C.",
+    "yomiuri.co.jp": "The Japan News (Yomiuri)",
 }
 
 # ----------------------------
@@ -252,48 +435,69 @@ domain_bias_overrides = {
     "aljazeera.com": "Left",
     "euronews.com": "Center",
     "independent.co.uk": "Left",
-    "latimes.com": "Left",
-    "newyorker.com": "Left",
-    "space.com": "Center",
-    "theatlantic.com": "Left",
-    "wired.com": "Center",
-    "news10.com": "Center",
-    "westword.com": "Left",
-    "wgntv.com": "Center", 
-    "abcnews.go.com": "Center",
-    "cbsnews.com": "Center",
-    "aei.org": "Right",
-    "techradar.com": "Center",
-    "kdvr.com": "Center",
-    "wcvb.com": "Center",
-    "news.utexas.edu": "Center",
-    "uncnews.unc.edu": "Center",
-    "science.org": "Center",
-    "marketwatch.com": "Right",
-    "fortune.com": "Center",
-    "nautil.us": "Left",
-    "kabc.com": "Center",
-    "engineering.berkeley.edu": "Left",
-    "law.berkeley.edu": "Left",
-    "journalism.berkeley.edu": "Left",
-    "cdss.berkeley.edu": "Left",
-    "artshumanities.berkeley.edu": "Left",
-    "lib.berkeley.edu": "Left",
-    # Add more as needed...
+    "ft.com": "Center",
+    "reuters.com": "Center",
+    "apnews.com": "Center",
+    "bbc.co.uk": "Center",
+    "dw.com": "Center",
+    "nbcnews.com": "Center",
+    "nytimes.com": "Left",
+    "theguardian.com": "Left",
+    "cnn.com": "Left",
+    "msnbc.com": "Left",
+    "foxnews.com": "Right"
 }
 
-def get_domain(url: str) -> str | None:
+# ----------------------------
+# Helper: extract domain from URL
+# ----------------------------
+def get_domain(url: str) -> str:
     try:
-        return urlparse(url).netloc.replace("www.", "").lower()
+        netloc = urlparse(url).netloc.lower()
+        if netloc.startswith("www."):
+            netloc = netloc[4:]
+        return netloc
     except Exception:
-        return None
+        return ""
 
-def lookup_bias_by_name(source_name: str) -> str | None:
-    if not source_name:
-        return None
-    raw = name_bias_map.get(source_name.strip().lower())
+# ----------------------------
+# Build a canonical NAME -> CANONICAL label map from bias_map
+# ----------------------------
+def build_name_bias_map():
+    out = {}
+    for name, raw in bias_map.items():
+        out[name] = canonicalize(raw)
+    return out
+
+name_bias_map = build_name_bias_map()
+
+# ----------------------------
+# Lookup helpers
+# ----------------------------
+def lookup_bias_by_name(name: str) -> str | None:
+    # Exact match
+    raw = name_bias_map.get(name)
     if raw:
         return canonicalize(raw)
+    # Case-insensitive fallback
+    for k, v in name_bias_map.items():
+        if k.lower() == name.lower():
+            return canonicalize(v)
+    # Domain-like keys in name map
+    raw = name_bias_map.get(name.lower())
+    if raw:
+        return canonicalize(raw)
+    return None
+
+def lookup_display_name_by_domain(domain: str) -> str | None:
+    # Direct domain alias
+    if domain in domain_aliases:
+        return domain_aliases[domain]
+    # Try without leading 'www.'
+    if domain.startswith("www."):
+        d2 = domain[4:]
+        if d2 in domain_aliases:
+            return domain_aliases[d2]
     return None
 
 def lookup_bias_by_domain(url: str) -> str | None:
@@ -323,52 +527,55 @@ def label_article_bias(input_path, output_path, default_bias="Center", unmapped_
     with open(input_path, "r", encoding="utf-8") as f:
         articles = json.load(f)
 
-    # Collect unmapped for reporting
-    missing_items = []
-    missing_map = defaultdict(int)
+    unmapped = []
+    for a in articles:
+        bias = None
 
-    for article in articles:
-        source_name = article.get("source", "")
-        url = article.get("url", "")
+        # Prefer explicit bias in article if present
+        if a.get("bias"):
+            bias = canonicalize(a["bias"])
+        else:
+            # Try domain-based
+            bias = lookup_bias_by_domain(a.get("url", ""))
 
-        bias = lookup_bias_by_name(source_name)
+            # Try name-based (source, outlet)
+            if not bias:
+                for key in ("source", "outlet", "publisher", "site_name"):
+                    val = a.get(key)
+                    if val:
+                        bias = lookup_bias_by_name(val)
+                        if bias:
+                            break
+
         if not bias:
-            bias = lookup_bias_by_domain(url)
+            bias = default_bias if default_bias else "Unknown"
 
-        if not bias:
-            domain = get_domain(url) or ""
-            id_for_log = domain or (source_name.strip().lower() if source_name else "unknown")
-            missing_map[id_for_log] += 1
-            print(f"⚠️ Missing bias mapping for: {source_name or url or 'UNKNOWN'} — defaulting to '{default_bias}'")
-            bias = default_bias
+        a["bias"] = bias
 
-        # Ensure canonical labels always
-        article["bias"] = canonicalize(bias, default=default_bias)
+        # collect unmapped
+        if bias == "Unknown":
+            unmapped.append({
+                "url": a.get("url"),
+                "domain": get_domain(a.get("url", "")),
+                "source": a.get("source") or a.get("outlet"),
+                "title": a.get("title")
+            })
 
-    # Write articles with bias
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(articles, f, indent=2, ensure_ascii=False)
 
-    # Build & overwrite single unmapped report file every run
-    if missing_map:
-        # Convert to list of dicts sorted by count desc
-        for key, count in sorted(missing_map.items(), key=lambda kv: kv[1], reverse=True):
-            missing_items.append({"id": key, "count": count})
-        report = {"unmapped": missing_items}
-    else:
-        report = {"message": "No unmapped domains in latest build"}
+    # Export unmapped for later inspection
+    if unmapped:
+        with open("unmapped_bias.json", "w", encoding="utf-8") as f:
+            json.dump(unmapped, f, indent=2, ensure_ascii=False)
 
-    with open(unmapped_output, "w", encoding="utf-8") as f:
-        json.dump(report, f, indent=2, ensure_ascii=False)
+    print(f"✅ Labeled {len(articles)} articles with bias; {len(unmapped)} unknowns exported to unmapped_bias.json")
 
-    print(f"✅ Tagged {len(articles)} articles with bias and saved to {output_path}")
-    if missing_map:
-        print(f"📝 Wrote unmapped domain report → {unmapped_output} ({len(missing_items)} items)")
-    else:
-        print(f"📝 {unmapped_output}: No unmapped domains in latest build")
-
+# ----------------------------
+# CLI
+# ----------------------------
 if __name__ == "__main__":
-    args = sys.argv
+    args = sys.argv[1:]
     if "--date" in args:
         idx = args.index("--date") + 1
         if idx < len(args):
