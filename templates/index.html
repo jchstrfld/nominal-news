@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily News Summary</title>
+  <title>Nominal News</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -71,11 +71,33 @@
     }
     .article-sources { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; 
     }
+
+    /* --- NEW: image block styling for topic cards --- */
+    .topic-image {
+      margin: 8px 0 12px 0;
+    }
+    .topic-image img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+    .image-caption {
+      font-size: 0.85rem;
+      color: #555;
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .image-credit {
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🗞️ Daily Consensus News Summary</h1>
+    <h1>🗞️ Nominal News</h1>
 
     <form method="get" action="/" onsubmit="showStatus()">
       <label for="date">Test a specific date:</label>
@@ -111,6 +133,22 @@
     {% for topic in summaries %}
       <div class="card">
         <h2>{{ topic.topic_title }}</h2>
+
+        {# NEW: optional image/figure block #}
+        {% if topic.image_url %}
+        <figure class="topic-image">
+          <img src="{{ topic.image_url }}"
+            alt="{{ topic.image_alt }}"
+            width="{{ topic.image_width or 600 }}"
+            loading="lazy"
+            style="max-width:{{ topic.image_max_width or 600 }}px;width:100%;height:auto;display:block;border-radius:8px;" />
+          {% if topic.image_credit %}
+          <figcaption class="image-caption">
+            <span class="image-credit">{{ topic.image_credit }}</span>
+          </figcaption>
+          {% endif %}
+        </figure>
+        {% endif %}
 
         {% if topic.summary %}
           <p><strong>Summary:</strong> {{ topic.summary }}</p>
