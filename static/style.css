@@ -9,23 +9,16 @@ body {
 }
 
 .container {
-  max-width: 800px;
+  max-width: 640px;
   margin: 2rem auto;
   padding: 0 1rem;
 }
 
+/* Base headings (your page h1 is now inside .done-signal, but keep this safe) */
 h1 {
   text-align: center;
   color: #2c3e50;
   margin-bottom: 2rem;
-}
-
-.card {
-  background-color: #ffffff;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 h2 {
@@ -40,6 +33,7 @@ h3 {
   color: #34495e;
 }
 
+/* Global lists */
 ul {
   padding-left: 1.2rem;
   margin: 0.5rem 0 1rem 0;
@@ -49,6 +43,7 @@ li {
   margin-bottom: 0.4rem;
 }
 
+/* Global links (component link classes override these) */
 a {
   color: #0077cc;
   text-decoration: none;
@@ -58,6 +53,70 @@ a:hover {
   text-decoration: underline;
 }
 
+/* Card */
+.card {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  margin-bottom: 1.2rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Topic image block (moved from index.html inline styles) --- */
+.topic-image {
+  margin: 8px 0 12px 0;
+}
+
+.topic-image img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.image-caption {
+  font-size: 0.85rem;
+  color: #555;
+  margin-top: 4px; /* half-step from 8px grid, rare but OK */
+  display: flex;
+  flex-direction: column;
+  gap: 2px; /* kept as-is (tiny optical spacing) */
+}
+
+.image-credit {
+  font-style: italic;
+}
+
+/* --- Topic section spacing system --- */
+/* Section titles inside cards */
+.card p > strong,
+.card .chart-title {
+  font-weight: 600;
+  display: block;
+  margin: 32px 0 8px 0;
+}
+
+/* First section title in a card should not push down from the top */
+.card > p:first-of-type > strong {
+  margin-top: 0;
+}
+
+/* Body blocks following titles */
+.card p + p,
+.card p + ul,
+.card .chart-title + p,
+.card .chart-title + .balance-wrap {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+/* Lists (Key Takeaways) spacing normalization */
+.card ul {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+/* Fallback note */
 .fallback {
   color: #d35400;
   font-size: 0.9rem;
@@ -65,21 +124,366 @@ a:hover {
   font-style: italic;
 }
 
-.chip {
-  display: inline-block;
-  padding: 6px 12px;
-  margin: 4px 4px 0 0;
-  border-radius: 16px;
-  font-size: 0.9em;
-  color: #333;
-  text-decoration: none;
-  border: 1px solid #ccc; /* This will be overridden by inline border-color */
-  white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* --- Done signal (intro) --- */
+.done-signal {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 32px 0 24px 0;
 }
 
-.chip:hover {
-  background-color: #e0e0e0;
+.done-title {
+  margin: 0 0 8px 0;
+  font-weight: 750;
+  font-size: 1.45rem;
+  line-height: 1.2;
+  color: #1e272e;
+  text-align: left;
+}
+
+.done-body {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #333;
+}
+
+.done-meta {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.2;
+  color: #666;
+}
+
+/* --- Top brief card --- */
+.brief-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  margin: 32px 0 32px 0;
+}
+
+.brief-title {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  line-height: 1.25;
+  font-weight: 650;
+  color: #1e272e;
+}
+
+.brief-subtitle {
+  margin: 0 0 16px 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: #555;
+}
+
+.brief-list {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.brief-item {
+  margin: 0 0 8px 0;
+  line-height: 1.45;
+}
+
+.brief-item:last-child {
+  margin-bottom: 0;
+}
+
+.brief-link {
+  color: #005fcc;            /* accessible link color */
+  text-decoration: underline;
+  font-weight: 500;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.brief-link:hover {
+  text-decoration: none;
+}
+
+.brief-link:focus-visible {
+  outline: 2px solid #005fcc;
+  outline-offset: 2px;
+}
+
+/* --- Coverage balance stacked bar --- */
+.balance-wrap {
+  margin-bottom: 16px;
+}
+
+/* Rolled-up display colors (white text accessible) */
+.seg-left { background: #1d4ed8; }    /* Left (includes Far Left) */
+.seg-center { background: #6d28d9; }  /* Center */
+.seg-right { background: #b91c1c; }   /* Right (includes Far Right) */
+.seg-unknown { background: #6b7280; } /* Unknown/Uncategorized */
+
+.balance-caption {
+  display: none; /* hide on desktop */
+  margin: 8px 0 0 0;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: #555;
+}
+
+.balance-note {
+  margin: 8px 0 0 0;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: #777;
+}
+
+/* --- Coverage balance: single labeled stacked bar --- */
+.balance-labels {
+  display: flex;         /* critical: makes segments stack horizontally */
+  flex-direction: row;   /* explicit */
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;       /* 8px grid */
+}
+
+.balance-label {
+  flex: 0 0 auto;        /* do NOT stretch to full width */
+  display: flex;         /* center label */
+  align-items: center;
+  justify-content: center;
+
+  padding: 6px 2px;      /* your current padding */
+  font-size: 0.78rem;
+  line-height: 1.1;
+  font-weight: 600;
+
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+
+  min-width: 0; /* keep */
+}
+
+/* --- Sources: calm evidence strip + expandable list --- */
+.sources-block {
+  margin-top: 16px;
+}
+
+.sources-summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #555;
+  line-height: 1.4;
+  list-style: none;
+
+  display: flex;
+  flex-wrap: wrap;      /* allows wrapping */
+  gap: 8px;
+  align-items: center;
+}
+
+/* Remove default disclosure spacing quirks in some browsers */
+.sources-collapsible > summary {
+  list-style: none;
+}
+
+.sources-summary-text {
+  font-weight: 600;
+  color: #555;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.sources-balance {
+  display: flex;
+  flex-wrap: wrap;      /* pills wrap one by one */
+  gap: 8px;
+  margin-left: 0;       /* remove the fixed left margin so it can sit on same line */
+  flex: 1 1 auto;       /* important: allows it to share the first line */
+  min-width: 0;         /* prevents flex overflow weirdness */
+}
+
+.lean-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #777;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.lean-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.sources-list {
+  margin-top: 16px;
+}
+
+/* Rows injected by JS */
+.source-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.source-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.source-lean {
+  font-size: 0.85rem;
+  color: #777;
+  white-space: nowrap;
+}
+
+.source-link {
+  color: #005fcc;
+  text-decoration: underline;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.source-link:hover {
+  text-decoration: none;
+}
+
+.source-link:focus-visible {
+  outline: 2px solid #005fcc;
+  outline-offset: 2px;
+}
+
+/* Only hide chips after JS transforms the list */
+.sources-list.is-transformed .chip {
+  display: none;
+}
+
+/* --- Closure --- */
+.closure-signal {
+  margin: 32px 0 16px 0;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.closure-title {
+  margin: 0 0 8px 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+  color: #1e272e;
+}
+
+.closure-body {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: #555;
+}
+
+/* Back to top (accessible link style) */
+.back-to-top {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #005fcc;
+  text-decoration: underline;
+}
+
+.back-to-top:hover {
+  text-decoration: none;
+}
+
+.back-to-top:focus-visible {
+  outline: 2px solid #005fcc;
+  outline-offset: 2px;
+}
+
+/* --- Footer --- */
+.footer-divider {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 32px 0 16px 0;
+}
+
+.site-footer {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.footer-line {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #777;
+}
+
+.footer-line + .footer-line {
+  margin-top: 8px;
+}
+
+/* Mobile/narrow: show caption, hide in-bar text */
+@media (max-width: 520px) {
+  .balance-caption {
+    display: block;
+    font-size: 0.9rem;      /* slightly larger for phone readability */
+  }
+
+  .balance-label {
+    font-size: 0;           /* hide label text only */
+    padding: 8px 0;         /* keep bar height */
+  }
+}
+
+/* --- Sources grouping (expanded view) --- */
+.source-groups {
+  margin-top: 8px;
+}
+
+.source-group {
+  margin-top: 16px;
+}
+
+.source-group:first-child {
+  margin-top: 0;
+}
+
+.source-group-title {
+  font-size: 0.85rem;
+  color: #777;
+  font-weight: 650;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.source-group-count {
+  font-weight: 500;
+  color: #777;
+}
+
+/* After grouping, the per-row lean label is redundant */
+.source-groups .source-lean {
+  display: none;
+}
+
+.source-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid #f0f0f0;
+}
+
+.topic-summary {
+  margin: 0 0 16px 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #333;
 }
