@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nominal News</title>
   <link rel="stylesheet" href="/static/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     #status {
       display: inline-block;
@@ -20,84 +20,12 @@
     .articles-start {
       margin-top: 16px;
     }
-    /* Left-align chart + legend together, fixed 200px height, full width, no vertical margins */
-    .chart-container {
-      width: 100%;
-      height: 200px;
-      margin: 16px 0 0 0;
-      display: flex;               /* chart + legend in a row */
-      justify-content: flex-start; /* left-align the whole block */
-      align-items: center;         /* vertical align */
-      gap: 12px;                   /* space between pie and legend */
-    }
-    .chart-title {
-      margin: 0;
-    }
-    /* Fix the pie area so the canvas doesn't expand to full row */
-    .pie-wrap {
-      width: 220px;   /* adjust if you want a smaller/larger pie */
-      height: 200px;  /* matches container height */
-      display: block;
-    }
-    .legend-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      font-size: 0.9rem;
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      line-height: 1.2;
-    }
-    .legend-swatch {
-      width: 12px;
-      height: 12px;
-      border-radius: 2px;
-      flex: 0 0 12px;
-    }
-    .chip {
-      display: inline-block;
-      background-color: #eef;
-      color: #333;
-      padding: 4px 8px;
-      border-radius: 16px;
-      font-size: 0.85rem;
-      text-decoration: none;
-      margin: 2px;
-    }
-    .sources-collapsible summary { cursor: pointer; 
-    }
-    .article-sources { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; 
-    }
-
-    /* --- NEW: image block styling for topic cards --- */
-    .topic-image {
-      margin: 8px 0 12px 0;
-    }
-    .topic-image img {
-      display: block;
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-    }
-    .image-caption {
-      font-size: 0.85rem;
-      color: #555;
-      margin-top: 4px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .image-credit {
-      font-style: italic;
-    }
   </style>
 </head>
+
 <body>
   <div class="container">
-    <h1>🗞️ Nominal News</h1>
+    <a id="top"></a>
 
     <form method="get" action="/" onsubmit="showStatus()">
       <label for="date">Test a specific date:</label>
@@ -118,6 +46,7 @@
         const summariesLength = {{ summaries|length or 0 }};
         const status = document.getElementById('status');
         const urlParams = new URLSearchParams(window.location.search);
+
         if (urlParams.has("date")) {
           if (summariesLength > 0) {
             status.textContent = "✅ Done!";
@@ -129,144 +58,394 @@
       });
     </script>
 
+    {% set topics_count = summaries|length %}
+    {% set estimated_minutes = ((topics_count * 0.75) + 2) | round(0, 'common') | int %}
+    {% if estimated_minutes < 3 %}{% set estimated_minutes = 3 %}{% endif %}
+    {% if estimated_minutes > 12 %}{% set estimated_minutes = 12 %}{% endif %}
+
+    <div class="done-signal">
+      <h1 class="done-title">Take a breath. Let&#39;s start today&#39;s news.</h1>
+
+      <p class="done-body">
+        Like your emotional availability, today&#39;s edition is finite. Skim the topics, then you&#39;re done. If you're not in the headspace today, come back tomorrow.
+      </p>
+
+      <p class="done-meta">
+        {{ topics_count }} topics • {{ estimated_minutes }} minutes from caught up • Topics ordered by widest coverage
+      </p>
+    </div>
+
+    {% set front_page = summaries[:3] %}
+    {% if front_page and front_page|length > 0 %}
+      <div class="brief-card">
+        <h3 class="brief-title">If you read nothing else…</h3>
+        <p class="brief-subtitle">These are the most widely covered stories today.</p>
+
+        <ul class="brief-list">
+          {% for fp in front_page %}
+            <li class="brief-item">
+              <a class="brief-link" href="#topic-{{ loop.index }}">{{ fp.topic_title }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
     <div class="articles-start">
-    {% for topic in summaries %}
-      <div class="card">
-        <h2>{{ topic.topic_title }}</h2>
+      {% for topic in summaries %}
+        <div class="card" id="topic-{{ loop.index }}">
+          <h2>{{ topic.topic_title }}</h2>
 
-        {# NEW: optional image/figure block #}
-        {% if topic.image_url %}
-        <figure class="topic-image">
-          <img src="{{ topic.image_url }}"
-            alt="{{ topic.image_alt }}"
-            width="{{ topic.image_width or 600 }}"
-            loading="lazy"
-            style="max-width:{{ topic.image_max_width or 600 }}px;width:100%;height:auto;display:block;border-radius:8px;" />
-          {% if topic.image_credit %}
-          <figcaption class="image-caption">
-            <span class="image-credit">{{ topic.image_credit }}</span>
-          </figcaption>
+          {% if topic.image_url %}
+            <figure class="topic-image">
+              <img
+                src="{{ topic.image_url }}"
+                alt="{{ topic.image_alt }}"
+                width="{{ topic.image_width or 600 }}"
+                loading="lazy"
+                style="max-width:{{ topic.image_max_width or 600 }}px;width:100%;height:auto;display:block;border-radius:8px;"
+              />
+              {% if topic.image_credit %}
+                <figcaption class="image-caption">
+                  <span class="image-credit">{{ topic.image_credit }}</span>
+                </figcaption>
+              {% endif %}
+            </figure>
           {% endif %}
-        </figure>
-        {% endif %}
 
-        {% if topic.summary %}
-          <p><strong>Summary:</strong> {{ topic.summary }}</p>
-        {% endif %}
+          {% if topic.summary %}
+            <p class="topic-summary">{{ topic.summary }}</p>
+          {% endif %}
 
-        {% if topic.takeaways and topic.takeaways|length > 0 %}
-          <p><strong>Key Takeaways:</strong></p>
-          <ul>
-            {% for takeaway in topic.takeaways %}
-              <li>{{ takeaway }}</li>
-            {% endfor %}
-          </ul>
-        {% endif %}
+          {% if topic.takeaways and topic.takeaways|length > 0 %}
+            <p><strong>Why It Matters</strong></p>
+            <ul>
+              {% for takeaway in topic.takeaways %}
+                <li>{{ takeaway }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
 
-        {% if topic.bias_distribution and topic.bias_distribution|length > 0 %}
-          <p class="chart-title"><strong>Source Political Lean:</strong></p>
-          <div class="chart-container">
-            <div class="pie-wrap">
-              <!-- canvas fills its own fixed pie area -->
-              <canvas id="biasChart{{ loop.index }}" style="width: 100%; height: 100%;"></canvas>
+          {% if topic.bias_distribution and topic.bias_distribution|length > 0 %}
+            {% set dist = topic.bias_distribution %}
+
+            {# Roll up extremes for display #}
+            {% set pct_left = (dist.get('Far Left', 0) or 0) + (dist.get('Left', 0) or 0) %}
+            {% set pct_center = (dist.get('Center', 0) or 0) %}
+            {% set pct_right = (dist.get('Right', 0) or 0) + (dist.get('Far Right', 0) or 0) %}
+
+          {# Only show Uncategorized if the data explicitly contains it #}
+          {% set pct_uncat = (dist.get('Unknown', 0) or 0) + (dist.get('Uncategorized', 0) or 0) %}
+
+            <p class="chart-title"><strong>How This Was Covered</strong></p>
+            <p class="balance-note">Percent of outlets covering this topic.</p>
+            <div class="balance-wrap"
+              role="img"
+              aria-label="Coverage balance bar. Left {{ pct_left }} percent, center {{ pct_center }} percent, right {{ pct_right }} percent{% if pct_uncat %}, uncategorized {{ pct_uncat }} percent{% endif %}.">
+
+              {% set min_full_label_pct = 14 %}
+              {% set min_percent_only_pct = 9 %}
+
+              <div class="balance-labels" aria-hidden="true">
+                {% if pct_left > 0 %}
+                  <span class="balance-label seg-left" style="width: {{ pct_left }}%">
+                    {% if pct_left >= min_full_label_pct %}
+                      Left {{ pct_left }}%
+                    {% elif pct_left >= min_percent_only_pct %}
+                      {{ pct_left }}%
+                    {% endif %}
+                  </span>
+                {% endif %}
+
+                {% if pct_center > 0 %}
+                  <span class="balance-label seg-center" style="width: {{ pct_center }}%">
+                    {% if pct_center >= min_full_label_pct %}
+                      Center {{ pct_center }}%
+                    {% elif pct_center >= min_percent_only_pct %}
+                      {{ pct_center }}%
+                    {% endif %}
+                  </span>
+                {% endif %}
+
+                {% if pct_right > 0 %}
+                  <span class="balance-label seg-right" style="width: {{ pct_right }}%">
+                    {% if pct_right >= min_full_label_pct %}
+                      Right {{ pct_right }}%
+                    {% elif pct_right >= min_percent_only_pct %}
+                      {{ pct_right }}%
+                    {% endif %}
+                  </span>
+                {% endif %}
+
+                {% if pct_uncat > 0 %}
+                  <span class="balance-label seg-unknown" style="width: {{ pct_uncat }}%">
+                    {% if pct_uncat >= min_full_label_pct %}
+                      Uncategorized {{ pct_uncat }}%
+                    {% elif pct_uncat >= min_percent_only_pct %}
+                      {{ pct_uncat }}%
+                    {% endif %}
+                  </span>
+                {% endif %}
+
+              </div>
+
+              <!-- Mobile fallback: only shown on small widths via CSS -->
+              <p class="balance-caption">
+                Left {{ pct_left }}% · Center {{ pct_center }}% · Right {{ pct_right }}%{% if pct_uncat > 0 %} · Uncategorized {{ pct_uncat }}%{% endif %}
+              </p>
+
             </div>
-            <!-- custom DOM legend will be injected here -->
-            <div class="legend-wrap" id="biasLegend{{ loop.index }}"></div>
-          </div>
-        {% endif %}
+          {% endif %}
 
-        {% if topic.html_chips %}
-        {% set chips_list = topic.html_chips.split('</a>') %}
-        {% set chips_list = chips_list[:-1] %} {# remove last empty from split #}
-        {% set first_chips = chips_list[:12] %}
-        {% set remaining_chips = chips_list[12:] %}
+          {% if topic.html_chips %}
+            {% set n_sources = topic.num_sources or 0 %}
+            {% set dist = topic.bias_distribution or {} %}
 
-        <p style="margin-top: 16px;"><strong>Sources ({{ topic.num_sources }})</strong></p>
-        <div class="article-sources">
-          {{ first_chips | join('</a>') | safe }}{% if first_chips %}</a>{% endif %}
-          {% if remaining_chips %}
-          <details class="sources-collapsible">
-            <summary>Show more</summary>
-            {{ remaining_chips | join('</a>') | safe }}</a>
-          </details>
+            {# ---- Accurate lean counts (no rounding leftovers) ---- #}
+
+            {# 1) Compute Uncategorized ONLY from explicit pct (if present) #}
+            {% set pct_uncat = (dist.get('Unknown', 0) or 0) + (dist.get('Uncategorized', 0) or 0) %}
+            {% set uncat = ((n_sources * pct_uncat) / 100) | round(0, 'common') | int %}
+            {% if uncat < 0 %}{% set uncat = 0 %}{% endif %}
+            {% if uncat > n_sources %}{% set uncat = n_sources %}{% endif %}
+
+            {# 2) Remaining sources to allocate among known leans #}
+            {% set remaining = n_sources - uncat %}
+
+            {# 3) Compute raw (non-rounded) expected counts for known buckets using remaining #}
+            {% set raw_far_left = (remaining * (dist.get('Far Left', 0) or 0)) / 100 %}
+            {% set raw_left     = (remaining * (dist.get('Left', 0) or 0)) / 100 %}
+            {% set raw_center   = (remaining * (dist.get('Center', 0) or 0)) / 100 %}
+            {% set raw_right    = (remaining * (dist.get('Right', 0) or 0)) / 100 %}
+            {% set raw_far_right= (remaining * (dist.get('Far Right', 0) or 0)) / 100 %}
+
+            {# 4) Floor them #}
+            {% set far_left = raw_far_left | round(0, 'floor') | int %}
+            {% set left     = raw_left | round(0, 'floor') | int %}
+            {% set center   = raw_center | round(0, 'floor') | int %}
+            {% set right    = raw_right | round(0, 'floor') | int %}
+            {% set far_right= raw_far_right | round(0, 'floor') | int %}
+
+            {# 5) Distribute remainder to largest fractional parts (Largest Remainder Method) #}
+            {% set allocated = far_left + left + center + right + far_right %}
+            {% set remainder = remaining - allocated %}
+
+            {% set fracs = [
+              {'k':'far_left', 'rem': (raw_far_left - far_left)},
+              {'k':'left', 'rem': (raw_left - left)},
+              {'k':'center', 'rem': (raw_center - center)},
+              {'k':'right', 'rem': (raw_right - right)},
+              {'k':'far_right', 'rem': (raw_far_right - far_right)}
+            ] | sort(attribute='rem', reverse=True) %}
+
+            {% for i in range(remainder) %}
+              {% set key = fracs[i % (fracs|length)].k %}
+              {% if key == 'far_left' %}{% set far_left = far_left + 1 %}
+              {% elif key == 'left' %}{% set left = left + 1 %}
+              {% elif key == 'center' %}{% set center = center + 1 %}
+              {% elif key == 'right' %}{% set right = right + 1 %}
+              {% elif key == 'far_right' %}{% set far_right = far_right + 1 %}
+              {% endif %}
+            {% endfor %}
+
+            {# 6) Final Uncategorized count #}
+            {% set unknown = uncat %}
+
+            <details class="sources-collapsible sources-block">
+              <summary class="sources-summary">
+                <span class="sources-summary-text">{{ n_sources }} Stories</span>
+
+                <span class="sources-balance">
+                  {% if far_left > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#0b2e8a"></span>{{ far_left }} Far Left</span>{% endif %}
+                  {% if left > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#1d4ed8"></span>{{ left }} Left</span>{% endif %}
+                  {% if center > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#6d28d9"></span>{{ center }} Center</span>{% endif %}
+                  {% if right > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#b91c1c"></span>{{ right }} Right</span>{% endif %}
+                  {% if far_right > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#7f1d1d"></span>{{ far_right }} Far Right</span>{% endif %}
+                  {% if unknown > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#6b7280"></span>{{ unknown }} Uncategorized</span>{% endif %}
+                </span>
+              </summary>
+
+              <div class="sources-list">
+                {{ topic.html_chips | safe }}
+              </div>
+            </details>
+          {% endif %}
+
+          {% if topic.fallback_summary %}
+            <p class="fallback">⚠️ This summary was generated from fallback content due to weak article cohesion.</p>
           {% endif %}
         </div>
-        {% endif %}
+      {% endfor %}
 
-        {% if topic.fallback_summary %}
-        <p class="fallback">⚠️ This summary was generated from fallback content due to weak article cohesion.</p>
-        {% endif %}
-      </div>
-    {% endfor %}
+      {% if topics_count > 0 %}
+        {% set total_source_mentions = summaries | map(attribute='num_sources') | map('default', 0) | sum %}
+        <div class="closure-signal">
+          <h2 class="closure-title">Phew, that’s enough news for today.</h2>
+
+          <p class="closure-body">
+            You covered <strong>{{ topics_count }}</strong> topics{% if total_source_mentions > 0 %} across <strong>{{ total_source_mentions }}</strong> sources{% endif %}.
+            Great work getting through it all. Come back tomorrow for more.
+          </p>
+
+          <a class="back-to-top" href="#top">Back to top ↑</a>
+        </div>
+      {% endif %}
     </div>
+
+    <hr class="footer-divider" />
+    <footer class="site-footer">
+      <p class="footer-line">Made in Chicago. Written for normalcy. Designed against outrage.</p>
+      <p class="footer-line">Copyright © <span id="footerYear"></span> Nominal News. All rights reserved.</p>
+    </footer>
   </div>
 
   <script>
-    window.addEventListener("load", function () {
-      const colorMap = {
-        "Far Left": "#0B36B8",
-        "Left": "#275BF5",
-        "Center": "#894AB3",
-        "Right": "#EB4040",
-        "Far Right": "#C43D31",
-        "Unknown": "#C6C6C6"
+    document.addEventListener("DOMContentLoaded", () => {
+      const yearEl = document.getElementById("footerYear");
+      if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+      // IMPORTANT: keys are lowercase; include BOTH new + old palettes
+      const leanByColor = {
+        // New palette
+        "#0b2e8a": "Far Left",
+        "#1d4ed8": "Left",
+        "#6d28d9": "Center",
+        "#b91c1c": "Right",
+        "#7f1d1d": "Far Right",
+        "#6b7280": "Uncategorized",
+
+        // Old palette (so you don't break if html_chips still uses old colors)
+        "#0b36b8": "Far Left",
+        "#275bf5": "Left",
+        "#894ab3": "Center",
+        "#eb4040": "Right",
+        "#c43d31": "Far Right",
+        "#c6c6c6": "Uncategorized"
       };
 
-      const biasOrder = ["Far Left", "Left", "Center", "Right", "Far Right", "Unknown"];
+      function colorToHex(color) {
+        if (!color) return null;
 
-      const biasData = JSON.parse(`{{ summaries | map(attribute='bias_distribution') | map('default', {}) | list | tojson | safe }}`);
-      biasData.forEach((bias, index) => {
-        const canvas = document.getElementById(`biasChart${index + 1}`);
-        const legendEl = document.getElementById(`biasLegend${index + 1}`);
-        if (!canvas || !legendEl) return;
-
-        // Ensure total reaches 100 by padding with Unknown if needed
-        let total = 0;
-        biasOrder.forEach(key => { total += bias[key] || 0; });
-        if (total < 100) {
-          bias["Unknown"] = (bias["Unknown"] || 0) + (100 - total);
+        const hexMatch = color.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+        if (hexMatch) {
+          let h = hexMatch[0].toLowerCase();
+          if (h.length === 4) h = "#" + h.slice(1).split("").map(ch => ch + ch).join("");
+          return h;
         }
 
-        const orderedLabels = biasOrder.filter(key => key in bias);
-        const labels = orderedLabels.map(key => `${key} ${bias[key]}%`);
-        const values = orderedLabels.map(key => bias[key]);
-        const colors = orderedLabels.map(key => colorMap[key] || "#888");
+        const m = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/i);
+        if (!m) return null;
+        if (m[4] !== undefined && parseFloat(m[4]) === 0) return null;
 
-        const ctx = canvas.getContext("2d");
-        new Chart(ctx, {
-          type: 'pie',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: 'Bias Distribution',
-              data: values,
-              backgroundColor: colors
-            }]
-          },
-          options: {
-            maintainAspectRatio: false, // fill 200px container height
-            plugins: {
-              legend: { display: false }, // use our custom DOM legend
-              tooltip: {
-                callbacks: {
-                  label: function (context) {
-                    const percentage = context.parsed || 0;
-                    return `${percentage}%`;
-                  }
-                }
-              }
-            },
-            layout: { padding: 0 }
-          }
+        const r = parseInt(m[1], 10), g = parseInt(m[2], 10), b = parseInt(m[3], 10);
+        return "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
+      }
+
+      // Return the FIRST meaningful hex we can find (even if not mapped),
+      // so swatches match chip colors even when label mapping is missing.
+      function pickChipHex(el) {
+        const s = getComputedStyle(el);
+        const candidates = [
+          s.borderTopColor,
+          s.borderRightColor,
+          s.borderBottomColor,
+          s.borderLeftColor,
+          s.borderColor,
+          s.backgroundColor
+        ];
+
+        // 1) Prefer a color that maps to a known lean
+        for (const c of candidates) {
+          const hex = (colorToHex(c) || "").toLowerCase();
+          if (hex && leanByColor[hex]) return hex;
+        }
+
+        // 2) Fallback: return the first “real” color we can find
+        for (const c of candidates) {
+          const hex = (colorToHex(c) || "").toLowerCase();
+          if (hex && hex !== "#000000" && hex !== "#ffffff") return hex;
+        }
+
+        return null;
+      }
+
+      // Transform chips into grouped calm rows (with outlet + domain)
+      document.querySelectorAll(".sources-list").forEach((listEl) => {
+        const chips = Array.from(listEl.querySelectorAll("a.chip"));
+        if (chips.length === 0) return;
+
+        const order = ["Far Left", "Left", "Center", "Right", "Far Right", "Uncategorized"];
+
+        // Group header colors (category-level swatch)
+        const leanColor = {
+          "Far Left": "#0b2e8a",
+          "Left": "#1d4ed8",
+          "Center": "#6d28d9",
+          "Right": "#b91c1c",
+          "Far Right": "#7f1d1d",
+          "Uncategorized": "#6b7280"
+        };
+
+        const buckets = new Map(order.map(k => [k, []]));
+
+        chips.forEach((chip) => {
+          const hex = pickChipHex(chip); // your existing function
+          const lean = (hex && leanByColor[hex]) ? leanByColor[hex] : "Uncategorized";
+
+          // Build row WITHOUT per-row swatch (category header has it)
+          const row = document.createElement("div");
+          row.className = "source-row";
+
+          const link = document.createElement("a");
+          link.className = "source-link";
+          link.href = chip.href;
+          link.target = chip.target || "_blank";
+          link.rel = chip.rel || "noopener noreferrer";
+          link.textContent = chip.textContent.trim(); // outlet name
+
+          row.appendChild(link);
+
+          if (!buckets.has(lean)) buckets.set(lean, []);
+          buckets.get(lean).push(row);
         });
 
-        // Build DOM legend next to the pie
-        legendEl.innerHTML = labels.map((label, i) => `
-          <div class="legend-item">
-            <span class="legend-swatch" style="background:${colors[i]}"></span>
-            <span>${label}</span>
-          </div>
-        `).join('');
+        // Render grouped output
+        const wrapper = document.createElement("div");
+        wrapper.className = "source-groups";
+
+        order.forEach((lean) => {
+          const rows = buckets.get(lean) || [];
+          if (rows.length === 0) return;
+
+          const group = document.createElement("div");
+          group.className = "source-group";
+
+          const title = document.createElement("div");
+          title.className = "source-group-title";
+
+          const titleSwatch = document.createElement("span");
+          titleSwatch.className = "lean-swatch";
+          titleSwatch.style.background = leanColor[lean] || "#6b7280";
+
+          const titleText = document.createElement("span");
+          titleText.textContent = lean;
+
+          const count = document.createElement("span");
+          count.className = "source-group-count";
+          count.textContent = `(${rows.length})`;
+
+          title.appendChild(titleSwatch);
+          title.appendChild(titleText);
+          title.appendChild(count);
+
+          group.appendChild(title);
+          rows.forEach(r => group.appendChild(r));
+          wrapper.appendChild(group);
+        });
+
+        listEl.innerHTML = "";
+        listEl.appendChild(wrapper);
+        listEl.classList.add("is-transformed");
       });
     });
   </script>
