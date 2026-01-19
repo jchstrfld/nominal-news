@@ -19,10 +19,16 @@ load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Constants
-MODEL_NAME = "text-embedding-ada-002"
+MODEL_NAME = "text-embedding-3-small"
 EMBED_DIM = 1536
-MAX_TOKENS = 7000  # ✅ Safe limit under 8192 (token-based, not chars)
-ENCODING = tiktoken.encoding_for_model(MODEL_NAME)
+MAX_TOKENS = 7000  # keep as-is; conservative and safe
+
+# tiktoken may not recognize newer models if the installed package is older.
+# Fallback to cl100k_base (the correct tokenizer for embedding-3 models).
+try:
+    ENCODING = tiktoken.encoding_for_model(MODEL_NAME)
+except KeyError:
+    ENCODING = tiktoken.get_encoding("cl100k_base")
 
 # Handle --date argument
 args = sys.argv

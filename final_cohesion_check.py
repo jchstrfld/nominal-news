@@ -228,38 +228,42 @@ def collapse_identical_clusters(clusters: list[dict]) -> list[dict]:
 
     return list(best_by_sig.values())
 
-
 # ----------------------------
 # Semantic near-duplicate merge (token-free)
 # ----------------------------
+
 def _cluster_text(c: dict) -> str:
+    # Titles-only on purpose: descriptions frequently contain boilerplate that causes false TF-IDF matches.
     parts = []
     for a in c.get("articles", []):
-        t = a.get("title") or ""
-        d = a.get("description") or ""
-        if t: parts.append(t)
-        if d: parts.append(d)
+        t = (a.get("title") or "").strip()
+        if t:
+            parts.append(t)
     if not parts:
-        parts = [a.get("source","") for a in c.get("articles", [])]
+        parts = [a.get("source","") for a in c.get("articles", []) if a.get("source")]
     return " ".join(parts)
 
-
-def dedupe_topics(clusters: list[dict], url_overlap: float = 0.50, cos_thresh: float = 0.78) -> list[dict]:
+def dedupe_topics(
+    clusters: list[dict],
+    url_overlap: float = 0.50,
+    cos_thresh: float = 0.78,
+    nlp=None,
+) -> list[dict]:
     """
     Merge near-identical topics using:
       - URL Jaccard (host+path) >= url_overlap OR
-      - Cosine(TF-IDF over titles+descriptions) >= cos_thresh
-    Winner: more articles; tie-breaker: higher domain entropy; final: lower index.
+      - (Cosine(TF-IDF over TITLES) >= threshold AND entity overlap if spaCy is available)
+
+    This prevents late-stage false merges that create mixed-topic clusters.
     """
     n = len(clusters)
     if n <= 1:
         return clusters[:]
 
     texts = [_cluster_text(c) for c in clusters]
-    vec = TfidfVectorizer(ngram_range=(1,2), stop_words="english", max_features=5000)
+    vec = TfidfVectorizer(ngram_range=(1, 2), stop_words="english", max_features=5000)
     X = vec.fit_transform(texts)
-    XX = X @ X.T  # sparse
-    # SAFETY: convert regardless of sparse/dense type (no .A)
+    XX = X @ X.T
     sim = XX.toarray() if hasattr(XX, "toarray") else np.asarray(XX)
 
     url_sets = []
@@ -272,13 +276,23 @@ def dedupe_topics(clusters: list[dict], url_overlap: float = 0.50, cos_thresh: f
                 urls.add(key)
         url_sets.append(urls)
 
+    # Precompute entity sets per cluster (titles-only) if spaCy is available
+    ent_sets = None
+    if nlp:
+        ent_sets = []
+        for c in clusters:
+            t = _cluster_text(c)
+            ent_sets.append(_entities(nlp, t))
+
     def domain_entropy(c: dict) -> float:
         doms = []
         for a in c.get("articles", []):
             u = a.get("url") or a.get("url_normalized") or ""
             d = urlparse(u).netloc.lower() if u else ""
-            if d.startswith("www."): d = d[4:]
-            if d: doms.append(d)
+            if d.startswith("www."):
+                d = d[4:]
+            if d:
+                doms.append(d)
         if not doms:
             return 0.0
         cnt = Counter(doms)
@@ -300,15 +314,31 @@ def dedupe_topics(clusters: list[dict], url_overlap: float = 0.50, cos_thresh: f
             return i if ei > ej else j
         return i if i < j else j
 
+    # If no NER available, require a much higher cosine for TF-IDF merges
+    cos_thresh_no_ner = max(cos_thresh, 0.88)
+
     for i in range(n):
         if not keep[i]:
             continue
-        for j in range(i+1, n):
+        for j in range(i + 1, n):
             if not keep[j]:
                 continue
+
             a, b = url_sets[i], url_sets[j]
             jacc = (len(a & b) / len(a | b)) if (a or b) else 0.0
-            if jacc >= url_overlap or sim[i, j] >= cos_thresh:
+
+            tfidf_ok = False
+            if jacc >= url_overlap:
+                tfidf_ok = True
+            else:
+                if nlp and ent_sets is not None:
+                    # require at least one shared entity token between clusters
+                    shared = bool(ent_sets[i] & ent_sets[j])
+                    tfidf_ok = (sim[i, j] >= cos_thresh) and shared
+                else:
+                    tfidf_ok = (sim[i, j] >= cos_thresh_no_ner)
+
+            if tfidf_ok:
                 w = winner(i, j)
                 l = j if w == i else i
 
@@ -316,12 +346,12 @@ def dedupe_topics(clusters: list[dict], url_overlap: float = 0.50, cos_thresh: f
                 by_key = {}
                 for art in clusters[w].get("articles", []):
                     key = (art.get("url_normalized") or art.get("url") or "").split("?")[0].rstrip("/") \
-                          or (art.get("title","") + art.get("source","")).lower()
+                        or (art.get("title", "") + art.get("source", "")).lower()
                     if key:
                         by_key[key] = art
                 for art in clusters[l].get("articles", []):
                     key = (art.get("url_normalized") or art.get("url") or "").split("?")[0].rstrip("/") \
-                          or (art.get("title","") + art.get("source","")).lower()
+                        or (art.get("title", "") + art.get("source", "")).lower()
                     if key:
                         by_key[key] = art
 
@@ -330,10 +360,10 @@ def dedupe_topics(clusters: list[dict], url_overlap: float = 0.50, cos_thresh: f
 
     return [clusters[i] for i in range(n) if keep[i]]
 
-
 # ----------------------------
 # Heuristics + optional GPT validation
 # ----------------------------
+
 def _load_spacy():
     if spacy is None:
         return None
@@ -489,10 +519,10 @@ def main():
             "bias_distribution": bias_dist
         })
 
-    # 4) semantic near-duplicate merge (token-free)
-    deduped = dedupe_topics(final_candidates, url_overlap=0.50, cos_thresh=0.78)
+    # Semantic near-duplicate merge (token-free)
+    deduped = dedupe_topics(final_candidates, url_overlap=0.50, cos_thresh=0.78, nlp=nlp)
 
-    # 5) rank and cap top-K
+    # Rank and cap top-K
     ranked = sorted(deduped, key=matter_score, reverse=True)
     capped = ranked[: max(1, top_k)]
 
@@ -502,7 +532,7 @@ def main():
 
     print(f"✅ Saved {len(capped)} high-precision clusters to {output_file}")
 
-    # Optional console report (no tokens)
+    # Optional console report (token-free)
     if print_report:
         print("\n=== Final clusters (console report) ===")
         for idx, c in enumerate(capped, start=1):
