@@ -71,7 +71,9 @@ def merge_clusters(clusters, embeddings):
     for i in range(num):
         if i in used:
             continue
+
         group = clusters[i]["articles"][:]
+
         for j in range(i + 1, num):
             if j in used:
                 continue
@@ -79,7 +81,7 @@ def merge_clusters(clusters, embeddings):
             if sim >= SIM_THRESHOLD:
                 group.extend(clusters[j]["articles"])
                 used.add(j)
-        merged.append({"topic": f"Topic {i}", "articles": group})
+
         # Compute bias distribution
         bias_counts = {}
         total = 0
@@ -97,7 +99,7 @@ def merge_clusters(clusters, embeddings):
         merged.append({
             "topic": f"Topic {i}",
             "articles": group,
-            "bias_distribution": bias_distribution  # ✅ add this
+            "bias_distribution": bias_distribution
         })
 
     print(f"✅ Merged {num} clusters into {len(merged)} topic groups")
