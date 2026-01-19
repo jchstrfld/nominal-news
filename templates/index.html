@@ -95,6 +95,11 @@
       {% for topic in summaries %}
         <div class="card" id="topic-{{ loop.index }}">
           <h2>{{ topic.topic_title }}</h2>
+          {% if topic.category %}
+            <div class="topic-category cat-{{ topic.category_slug }}">
+              {{ topic.category }}
+            </div>
+          {% endif %}
 
           {% if topic.image_url %}
             <figure class="topic-image">
