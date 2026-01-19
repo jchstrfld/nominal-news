@@ -11,6 +11,7 @@ import difflib, re
 import requests
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+from transformers import pipeline
 import numpy as np
 
 # Summaries cache helpers (add summaries_cache.py next to this file)
@@ -47,6 +48,58 @@ ENCODING = tiktoken.encoding_for_model("gpt-4")
 PROMPT_VERSION = "v1.0-2025-08-12"
 SUMM_MODEL = "gpt-4"
 
+# ----------------------------
+# Cluster Topic Categories
+# ----------------------------
+
+CATEGORY_DEFS = [
+    {
+        "slug": "politics-government",
+        "name": "Politics & Government",
+    },
+    {
+        "slug": "global-affairs",
+        "name": "Global Affairs",
+    },
+    {
+        "slug": "economy-markets",
+        "name": "Economy & Markets",
+    },
+    {
+        "slug": "business",
+        "name": "Business",
+    },
+    {
+        "slug": "technology",
+        "name": "Technology",
+    },
+    {
+        "slug": "science-health",
+        "name": "Science & Health",
+    },
+    {
+        "slug": "climate-environment",
+        "name": "Climate & Environment",
+    },
+    {
+        "slug": "culture-society",
+        "name": "Culture & Society",
+    },
+]
+
+# Zero-shot classifier (local; no OpenAI tokens)
+# Use a smaller MNLI model for speed; upgrade to bart-large-mnli if you want higher accuracy.
+_ZS_MODEL = None
+_ZS = None
+
+def get_zero_shot():
+    global _ZS, _ZS_MODEL
+    if _ZS is None:
+        _ZS_MODEL = os.getenv("NN_ZS_MODEL", "facebook/bart-large-mnli")
+        print(f"🧠 Zero-shot model: {_ZS_MODEL}")
+        _ZS = pipeline("zero-shot-classification", model=_ZS_MODEL)
+    return _ZS
+
 with open(INPUT_FILE, "r", encoding="utf-8") as f:
     clusters = json.load(f)
 
@@ -56,9 +109,131 @@ top_clusters = ranked[:MAX_CLUSTERS]
 
 summaries = []
 
+def classify_topic_category(topic_title: str, summary: str, takeaways: list[str] | None, source_domains: list[str] | None = None) -> dict:
+    """
+    Token-free category classification using local zero-shot MNLI.
+    Returns best + runner-up + scores; may return category=None if ambiguous.
+    """
+
+    parts = [topic_title or "", summary or ""]
+    if takeaways:
+        parts.extend([t for t in takeaways if t])
+    text = " ".join([p.strip() for p in parts if p and p.strip()])
+    text = text[:1200]
+    if source_domains:
+        text = text + " Sources: " + ", ".join(source_domains[:8])
+
+    if not text:
+        return {
+            "category": None,
+            "category_slug": None,
+            "category_score": None,
+            "category_runner_up": None,
+            "category_runner_up_score": None,
+        }
+
+    # Model-friendly labels (no '&', more natural language)
+    labels = [
+        "politics and government",
+        "world and international affairs",
+        "economy and financial markets",
+        "business and companies",
+        "technology and computing",
+        "science and health",
+        "climate and environment",
+        "culture and society",
+    ]
+
+    label_to_category = {
+        "politics and government": ("Politics & Government", "politics-government"),
+        "world and international affairs": ("Global Affairs", "global-affairs"),
+        "economy and financial markets": ("Economy & Markets", "economy-markets"),
+        "business and companies": ("Business", "business"),
+        "technology and computing": ("Technology", "technology"),
+        "science and health": ("Science & Health", "science-health"),
+        "climate and environment": ("Climate & Environment", "climate-environment"),
+        "culture and society": ("Culture & Society", "culture-society"),
+    }
+
+    zs = get_zero_shot()
+
+    out = zs(
+    text,
+    labels,
+    multi_label=False,
+    hypothesis_template="This news topic is mainly about {}."
+    )
+
+    # Top-8 result
+    ranked_labels = out["labels"]
+    ranked_scores = [float(s) for s in out["scores"]]
+
+    best_label = ranked_labels[0]
+    best_score = ranked_scores[0]
+    runner_label = ranked_labels[1] if len(ranked_labels) > 1 else None
+    runner_score = ranked_scores[1] if len(ranked_scores) > 1 else 0.0
+    margin = best_score - runner_score
+
+    # --- Top-3 runoff when the top-2 are close ---
+    RUNOFF_MARGIN = 0.04
+    if len(ranked_labels) >= 3 and margin < RUNOFF_MARGIN:
+        top3 = ranked_labels[:3]
+        out3 = zs(
+            text,
+            top3,
+            multi_label=False,
+            hypothesis_template="This news topic is mainly about {}."
+        )
+        ranked_labels = out3["labels"]
+        ranked_scores = [float(s) for s in out3["scores"]]
+
+        best_label = ranked_labels[0]
+        best_score = ranked_scores[0]
+        runner_label = ranked_labels[1] if len(ranked_labels) > 1 else runner_label
+        runner_score = ranked_scores[1] if len(ranked_scores) > 1 else runner_score
+        margin = best_score - runner_score
+
+    # --- ALWAYS do a final 2-label runoff to get meaningful probabilities ---
+    if runner_label:
+        out2 = zs(
+            text,
+            [best_label, runner_label],
+            multi_label=False,
+            hypothesis_template="This news topic is mainly about {}."
+        )
+        best_label = out2["labels"][0]
+        best_score = float(out2["scores"][0])
+        runner_label = out2["labels"][1] if len(out2["labels"]) > 1 else runner_label
+        runner_score = float(out2["scores"][1]) if len(out2["scores"]) > 1 else runner_score
+        margin = best_score - runner_score
+
+    # Map to display names/slugs (FIX: define these variables)
+    best_name, best_slug = label_to_category[best_label]
+    runner_name = label_to_category[runner_label][0] if runner_label else None
+
+    # After runoff (2-label), scores are more meaningful; gate accordingly
+    MIN_SCORE = 0.42
+    MIN_MARGIN = 0.12
+
+    if best_score < MIN_SCORE or margin < MIN_MARGIN:
+        return {
+            "category": None,
+            "category_slug": None,
+            "category_score": round(best_score, 3),
+            "category_runner_up": runner_name,
+            "category_runner_up_score": round(runner_score, 3),
+        }
+
+    return {
+        "category": best_name,
+        "category_slug": best_slug,
+        "category_score": round(best_score, 3),
+        "category_runner_up": runner_name,
+        "category_runner_up_score": round(runner_score, 3),
+    }
 
 # ----------------------------
-# Step 2: Build image queries
+# Build image queries
 # ----------------------------
 def build_image_query(topic_title: str, summary_text: str | None = None, max_words: int = 12) -> str:
     """
@@ -848,9 +1023,19 @@ for idx, cluster in enumerate(top_clusters):
     image_license = img["license"] if img else ""
 
     all_articles = cluster["articles"]
+
     bias_dist = cluster.get("bias_distribution") or compute_bias_distribution(all_articles)
     if not bias_dist:
         print(f"⚠️ Cluster {idx} has no bias_distribution field")
+
+    from urllib.parse import urlparse
+    source_domains = sorted({
+        urlparse(a.get("url")).netloc.replace("www.", "")
+        for a in all_articles
+        if a.get("url")
+    })
+
+    cat = classify_topic_category(headline, body, takeaways, source_domains)
 
     summaries.append({
         "topic_title": headline,
@@ -873,6 +1058,12 @@ for idx, cluster in enumerate(top_clusters):
         "image_license": image_license,
         "image_width": 600,
         "image_max_width": 600,
+
+        "category": cat["category"],
+        "category_slug": cat["category_slug"],
+        "category_score": cat["category_score"],
+        "category_runner_up": cat["category_runner_up"],
+        "category_runner_up_score": cat["category_runner_up_score"],
     })
 
 # Safety valve — de-duplicate near-identical topic cards before writing JSON
@@ -887,7 +1078,12 @@ summaries = dedupe_topic_summaries(
 if summ_cache_dirty:
     save_summ_cache(summ_cache)
 
-with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+tmp_file = OUTPUT_FILE + ".tmp"
+
+with open(tmp_file, "w", encoding="utf-8") as f:
     json.dump(summaries, f, indent=2, ensure_ascii=False)
+
+import os
+os.replace(tmp_file, OUTPUT_FILE)
 
 print(f"✅ Saved top summaries to {OUTPUT_FILE}")

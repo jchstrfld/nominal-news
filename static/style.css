@@ -110,10 +110,25 @@ a:hover {
   margin-bottom: 16px;
 }
 
-/* Lists (Key Takeaways) spacing normalization */
+/* Lists (Why it Matters) spacing normalization */
 .card ul {
   margin-top: 0;
   margin-bottom: 16px;
+}
+
+/* --- Topic category tag --- */
+.topic-category {
+  display: inline-block;
+  margin: 0 0 8px 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+
+  font-size: 0.85rem;
+  line-height: 1.2;
+  font-weight: 600;
+
+  color: #000000;            /* high-contrast text */
+  background-color: #6b7280; /* fallback */
 }
 
 /* Fallback note */
@@ -124,7 +139,7 @@ a:hover {
   font-style: italic;
 }
 
-/* --- Done signal (intro) --- */
+/* --- Done signal --- */
 .done-signal {
   border: none;
   background: transparent;
@@ -487,3 +502,14 @@ a:hover {
   line-height: 1.5;
   color: #333;
 }
+
+/* --- Topic category tag colors --- */
+.cat-politics-government { background-color: #fa9e9e; }
+.cat-global-affairs      { background-color: #99c0ff; }
+.cat-economy-markets     { background-color: #fcd29c; }
+.cat-business            { background-color: #99e5ff; }
+.cat-technology          { background-color: #9999ff; }
+.cat-science-health      { background-color: #b0e8ca; }
+.cat-climate-environment { background-color: #bdebad; }
+.cat-culture-society     { background-color: #d3a8f0; }
+
