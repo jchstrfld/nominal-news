@@ -29,12 +29,17 @@ else:
 
 INPUT_FILE = f"clustered_articles_{date_str}.json"
 OUTPUT_FILE = f"grouped_articles_{date_str}.json"
-EMBED_MODEL = "text-embedding-ada-002"
+EMBED_MODEL = "text-embedding-3-small"
 SIM_THRESHOLD = 0.85
 
 # ✅ Token safety constants
 MAX_TOKENS = 7000
-ENCODING = tiktoken.encoding_for_model(EMBED_MODEL)
+
+# tiktoken may not recognize newer models if the package is old; fallback safely.
+try:
+    ENCODING = tiktoken.encoding_for_model(EMBED_MODEL)
+except KeyError:
+    ENCODING = tiktoken.get_encoding("cl100k_base")
 
 def truncate_to_token_limit(text, max_tokens):
     tokens = ENCODING.encode(text)
@@ -86,7 +91,8 @@ def merge_clusters(clusters, embeddings):
         bias_counts = {}
         total = 0
         for article in group:
-            bias = (article.get("bias") or "unknown").capitalize()
+            bias_raw = (article.get("bias") or "Unknown").strip()
+            bias = bias_raw.title().replace("-", " ")
             if bias != "Unknown":
                 bias_counts[bias] = bias_counts.get(bias, 0) + 1
                 total += 1
@@ -118,7 +124,7 @@ def main():
         if emb:
             embeddings.append(emb)
         else:
-            embeddings.append(np.zeros(1536))
+            embeddings.append(np.zeros(1536, dtype=np.float32))
 
     grouped = merge_clusters(raw, embeddings)
 

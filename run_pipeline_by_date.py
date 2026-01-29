@@ -6,11 +6,13 @@ from datetime import datetime
 import argparse
 
 STAGE_SCRIPTS = [
+    "fetch_articles_by_date.py",
     "normalize_and_dedupe_articles.py",
     "bias_labeler.py",
     "cluster_articles_by_embedding.py",
     "merge_similar_clusters.py",
     "filter_outlier_articles.py",
+    "report_cluster_cohesion.py",
     "final_cohesion_check.py",
     "summarize_grouped_topics.py",
 ]
