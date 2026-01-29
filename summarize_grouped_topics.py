@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 from datetime import datetime
 import argparse
 import tiktoken
-import difflib, re
+import difflib
+import re
 import requests
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -24,6 +25,7 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY", "").strip()
 IMAGES_OFF = os.getenv("NN_IMAGES_OFF", "0") == "1"
+
 # Local semantic model for relevance checks (no OpenAI tokens)
 # MiniLM is small + fast and good enough for relevance gating.
 EMBEDDER = SentenceTransformer("all-MiniLM-L6-v2")
@@ -41,6 +43,7 @@ OUTPUT_FILE = f"topic_summaries_{date_str}.json"
 MIN_ARTICLES = 6
 MAX_ARTICLES_PER_CLUSTER = 10
 MAX_CLUSTERS = 10
+
 MAX_TOKENS = 7000
 ENCODING = tiktoken.encoding_for_model("gpt-4")
 
@@ -48,49 +51,26 @@ ENCODING = tiktoken.encoding_for_model("gpt-4")
 PROMPT_VERSION = "v1.0-2025-08-12"
 SUMM_MODEL = "gpt-4"
 
+
 # ----------------------------
 # Cluster Topic Categories
 # ----------------------------
 
 CATEGORY_DEFS = [
-    {
-        "slug": "politics-government",
-        "name": "Politics & Government",
-    },
-    {
-        "slug": "global-affairs",
-        "name": "Global Affairs",
-    },
-    {
-        "slug": "economy-markets",
-        "name": "Economy & Markets",
-    },
-    {
-        "slug": "business",
-        "name": "Business",
-    },
-    {
-        "slug": "technology",
-        "name": "Technology",
-    },
-    {
-        "slug": "science-health",
-        "name": "Science & Health",
-    },
-    {
-        "slug": "climate-environment",
-        "name": "Climate & Environment",
-    },
-    {
-        "slug": "culture-society",
-        "name": "Culture & Society",
-    },
+    {"slug": "politics-government", "name": "Politics & Government"},
+    {"slug": "global-affairs", "name": "Global Affairs"},
+    {"slug": "economy-markets", "name": "Economy & Markets"},
+    {"slug": "business", "name": "Business"},
+    {"slug": "technology", "name": "Technology"},
+    {"slug": "science-health", "name": "Science & Health"},
+    {"slug": "climate-environment", "name": "Climate & Environment"},
+    {"slug": "culture-society", "name": "Culture & Society"},
 ]
 
 # Zero-shot classifier (local; no OpenAI tokens)
-# Use a smaller MNLI model for speed; upgrade to bart-large-mnli if you want higher accuracy.
 _ZS_MODEL = None
 _ZS = None
+
 
 def get_zero_shot():
     global _ZS, _ZS_MODEL
@@ -100,21 +80,50 @@ def get_zero_shot():
         _ZS = pipeline("zero-shot-classification", model=_ZS_MODEL)
     return _ZS
 
-with open(INPUT_FILE, "r", encoding="utf-8") as f:
-    clusters = json.load(f)
+def select_central_articles(articles: list[dict], k: int) -> list[dict]:
+    """
+    Pick the k most central articles in a cluster using local embeddings (token-free).
+    This improves summary quality by focusing on the semantic core of the cluster.
+    """
+    if not articles or k <= 0:
+        return []
 
-valid_clusters = [c for c in clusters if len(c["articles"]) >= MIN_ARTICLES]
-ranked = sorted(valid_clusters, key=lambda c: len(c["articles"]), reverse=True)
-top_clusters = ranked[:MAX_CLUSTERS]
+    if len(articles) <= k:
+        return articles[:]
 
-summaries = []
+    texts = []
+    for a in articles:
+        t = (a.get("title") or "").strip()
+        d = (a.get("description") or "").strip()
+        d = re.sub(r"<[^>]+>", " ", d)
+        d = re.sub(r"\s+", " ", d).strip()
+        if d:
+            d = d[:300]
+        txt = (t + ". " + d).strip() if t else d
+        texts.append(txt or (a.get("url") or ""))
+
+    try:
+        vecs = EMBEDDER.encode(texts, normalize_embeddings=True)
+        vecs = np.asarray(vecs, dtype=np.float32)
+
+        centroid = vecs.mean(axis=0, keepdims=True)
+        denom = np.linalg.norm(centroid, axis=1, keepdims=True)
+        centroid = centroid / np.maximum(denom, 1e-12)
+
+        sims = (vecs @ centroid.T).reshape(-1)
+        top_idx = np.argsort(sims)[::-1][:k].tolist()
+
+        # Return in the order of "most central first" (best for summarization)
+        return [articles[i] for i in top_idx]
+    except Exception:
+        # Fail-open: preserve current behavior
+        return articles[:k]
 
 def classify_topic_category(topic_title: str, summary: str, takeaways: list[str] | None, source_domains: list[str] | None = None) -> dict:
     """
     Token-free category classification using local zero-shot MNLI.
     Returns best + runner-up + scores; may return category=None if ambiguous.
     """
-
     parts = [topic_title or "", summary or ""]
     if takeaways:
         parts.extend([t for t in takeaways if t])
@@ -132,7 +141,6 @@ def classify_topic_category(topic_title: str, summary: str, takeaways: list[str]
             "category_runner_up_score": None,
         }
 
-    # Model-friendly labels (no '&', more natural language)
     labels = [
         "politics and government",
         "world and international affairs",
@@ -156,15 +164,13 @@ def classify_topic_category(topic_title: str, summary: str, takeaways: list[str]
     }
 
     zs = get_zero_shot()
-
     out = zs(
-    text,
-    labels,
-    multi_label=False,
-    hypothesis_template="This news topic is mainly about {}."
+        text,
+        labels,
+        multi_label=False,
+        hypothesis_template="This news topic is mainly about {}."
     )
 
-    # Top-8 result
     ranked_labels = out["labels"]
     ranked_scores = [float(s) for s in out["scores"]]
 
@@ -207,11 +213,9 @@ def classify_topic_category(topic_title: str, summary: str, takeaways: list[str]
         runner_score = float(out2["scores"][1]) if len(out2["scores"]) > 1 else runner_score
         margin = best_score - runner_score
 
-    # Map to display names/slugs (FIX: define these variables)
     best_name, best_slug = label_to_category[best_label]
     runner_name = label_to_category[runner_label][0] if runner_label else None
 
-    # After runoff (2-label), scores are more meaningful; gate accordingly
     MIN_SCORE = 0.42
     MIN_MARGIN = 0.12
 
@@ -232,9 +236,11 @@ def classify_topic_category(topic_title: str, summary: str, takeaways: list[str]
         "category_runner_up_score": round(runner_score, 3),
     }
 
+
 # ----------------------------
 # Build image queries
 # ----------------------------
+
 def build_image_query(topic_title: str, summary_text: str | None = None, max_words: int = 12) -> str:
     """
     Build a short, search-friendly image query from the topic title + summary.
@@ -276,6 +282,32 @@ def build_image_query(topic_title: str, summary_text: str | None = None, max_wor
     return " ".join(combined).strip()
 
 
+def build_short_image_queries(topic_title: str, headline: str) -> list[str]:
+    """
+    Accuracy-first query variants.
+    We DO NOT add generic coverage queries here.
+    """
+    def clean(s: str) -> str:
+        s = (s or "").strip()
+        s = re.sub(r"\s+", " ", s)
+        return s
+
+    q1 = clean(topic_title)
+
+    h = (headline or "")
+    h = re.sub(r"[\(\)\[\]\{\}]", " ", h)
+    h = re.sub(r"\b\d+%?\b", " ", h)
+    h = re.sub(r"[^A-Za-z0-9\s\-]", " ", h)
+    h = re.sub(r"\s+", " ", h).strip()
+    q2 = " ".join(h.split()[:8]).strip()
+
+    out = []
+    for q in [q1, q2]:
+        if q and q not in out:
+            out.append(q)
+    return out
+
+
 def build_wikimedia_query_from_headline(headline: str, max_terms: int = 4) -> str:
     """
     Wikimedia works best with entity names (people/places/orgs).
@@ -291,34 +323,64 @@ def build_wikimedia_query_from_headline(headline: str, max_terms: int = 4) -> st
     tokens = [w.strip("'") for w in words if w.lower() not in stop]
     return " ".join(tokens[:max_terms])
 
+def most_central_title(articles: list[dict]) -> str:
+    """
+    Math-only: pick the most central article title in the cluster using local embeddings.
+    Returns "" if not enough signal.
+    """
+    titles = []
+    for a in (articles or []):
+        t = (a.get("title") or "").strip()
+        if t:
+            titles.append(t)
+
+    if len(titles) < 2:
+        return titles[0] if titles else ""
+
+    try:
+        vecs = EMBEDDER.encode(titles)
+        centroid = np.mean(vecs, axis=0, keepdims=True)
+        sims = cosine_similarity(vecs, centroid).reshape(-1)
+        i = int(np.argmax(sims))
+        return titles[i]
+    except Exception:
+        return titles[0] if titles else ""
+
+def shorten_query(q: str, max_words: int = 6) -> str:
+    q = (q or "").strip()
+    q = re.sub(r"\b\d+%?\b", " ", q)
+    q = re.sub(r"[^A-Za-z0-9\s\-]", " ", q)
+    q = re.sub(r"\s+", " ", q).strip()
+    return " ".join(q.split()[:max_words]).strip()
+
 # ----------------------------
-# Relevance gating (1 + 2)
+# Relevance gating (semantic + overlap)
 # ----------------------------
 
 _STOP = {
-    "the","and","for","with","from","into","amid","after","before","over","under","about",
-    "this","that","these","those","are","was","were","been","being","has","have","had",
-    "will","would","should","could","might","also","says","said","its","their","them",
-    "a","an","of","in","on","at","to"
+    "the", "and", "for", "with", "from", "into", "amid", "after", "before", "over", "under", "about",
+    "this", "that", "these", "those", "are", "was", "were", "been", "being", "has", "have", "had",
+    "will", "would", "should", "could", "might", "also", "says", "said", "its", "their", "them",
+    "a", "an", "of", "in", "on", "at", "to"
 }
+
 
 def keyword_overlap_ok(topic_text: str, image_text: str, min_hits: int = 2) -> bool:
     """
-    Token overlap gate (#2). Computed automatically; no hand-built lists.
+    Token overlap gate (#2). Computed automatically.
     Require at least min_hits overlapping meaningful tokens.
     """
     def toks(s: str) -> set:
         s = (s or "").lower()
         s = re.sub(r"[^a-z0-9\s]+", " ", s)
-        out = {t for t in s.split() if len(t) > 2 and t not in _STOP}
-        return out
+        return {t for t in s.split() if len(t) > 2 and t not in _STOP}
 
     T = toks(topic_text)
     I = toks(image_text)
     if not T or not I:
         return False
-    hits = len(T & I)
-    return hits >= min_hits
+    return len(T & I) >= min_hits
+
 
 def semantic_sim_ok(topic_text: str, image_text: str, thresh: float = 0.32) -> bool:
     """
@@ -334,15 +396,18 @@ def semantic_sim_ok(topic_text: str, image_text: str, thresh: float = 0.32) -> b
     except Exception:
         return False
 
+
 def image_relevance_ok(topic_text: str, image_text: str, *, sim_thresh: float = 0.32, min_kw_hits: int = 2) -> bool:
     """
     Combined relevance gate: semantic AND keyword overlap.
     """
     return semantic_sim_ok(topic_text, image_text, thresh=sim_thresh) and keyword_overlap_ok(topic_text, image_text, min_hits=min_kw_hits)
 
+
 # ----------------------------
 # Image fetching: Wikimedia → Unsplash → none
 # ----------------------------
+
 def _clean_html(text: str) -> str:
     if not text:
         return ""
@@ -355,28 +420,11 @@ def _tokenize(text: str) -> set:
     text = re.sub(r"[^a-z0-9\s]+", " ", text)
     toks = [t for t in text.split() if len(t) > 2]
     stop = {
-        "the","and","for","with","from","into","amid","after","before","over","under","about",
-        "this","that","these","those","are","was","were","been","being","has","have","had",
-        "will","would","should","could","might","also","says","said"
+        "the", "and", "for", "with", "from", "into", "amid", "after", "before", "over", "under", "about",
+        "this", "that", "these", "those", "are", "was", "were", "been", "being", "has", "have", "had",
+        "will", "would", "should", "could", "might", "also", "says", "said"
     }
     return {t for t in toks if t not in stop}
-
-
-def _extract_strong_entity_token(query: str) -> str:
-    """
-    Conservative: pick a strong entity token (usually surname/org keyword) if query looks like a name/entity.
-    If query is vague (e.g., "Controversy Surrounds Trump Administration"), return "" so we don't force Wikimedia.
-    """
-    words = re.findall(r"[A-Za-z0-9']+", query or "")
-    stop = {"the","and","or","to","of","in","on","at","amid","after","before","with","from","a","an"}
-    candidates = [w.strip("'") for w in words if w and w.lower() not in stop]
-    if len(candidates) < 2:
-        return ""
-    token = candidates[-1].lower()
-    # prevent generic political tokens from acting as "entity"
-    if token in {"administration","president","government","claims","controversy","pressure","conflict","tariffs"}:
-        return ""
-    return token
 
 
 _BAD_WIKI_WORDS = {
@@ -412,10 +460,9 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
       - File namespace only (images)
       - Reject scans/docs/covers/PDF/SVG
       - Require license metadata
-      - Require either:
-          * strong entity token match in metadata, OR
-          * relevance score >= 3
+      - Require relevance score >= 3
       - Reject illustration/painting/engraving
+      - Relevance gate uses topic_text (headline + summary)
     """
     if not image_query or IMAGES_OFF:
         return None
@@ -429,7 +476,7 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
             "action": "query",
             "generator": "search",
             "gsrsearch": image_query,
-            "gsrnamespace": 6,   # File namespace only
+            "gsrnamespace": 6,
             "gsrlimit": 10,
             "prop": "imageinfo",
             "iiprop": "url|extmetadata",
@@ -446,8 +493,6 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
     pages = (data.get("query") or {}).get("pages") or {}
     if not pages:
         return None
-
-    strong_token = _extract_strong_entity_token(image_query)
 
     best = None
     best_score = -1
@@ -469,7 +514,6 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
         license_url = _clean_html((ext.get("LicenseUrl") or {}).get("value") or "")
         title = page.get("title") or ""
 
-        # Must have license metadata to be email-safe
         if not (license_short or license_url):
             continue
 
@@ -480,18 +524,8 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
         if "illustration" in hay or "painting" in hay or "engraving" in hay:
             continue
 
-        # Entity token gating: if we found a strong token, it MUST appear
-        if strong_token and strong_token not in hay:
-            continue
-
         score = _relevance_score(image_query, title, desc)
-
-        # If there is no strong token, require higher relevance
-        if not strong_token and score < 3:
-            continue
-
-        # If there is a strong token, still require at least minimal relevance
-        if strong_token and score < 1:
+        if score < 3:
             continue
 
         source_url = f"https://commons.wikimedia.org/?curid={page.get('pageid')}"
@@ -517,7 +551,6 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
             "license": license_short or "Wikimedia license"
         }
 
-        # Relevance gating: compare against topic meaning (headline + summary), not just the query
         topic_text_clean = (topic_text or image_query).strip()
         image_text = f"{title} {desc}".strip()
         if not image_relevance_ok(topic_text_clean, image_text, sim_thresh=0.30, min_kw_hits=1):
@@ -529,82 +562,24 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
 
     return best
 
-def extract_person_name_from_headline(headline: str):
-    """
-    Return (first, last) only when we see a plausible person name.
-
-    This avoids false positives like "Amidst", "Escalate", "Pharmaceuticals".
-    """
-    words = re.findall(r"[A-Za-z']+", headline or "")
-    if len(words) < 2:
-        return ("", "")
-
-    # headline connector/verb words that are NOT names (small + stable)
-    not_name_words = {
-        "Amid", "Amidst", "After", "Before", "Following", "Returns", "Return", "Imposes",
-        "Approves", "Escalate", "Escalates", "Surrounds", "Surround", "Announces", "Calls",
-        "Says", "Said", "Dies", "Killed", "Kills", "Convicted", "Claims", "Deal", "Tariffs",
-        "Imported", "Pharmaceuticals", "Pressure", "International", "Violence", "Protests",
-        "Conflict", "Administration", "Liberation"
-    }
-    stop = {"The","A","An","And","Or","To","Of","In","On","At","With","From"}
-
-    # scan consecutive pairs
-    for i in range(len(words) - 1):
-        w1, w2 = words[i], words[i+1]
-
-        if w1 in stop or w2 in stop:
-            continue
-        if not (w1[:1].isupper() and w2[:1].isupper()):
-            continue
-        if w1 in not_name_words or w2 in not_name_words:
-            continue
-        # reject acronyms
-        if w1.isupper() or w2.isupper():
-            continue
-        # surname-ish length
-        if len(w2) < 3:
-            continue
-
-        return (w1, w2)
-
-    return ("", "")
-
-def is_person_specific(headline: str, summary: str) -> tuple[bool, str]:
-    """
-    Returns (is_person_specific, last_name).
-    Person-specific means a likely First Last exists AND the last name appears >=2 times
-    in headline+summary (strong anchor to the person).
-    """
-    first, last = extract_person_name_from_headline(headline)
-    if not last:
-        return (False, "")
-    hay = f"{headline} {summary}".lower()
-    return (hay.count(last.lower()) >= 2, last)
 
 def build_unsplash_query_variants(image_query: str, topic_text: str, headline: str = "", max_words: int = 5) -> list[str]:
     """
-    Build 3 query variants (B):
-      1) original image_query (your existing output)
-      2) entity-ish query from headline (shorter)
-      3) compressed keyword query from topic_text (headline+summary), top frequent tokens
-
-    All computed automatically; no hardcoded topic categories.
+    Build 3 query variants:
+      1) original image_query
+      2) token-trimmed headline tokens (automatic)
+      3) compressed frequent tokens from topic_text
     """
     def toks(s: str) -> list[str]:
         s = (s or "").lower()
         s = re.sub(r"[^a-z0-9\s]+", " ", s)
-        words = [w for w in s.split() if len(w) > 2 and w not in _STOP]
-        return words
+        return [w for w in s.split() if len(w) > 2 and w not in _STOP]
 
-    # 1) Original (as-is)
     q1 = (image_query or "").strip()
 
-    # 2) Headline/entity-short: take first max_words meaningful tokens from headline
     h_words = toks(headline)
     q2 = " ".join(h_words[:max_words]).strip()
 
-    # 3) Compressed: top frequent tokens from topic_text
     t_words = toks(topic_text)
     freq = {}
     for w in t_words:
@@ -612,7 +587,6 @@ def build_unsplash_query_variants(image_query: str, topic_text: str, headline: s
     top = sorted(freq.items(), key=lambda kv: (-kv[1], kv[0]))
     q3 = " ".join([w for w, _ in top[:max_words]]).strip()
 
-    # Deduplicate, keep non-empty, keep order
     out = []
     for q in [q1, q2, q3]:
         q = (q or "").strip()
@@ -620,15 +594,16 @@ def build_unsplash_query_variants(image_query: str, topic_text: str, headline: s
             out.append(q)
     return out
 
-def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str = ""):
+
+def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str = "", core_text: str = ""):
     """
-    Unsplash fallback (B): try 3 query variants, score all candidates, pick best.
-
-    - Pull top N results per query variant (6 each)
-    - Score each candidate against topic_text using semantic similarity + keyword overlap
-    - Accept best candidate if it clears thresholds; else None
-
-    This increases hit rate without lowering quality.
+    Unsplash fallback (accuracy-first):
+      - Try query variants
+      - Score candidate image_text against:
+          sim_topic = cos(emb(topic_text), emb(image_text))
+          sim_query = cos(emb(query),      emb(image_text))
+      - Accept only if both pass thresholds.
+      - If ambiguous AND not strong, drop (prefer no image to wrong image).
     """
     if IMAGES_OFF:
         return None
@@ -639,51 +614,45 @@ def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str =
     if not topic_text_clean:
         return None
 
-    # Build 3 query variants
-    queries = build_unsplash_query_variants(image_query=image_query, topic_text=topic_text_clean, headline=headline, max_words=6)
+    queries = build_unsplash_query_variants(
+        image_query=image_query,
+        topic_text=topic_text_clean,
+        headline=headline,
+        max_words=6
+    )
     if not queries:
         return None
 
-    # Embed topic once
     try:
         topic_vec = EMBEDDER.encode([topic_text_clean])[0]
     except Exception:
-        topic_vec = None
+        return None
+    
+    core_vec = None
+    core_text_clean = (core_text or "").strip()
+    if core_text_clean:
+        try:
+            core_vec = EMBEDDER.encode([core_text_clean])[0]
+        except Exception:
+            core_vec = None
 
-    def candidate_score(image_text: str) -> tuple[float, int]:
-        """
-        Returns (semantic_similarity, keyword_hits).
-        Higher is better.
-        """
-        # semantic similarity
-        sim = 0.0
-        if topic_vec is not None:
-            try:
-                img_vec = EMBEDDER.encode([image_text])[0]
-                sim = float(cosine_similarity(np.array(topic_vec).reshape(1, -1),
-                                              np.array(img_vec).reshape(1, -1))[0][0])
-            except Exception:
-                sim = 0.0
+    def _cos(a, b) -> float:
+        return float(cosine_similarity(np.array(a).reshape(1, -1), np.array(b).reshape(1, -1))[0][0])
 
-        # keyword overlap hits
-        def toks(s: str) -> set:
-            s = (s or "").lower()
-            s = re.sub(r"[^a-z0-9\s]+", " ", s)
-            return {t for t in s.split() if len(t) > 2 and t not in _STOP}
-
-        T = toks(topic_text_clean)
-        I = toks(image_text)
-        hits = len(T & I) if T and I else 0
-        return sim, hits
-
-    # Acceptance thresholds (tuneable)
-    SIM_THRESH = 0.30
-    MIN_HITS = 2
+    # Tuned to keep Unsplash present while filtering obvious mismatches
+    SIM_TOPIC = 0.31
+    SIM_QUERY = 0.30
+    MARGIN = 0.020
+    SIM_TOPIC_RELAX = 0.29
+    SIM_QUERY_RELAX = 0.27
 
     headers = {"Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}"}
+
     best = None
-    best_sim = -1.0
-    best_hits = -1
+    best_score = -1.0
+    second_best_score = -1.0
+    
+    found_any = False
 
     for q in queries:
         params = {"query": q, "per_page": 8, "orientation": "landscape"}
@@ -698,59 +667,58 @@ def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str =
         if not results:
             continue
 
+        try:
+            q_vec = EMBEDDER.encode([q])[0]
+        except Exception:
+            q_vec = None
+
         for photo in results:
             urls = photo.get("urls") or {}
-            # Prefer high-quality source and scale DOWN for email/web
             raw = urls.get("raw")
             if raw:
-                # Request a server-resized image ~900px wide for crisp 600px display
                 url = f"{raw}&w=900&fit=max&q=80"
             else:
-                # Fallbacks (still fine if raw isn't available)
                 url = urls.get("regular") or urls.get("small")
-
             if not url:
                 continue
 
             alt = (photo.get("alt_description") or photo.get("description") or q).strip()
             alt = re.sub(r"\s+", " ", alt)
-
             desc = (photo.get("description") or photo.get("alt_description") or alt).strip()
             desc = re.sub(r"\s+", " ", desc)
 
             image_text = f"{alt} {desc}".strip()
 
-            sim, hits = candidate_score(image_text)
-
-            # Extra guards for person-specific topics & inverted/protest images
-            first, last = extract_person_name_from_headline(headline)
-            topic_lower = topic_text_clean.lower()
-
-            person_specific = False
-            if last:
-                # If last name appears 2+ times in topic text, it’s likely truly about that person
-                person_specific = topic_lower.count(last.lower()) >= 2
-
-            # If person-specific: require either (a) last name appears in image text OR (b) very high semantic match
-            if person_specific:
-                hay = image_text.lower()
-                if (last.lower() not in hay) and (sim < 0.42):
-                    continue
-
-                # Reject protest-sign style inversions for person-specific conviction/death topics
-                # (e.g., “convict killer cops” sign for “cop killer dies” story)
-                if any(w in topic_lower for w in ["dies", "died", "death", "killed", "convicted", "sentenced"]):
-                    if any(w in hay for w in ["protest", "rally", "march", "demonstration", "sign", "placard"]):
-                        # Inversion cue: "killer cops" or "kill cops" is likely protest context, not the biography event
-                        if ("killer" in hay and "cops" in hay) or ("kill" in hay and "cops" in hay):
-                            continue
-
-            # Reject weak matches
-            if sim < SIM_THRESH and hits < MIN_HITS:
+            try:
+                img_vec = EMBEDDER.encode([image_text])[0]
+            except Exception:
                 continue
 
-            # Keep best by semantic similarity, then keyword overlap
-            if (sim > best_sim) or (sim == best_sim and hits > best_hits):
+            sim_topic = _cos(topic_vec, img_vec)
+            sim_query = _cos(q_vec, img_vec) if q_vec is not None else sim_topic
+
+            # Compute core similarity BEFORE using it
+            sim_core = sim_topic
+            if core_vec is not None:
+                sim_core = _cos(core_vec, img_vec)
+
+            strict_ok = (sim_topic >= SIM_TOPIC and sim_query >= SIM_QUERY)
+            relax_ok = (sim_core >= 0.36 and sim_topic >= SIM_TOPIC_RELAX and sim_query >= SIM_QUERY_RELAX)
+
+            if not (strict_ok or relax_ok):
+                continue
+
+            # Allow a slightly weaker query match when the cluster's semantic core is strong
+            if sim_query < SIM_QUERY and sim_core >= 0.36:
+                sim_query = SIM_QUERY
+
+            # Prefer matching the cluster's semantic core (core title) more than headline framing.
+            score = (0.50 * sim_core) + (0.35 * sim_topic) + (0.15 * sim_query)
+
+            if score > best_score:
+                second_best_score = best_score
+                best_score = score
+
                 user = photo.get("user") or {}
                 photographer = (user.get("name") or "").strip()
                 link_html = ((photo.get("links") or {}).get("html") or "").strip()
@@ -767,15 +735,21 @@ def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str =
                     "source_url": link_html,
                     "license": "Unsplash License"
                 }
-                best_sim = sim
-                best_hits = hits
+            elif score > second_best_score:
+                second_best_score = score
+
+    # Drop only if ambiguous AND not strong
+    if best is not None:
+        if (best_score - second_best_score) < MARGIN and best_score < (SIM_TOPIC + 0.05):
+            return None
 
     return best
 
+
 # ----------------------------
 # Everything below here is your original non-image logic
-# (unchanged except using image results)
 # ----------------------------
+
 def compute_bias_distribution(articles):
     counts = {}
     total = 0
@@ -895,10 +869,10 @@ def extract_body_and_takeaways(summary_text):
 
 # --- Safety valve: collapse near-duplicate topics after summarization (no tokens) ---
 _STOPWORDS = {
-    "a","an","the","and","or","but","to","of","for","in","on","at","over","under","after","before",
-    "with","without","by","from","as","about","into","during","including","until","against","among",
-    "between","through","because","so","since","due","has","have","had","is","was","are","were",
-    "be","been","being","will","would","should","may","might","can","could"
+    "a", "an", "the", "and", "or", "but", "to", "of", "for", "in", "on", "at", "over", "under", "after", "before",
+    "with", "without", "by", "from", "as", "about", "into", "during", "including", "until", "against", "among",
+    "between", "through", "because", "so", "since", "due", "has", "have", "had", "is", "was", "are", "were",
+    "be", "been", "being", "will", "would", "should", "may", "might", "can", "could"
 }
 
 
@@ -931,14 +905,14 @@ def _seq_ratio(a: str, b: str):
 def _looks_like_duplicate(x: dict, y: dict, url_thresh: float, title_thresh: float, body_thresh: float):
     title_x = x.get("topic_title") or ""
     title_y = y.get("topic_title") or ""
-    body_x  = (x.get("summary") or "")[:600]
-    body_y  = (y.get("summary") or "")[:600]
-    urls_x  = x.get("sources") or []
-    urls_y  = y.get("sources") or []
+    body_x = (x.get("summary") or "")[:600]
+    body_y = (y.get("summary") or "")[:600]
+    urls_x = x.get("sources") or []
+    urls_y = y.get("sources") or []
 
     url_ov = _overlap_ratio(urls_x, urls_y)
     t_ratio = _seq_ratio(title_x.lower(), title_y.lower())
-    t_jacc  = _jaccard(_norm_title_tokens(title_x), _norm_title_tokens(title_y))
+    t_jacc = _jaccard(_norm_title_tokens(title_x), _norm_title_tokens(title_y))
     b_ratio = _seq_ratio(body_x.lower(), body_y.lower())
 
     return (url_ov >= url_thresh) and ((t_ratio >= title_thresh) or (t_jacc >= 0.70) or (b_ratio >= body_thresh))
@@ -960,16 +934,34 @@ def dedupe_topic_summaries(items, url_overlap=0.50, title_sim=0.86, body_sim=0.8
     return result[:MAX_CLUSTERS]
 
 
+# ----------------------------
+# Load clusters and run
+# ----------------------------
+
+with open(INPUT_FILE, "r", encoding="utf-8") as f:
+    clusters = json.load(f)
+
+valid_clusters = [c for c in clusters if len(c["articles"]) >= MIN_ARTICLES]
+ranked = sorted(valid_clusters, key=lambda c: len(c["articles"]), reverse=True)
+top_clusters = ranked[:MAX_CLUSTERS]
+
 # load summaries cache once
 summ_cache = load_summ_cache()
 summ_cache_dirty = False
 
+summaries = []
+
 for idx, cluster in enumerate(top_clusters):
     print(f"🧠 Summarizing topic {idx + 1}/{len(top_clusters)} with {len(cluster['articles'])} articles")
 
-    selected_articles = cluster["articles"][:MAX_ARTICLES_PER_CLUSTER]
-    selected_urls = sorted([a.get("url") for a in selected_articles if a.get("url")])
-    cache_key = make_summ_key(selected_urls, SUMM_MODEL, PROMPT_VERSION, MAX_ARTICLES_PER_CLUSTER)
+    all_articles = cluster["articles"]
+
+    # Use most-central articles for the actual summary (better coherence)
+    selected_articles = select_central_articles(all_articles, MAX_ARTICLES_PER_CLUSTER)
+
+    # Cache key should be stable for the cluster (use ALL URLs, not just the selected subset)
+    all_urls = sorted([a.get("url") for a in all_articles if a.get("url")])
+    cache_key = make_summ_key(all_urls, SUMM_MODEL, PROMPT_VERSION, MAX_ARTICLES_PER_CLUSTER)
 
     cached = get_cached_summary(summ_cache, cache_key)
     if cached:
@@ -986,33 +978,49 @@ for idx, cluster in enumerate(top_clusters):
         put_cached_summary(summ_cache, cache_key, headline, body, takeaways)
         summ_cache_dirty = True
 
+    all_articles = cluster["articles"]
+
     # Build image queries
     image_query = build_image_query(headline, body)
     image_query_wiki = build_wikimedia_query_from_headline(headline)
-
-    # Try Wikimedia short query → Wikimedia full query → Unsplash
     topic_text = f"{headline}. {body}".strip()
 
-    img = fetch_wikimedia_image(image_query_wiki, topic_text=topic_text)
-    if img:
-        print(f"🖼️ Topic {idx+1}: Wikimedia hit (query='{image_query_wiki}')")
-    else:
-        print(f"🖼️ Topic {idx+1}: Wikimedia miss (query='{image_query_wiki}')")
+    # Add a math-only representative title query from the cluster itself
+    central_title = most_central_title(all_articles if "all_articles" in locals() else cluster.get("articles", []))
 
-    if not img:
-        img = fetch_wikimedia_image(image_query, topic_text=topic_text)
+    seed_queries = [
+        image_query_wiki,
+        *build_short_image_queries(topic_title=headline, headline=headline),
+        image_query,
+        central_title,
+        shorten_query(central_title, max_words=6),
+    ]
+
+    query_candidates = []
+    for q in seed_queries:
+        q = (q or "").strip()
+        if q and q not in query_candidates:
+            query_candidates.append(q)
+
+    # Wikimedia first
+    img = None
+    for q in query_candidates:
+        img = fetch_wikimedia_image(q, topic_text=topic_text)
         if img:
-            print(f"🖼️ Topic {idx+1}: Wikimedia hit (fallback query='{image_query}')")
-        else:
-            print(f"🖼️ Topic {idx+1}: Wikimedia miss (fallback query='{image_query}')")
-
+            print(f"🖼️ Topic {idx+1}: Wikimedia hit (query='{q}')")
+            break
     if not img:
-        topic_text = f"{headline}. {body}".strip()
-        img = fetch_unsplash_image(image_query, topic_text=topic_text, headline=headline)
-    if img:
-        print(f"🖼️ Topic {idx+1}: Unsplash hit (query='{image_query}')")
-    else:
-        print(f"🖼️ Topic {idx+1}: Unsplash miss (query='{image_query}')")
+        print(f"🖼️ Topic {idx+1}: Wikimedia miss (tried {len(query_candidates)} queries)")
+
+    # Unsplash fallback
+    if not img:
+        for q in query_candidates:
+            img = fetch_unsplash_image(q, topic_text=topic_text, headline=headline, core_text=central_title)
+            if img:
+                print(f"🖼️ Topic {idx+1}: Unsplash hit (query='{q}')")
+                break
+        if not img:
+            print(f"🖼️ Topic {idx+1}: Unsplash miss (tried {len(query_candidates)} queries)")
 
     image_url = img["url"] if img else ""
     image_alt = img["alt"] if img else ""
@@ -1021,8 +1029,6 @@ for idx, cluster in enumerate(top_clusters):
     image_source = img["source"] if img else ""
     image_source_url = img["source_url"] if img else ""
     image_license = img["license"] if img else ""
-
-    all_articles = cluster["articles"]
 
     bias_dist = cluster.get("bias_distribution") or compute_bias_distribution(all_articles)
     if not bias_dist:
@@ -1079,11 +1085,8 @@ if summ_cache_dirty:
     save_summ_cache(summ_cache)
 
 tmp_file = OUTPUT_FILE + ".tmp"
-
 with open(tmp_file, "w", encoding="utf-8") as f:
     json.dump(summaries, f, indent=2, ensure_ascii=False)
 
-import os
 os.replace(tmp_file, OUTPUT_FILE)
-
 print(f"✅ Saved top summaries to {OUTPUT_FILE}")

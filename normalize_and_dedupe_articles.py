@@ -1,6 +1,6 @@
 # normalize_and_dedupe_articles.py — normalize URLs and remove duplicates (additive)
 import json, argparse, os
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 STRIP_QUERY_KEYS = {
@@ -31,6 +31,13 @@ def normalize_url(u: str) -> str:
     except Exception:
         return u
 
+def _get_pub_date(a: dict) -> str:
+    d = (a.get("published_date") or "").strip()
+    if d and len(d) >= 10:
+        return d[:10]
+    pa = (a.get("published_at") or "").strip()
+    return pa[:10] if pa and len(pa) >= 10 else ""
+
 def run(date_str: str):
     in_path  = f"articles_raw_{date_str}.json"
     out_path = f"articles_raw_normalized_{date_str}.json"
@@ -40,6 +47,29 @@ def run(date_str: str):
 
     with open(in_path, "r", encoding="utf-8") as f:
         articles = json.load(f)
+
+    # Time-box: keep only articles within date_str ± 1 day (fail-open if date missing)
+    try:
+        target = datetime.strptime(date_str, "%Y-%m-%d").date()
+        lo = target - timedelta(days=1)
+        hi = target + timedelta(days=1)
+    except Exception:
+        lo = hi = None
+
+    if lo and hi:
+        boxed = []
+        for a in articles:
+            d = _get_pub_date(a)
+            if not d:
+                boxed.append(a)  # fail-open
+                continue
+            try:
+                ad = datetime.strptime(d, "%Y-%m-%d").date()
+                if lo <= ad <= hi:
+                    boxed.append(a)
+            except Exception:
+                boxed.append(a)  # fail-open
+        articles = boxed
 
     seen = {}
     deduped = []

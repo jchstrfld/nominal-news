@@ -7,6 +7,13 @@ import requests
 from datetime import datetime
 from dotenv import load_dotenv
 import argparse
+import re
+from datetime import timezone
+
+try:
+    from langdetect import detect
+except Exception:
+    detect = None
 
 load_dotenv()
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
@@ -128,6 +135,20 @@ FALLBACK_FEEDS = {
     "https://www.theepochtimes.com/feed": "https://www.theepochtimes.com/focus/rss"
 }
 
+def iso_from_struct_time(st):
+    """Convert feedparser time struct to ISO string (UTC)."""
+    try:
+        dt = datetime(*st[:6], tzinfo=timezone.utc)
+        return dt.isoformat().replace("+00:00", "Z")
+    except Exception:
+        return ""
+
+def date_from_iso(iso: str) -> str:
+    """Extract YYYY-MM-DD from an ISO string."""
+    if not iso:
+        return ""
+    return iso[:10]
+
 def fetch_newsapi(date_str):
     print(f"🔍 Fetching NewsAPI articles for {date_str}...")
     params = {
@@ -150,12 +171,33 @@ def fetch_newsapi(date_str):
                 "title": a["title"],
                 "description": a.get("description", ""),
                 "url": a["url"],
-                "source": a["source"]["name"]
+                "source": a["source"]["name"],
+                "published_at": a.get("publishedAt", ""),
+                "published_date": (a.get("publishedAt", "") or "")[:10],
             } for a in data["articles"]
         ]
     except Exception as e:
         print(f"❌ NewsAPI fetch error: {e}")
         return []
+
+def is_english_text(text: str) -> bool:
+    """
+    Ingestion-time language gate (token-free).
+    - Uses langdetect if installed.
+    - Fail-open for short/empty text to avoid dropping real English headlines.
+    """
+    if not text:
+        return True
+    t = re.sub(r"<[^>]+>", " ", text)
+    t = re.sub(r"\s+", " ", t).strip()
+    if len(t) < 25:
+        return True
+    if detect is None:
+        return True
+    try:
+        return detect(t) == "en"
+    except Exception:
+        return True
 
 def fetch_rss():
     print("🔍 Fetching RSS articles...")
@@ -169,11 +211,28 @@ def fetch_rss():
                 if feed.entries:
                     print(f"📡 {feed.feed.get('title', url)} — {len(feed.entries[:25])} entries")
                     for e in feed.entries[:25]:
+                        title = e.get("title", "") or ""
+                        desc = e.get("summary", "") or ""
+                        text_for_lang = f"{title}. {desc}"[:800]
+
+                        if not is_english_text(text_for_lang):
+                            continue
+                        
+                        published_at = ""
+                        if e.get("published_parsed"):
+                            published_at = iso_from_struct_time(e.get("published_parsed"))
+                        elif e.get("updated_parsed"):
+                            published_at = iso_from_struct_time(e.get("updated_parsed"))
+
+                        published_date = date_from_iso(published_at)
+
                         articles.append({
-                            "title": e.get("title", ""),
-                            "description": e.get("summary", ""),
+                            "title": title,
+                            "description": desc,
                             "url": e.get("link", ""),
-                            "source": feed.feed.get("title", url)
+                            "source": feed.feed.get("title", url),
+                            "published_at": published_at,
+                            "published_date": published_date,
                         })
                     success = True
                     break
@@ -190,11 +249,28 @@ def fetch_rss():
                 if fallback_feed.entries:
                     print(f"📡 {fallback_feed.feed.get('title', fallback_url)} — {len(fallback_feed.entries[:25])} entries (fallback)")
                     for e in fallback_feed.entries[:25]:
+                        title = e.get("title", "") or ""
+                        desc = e.get("summary", "") or ""
+                        text_for_lang = f"{title}. {desc}"[:800]
+
+                        if not is_english_text(text_for_lang):
+                            continue
+
+                        published_at = ""
+                        if e.get("published_parsed"):
+                            published_at = iso_from_struct_time(e.get("published_parsed"))
+                        elif e.get("updated_parsed"):
+                            published_at = iso_from_struct_time(e.get("updated_parsed"))
+
+                        published_date = date_from_iso(published_at)
+
                         articles.append({
-                            "title": e.get("title", ""),
-                            "description": e.get("summary", ""),
+                            "title": title,
+                            "description": desc,
                             "url": e.get("link", ""),
-                            "source": fallback_feed.feed.get("title", fallback_url)
+                            "source": fallback_feed.feed.get("title", fallback_url),
+                            "published_at": published_at,
+                            "published_date": published_date,
                         })
                 else:
                     print(f"⚠️ Fallback feed also empty: {fallback_url}")
