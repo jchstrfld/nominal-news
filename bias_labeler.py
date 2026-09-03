@@ -426,6 +426,7 @@ domain_aliases = {
 # Internal DOMAIN overrides (priority if present, canonical labels)
 # ----------------------------
 domain_bias_overrides = {
+    # (keep all your existing entries here, unchanged)
     "breitbart.com": "Far Right",
     "oann.com": "Far Right",
     "theepochtimes.com": "Far Right",
@@ -444,9 +445,30 @@ domain_bias_overrides = {
     "nytimes.com": "Left",
     "theguardian.com": "Left",
     "cnn.com": "Left",
-    "msnbc.com": "Left",
-    "foxnews.com": "Right"
+    "msnbc.com": "Left"
 }
+
+# ----------------------------
+# External overrides (single source-of-truth file)
+# ----------------------------
+BIAS_OVERRIDES_PATH = "bias_overrides.json"
+if os.path.exists(BIAS_OVERRIDES_PATH):
+    try:
+        with open(BIAS_OVERRIDES_PATH, "r", encoding="utf-8") as f:
+            ext = json.load(f)
+
+        if isinstance(ext, dict):
+            loaded = 0
+            for domain, meta in ext.items():
+                if not domain:
+                    continue
+                d = domain.strip().lower()
+                bias = meta.get("bias") if isinstance(meta, dict) else meta
+                domain_bias_overrides[d] = canonicalize(bias)
+                loaded += 1
+            print(f"✅ Loaded {loaded} bias overrides from {BIAS_OVERRIDES_PATH}")
+    except Exception as e:
+        print(f"⚠️ Failed to load {BIAS_OVERRIDES_PATH}: {e}")
 
 # ----------------------------
 # Helper: extract domain from URL
@@ -523,6 +545,20 @@ def lookup_bias_by_domain(url: str) -> str | None:
 
     return None
 
+def _load_bias_overrides(path: str) -> dict:
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+def _save_bias_overrides(path: str, data: dict):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
 def label_article_bias(input_path, output_path, default_bias="Center", unmapped_output="unmapped_bias.json"):
     with open(input_path, "r", encoding="utf-8") as f:
         articles = json.load(f)
@@ -561,6 +597,27 @@ def label_article_bias(input_path, output_path, default_bias="Center", unmapped_
                 "title": a.get("title")
             })
 
+    # --- Auto-append newly seen domains to bias_overrides.json (never overwrite manual edits) ---
+    overrides_path = "bias_overrides.json"
+    overrides = _load_bias_overrides(overrides_path)
+
+    # Collect domains seen in this run
+    seen_domains = set()
+    for a in articles:
+        d = get_domain(a.get("url", ""))
+        if d:
+            seen_domains.add(d.lower())
+
+    added = 0
+    for d in sorted(seen_domains):
+        if d not in overrides:
+            overrides[d] = {"bias": "Unknown", "sources": ["auto-seen"], "notes": ""}
+            added += 1
+
+    if added:
+        _save_bias_overrides(overrides_path, overrides)
+        print(f"🧩 Added {added} new domains to {overrides_path} (bias=Unknown)")
+
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(articles, f, indent=2, ensure_ascii=False)
 
@@ -568,6 +625,29 @@ def label_article_bias(input_path, output_path, default_bias="Center", unmapped_
     if unmapped:
         with open("unmapped_bias.json", "w", encoding="utf-8") as f:
             json.dump(unmapped, f, indent=2, ensure_ascii=False)
+
+    # Write an outlet catalog (domain -> count, bias)
+    counts = defaultdict(int)
+    for a in articles:
+        d = get_domain(a.get("url", ""))
+        if d:
+            counts[d] += 1
+
+    catalog = []
+    for d, c in sorted(counts.items(), key=lambda x: (-x[1], x[0])):
+        catalog.append({
+            "domain": d,
+            "count": c,
+            "bias": lookup_bias_by_domain("https://" + d + "/") or "Unknown"
+        })
+
+    date_tag = os.path.splitext(os.path.basename(output_path))[0].replace("articles_with_bias_", "")
+    try:
+        with open(f"all_outlets_{date_tag}.json", "w", encoding="utf-8") as f:
+            json.dump(catalog, f, indent=2, ensure_ascii=False)
+        print(f"📚 Wrote outlet catalog → all_outlets_{date_tag}.json")
+    except Exception as e:
+        print(f"⚠️ Failed to write outlet catalog: {e}")
 
     print(f"✅ Labeled {len(articles)} articles with bias; {len(unmapped)} unknowns exported to unmapped_bias.json")
 

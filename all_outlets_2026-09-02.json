@@ -1,0 +1,297 @@
+[
+  {
+    "domain": "abc.net.au",
+    "count": 25,
+    "bias": "Left"
+  },
+  {
+    "domain": "aljazeera.com",
+    "count": 25,
+    "bias": "Left"
+  },
+  {
+    "domain": "bbc.co.uk",
+    "count": 25,
+    "bias": "Center"
+  },
+  {
+    "domain": "breitbart.com",
+    "count": 25,
+    "bias": "Far Right"
+  },
+  {
+    "domain": "cbsnews.com",
+    "count": 25,
+    "bias": "Center"
+  },
+  {
+    "domain": "dw.com",
+    "count": 25,
+    "bias": "Center"
+  },
+  {
+    "domain": "euronews.com",
+    "count": 25,
+    "bias": "Center"
+  },
+  {
+    "domain": "foxnews.com",
+    "count": 25,
+    "bias": "Right"
+  },
+  {
+    "domain": "independent.co.uk",
+    "count": 25,
+    "bias": "Left"
+  },
+  {
+    "domain": "news10.com",
+    "count": 25,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "nytimes.com",
+    "count": 25,
+    "bias": "Left"
+  },
+  {
+    "domain": "techradar.com",
+    "count": 25,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "thehill.com",
+    "count": 25,
+    "bias": "Center"
+  },
+  {
+    "domain": "wgntv.com",
+    "count": 25,
+    "bias": "Center"
+  },
+  {
+    "domain": "wired.com",
+    "count": 25,
+    "bias": "Left"
+  },
+  {
+    "domain": "abcnews.com",
+    "count": 22,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "theguardian.com",
+    "count": 22,
+    "bias": "Left"
+  },
+  {
+    "domain": "nbcwashington.com",
+    "count": 21,
+    "bias": "Center"
+  },
+  {
+    "domain": "realclearpolitics.com",
+    "count": 21,
+    "bias": "Right"
+  },
+  {
+    "domain": "space.com",
+    "count": 20,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "statnews.com",
+    "count": 20,
+    "bias": "Center"
+  },
+  {
+    "domain": "washingtontimes.com",
+    "count": 20,
+    "bias": "Right"
+  },
+  {
+    "domain": "wcvb.com",
+    "count": 20,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "kdvr.com",
+    "count": 19,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "theatlantic.com",
+    "count": 18,
+    "bias": "Left"
+  },
+  {
+    "domain": "chicagoreader.com",
+    "count": 16,
+    "bias": "Left"
+  },
+  {
+    "domain": "thebulwark.com",
+    "count": 16,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "thegatewaypundit.com",
+    "count": 14,
+    "bias": "Far Right"
+  },
+  {
+    "domain": "newyorker.com",
+    "count": 12,
+    "bias": "Left"
+  },
+  {
+    "domain": "foreignpolicy.com",
+    "count": 10,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "marketwatch.com",
+    "count": 10,
+    "bias": "Center"
+  },
+  {
+    "domain": "npr.org",
+    "count": 10,
+    "bias": "Left"
+  },
+  {
+    "domain": "pitchfork.com",
+    "count": 10,
+    "bias": "Left"
+  },
+  {
+    "domain": "rollingstone.com",
+    "count": 10,
+    "bias": "Left"
+  },
+  {
+    "domain": "startribune.com",
+    "count": 10,
+    "bias": "Left"
+  },
+  {
+    "domain": "thedispatch.com",
+    "count": 10,
+    "bias": "Right"
+  },
+  {
+    "domain": "washingtonexaminer.com",
+    "count": 10,
+    "bias": "Right"
+  },
+  {
+    "domain": "westword.com",
+    "count": 10,
+    "bias": "Left"
+  },
+  {
+    "domain": "nationalreview.com",
+    "count": 9,
+    "bias": "Right"
+  },
+  {
+    "domain": "nautil.us",
+    "count": 9,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "city-journal.org",
+    "count": 8,
+    "bias": "Right"
+  },
+  {
+    "domain": "pewresearch.org",
+    "count": 7,
+    "bias": "Center"
+  },
+  {
+    "domain": "oann.com",
+    "count": 6,
+    "bias": "Far Right"
+  },
+  {
+    "domain": "science.org",
+    "count": 6,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "fortune.com",
+    "count": 5,
+    "bias": "Center"
+  },
+  {
+    "domain": "aei.org",
+    "count": 4,
+    "bias": "Right"
+  },
+  {
+    "domain": "kabc.com",
+    "count": 4,
+    "bias": "Right"
+  },
+  {
+    "domain": "citylimits.org",
+    "count": 3,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "latimes.com",
+    "count": 3,
+    "bias": "Left"
+  },
+  {
+    "domain": "news.umich.edu",
+    "count": 3,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "sciencenews.org",
+    "count": 3,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "billypenn.com",
+    "count": 2,
+    "bias": "Left"
+  },
+  {
+    "domain": "globalvoices.org",
+    "count": 2,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "joehoft.com",
+    "count": 2,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "news.utexas.edu",
+    "count": 2,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "news.berkeley.edu",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "news.harvard.edu",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "thebaffler.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "washington.edu",
+    "count": 1,
+    "bias": "Unknown"
+  }
+]

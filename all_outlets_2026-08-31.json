@@ -1,0 +1,557 @@
+[
+  {
+    "domain": "breitbart.com",
+    "count": 26,
+    "bias": "Far Right"
+  },
+  {
+    "domain": "euronews.com",
+    "count": 25,
+    "bias": "Center"
+  },
+  {
+    "domain": "nbcwashington.com",
+    "count": 25,
+    "bias": "Center"
+  },
+  {
+    "domain": "newyorker.com",
+    "count": 25,
+    "bias": "Left"
+  },
+  {
+    "domain": "wired.com",
+    "count": 25,
+    "bias": "Left"
+  },
+  {
+    "domain": "aljazeera.com",
+    "count": 24,
+    "bias": "Left"
+  },
+  {
+    "domain": "dw.com",
+    "count": 24,
+    "bias": "Center"
+  },
+  {
+    "domain": "realclearpolitics.com",
+    "count": 24,
+    "bias": "Right"
+  },
+  {
+    "domain": "space.com",
+    "count": 24,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "techradar.com",
+    "count": 24,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "abcnews.com",
+    "count": 23,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "theatlantic.com",
+    "count": 23,
+    "bias": "Left"
+  },
+  {
+    "domain": "abc.net.au",
+    "count": 22,
+    "bias": "Left"
+  },
+  {
+    "domain": "bbc.co.uk",
+    "count": 22,
+    "bias": "Center"
+  },
+  {
+    "domain": "independent.co.uk",
+    "count": 22,
+    "bias": "Left"
+  },
+  {
+    "domain": "news10.com",
+    "count": 22,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "nytimes.com",
+    "count": 22,
+    "bias": "Left"
+  },
+  {
+    "domain": "theguardian.com",
+    "count": 22,
+    "bias": "Left"
+  },
+  {
+    "domain": "statnews.com",
+    "count": 20,
+    "bias": "Center"
+  },
+  {
+    "domain": "thehill.com",
+    "count": 20,
+    "bias": "Center"
+  },
+  {
+    "domain": "washingtontimes.com",
+    "count": 20,
+    "bias": "Right"
+  },
+  {
+    "domain": "thebulwark.com",
+    "count": 19,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "wgntv.com",
+    "count": 19,
+    "bias": "Center"
+  },
+  {
+    "domain": "cbsnews.com",
+    "count": 18,
+    "bias": "Center"
+  },
+  {
+    "domain": "kdvr.com",
+    "count": 18,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "foxnews.com",
+    "count": 17,
+    "bias": "Right"
+  },
+  {
+    "domain": "nationalreview.com",
+    "count": 17,
+    "bias": "Right"
+  },
+  {
+    "domain": "foreignpolicy.com",
+    "count": 15,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "pitchfork.com",
+    "count": 14,
+    "bias": "Left"
+  },
+  {
+    "domain": "punchng.com",
+    "count": 14,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "latimes.com",
+    "count": 12,
+    "bias": "Left"
+  },
+  {
+    "domain": "thegatewaypundit.com",
+    "count": 12,
+    "bias": "Far Right"
+  },
+  {
+    "domain": "timesofindia.indiatimes.com",
+    "count": 12,
+    "bias": "Center"
+  },
+  {
+    "domain": "wcvb.com",
+    "count": 11,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "city-journal.org",
+    "count": 10,
+    "bias": "Right"
+  },
+  {
+    "domain": "fortune.com",
+    "count": 10,
+    "bias": "Center"
+  },
+  {
+    "domain": "nautil.us",
+    "count": 10,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "rollingstone.com",
+    "count": 10,
+    "bias": "Left"
+  },
+  {
+    "domain": "science.org",
+    "count": 10,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "thedispatch.com",
+    "count": 10,
+    "bias": "Right"
+  },
+  {
+    "domain": "westword.com",
+    "count": 10,
+    "bias": "Left"
+  },
+  {
+    "domain": "npr.org",
+    "count": 9,
+    "bias": "Left"
+  },
+  {
+    "domain": "pewresearch.org",
+    "count": 9,
+    "bias": "Center"
+  },
+  {
+    "domain": "startribune.com",
+    "count": 9,
+    "bias": "Left"
+  },
+  {
+    "domain": "chicagoreader.com",
+    "count": 8,
+    "bias": "Left"
+  },
+  {
+    "domain": "washingtonexaminer.com",
+    "count": 8,
+    "bias": "Right"
+  },
+  {
+    "domain": "kabc.com",
+    "count": 7,
+    "bias": "Right"
+  },
+  {
+    "domain": "marketwatch.com",
+    "count": 7,
+    "bias": "Center"
+  },
+  {
+    "domain": "globalvoices.org",
+    "count": 6,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "aei.org",
+    "count": 5,
+    "bias": "Right"
+  },
+  {
+    "domain": "citylimits.org",
+    "count": 5,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "cryptobriefing.com",
+    "count": 5,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "news.umich.edu",
+    "count": 5,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "oann.com",
+    "count": 5,
+    "bias": "Far Right"
+  },
+  {
+    "domain": "sciencenews.org",
+    "count": 5,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "freerepublic.com",
+    "count": 4,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "billypenn.com",
+    "count": 3,
+    "bias": "Left"
+  },
+  {
+    "domain": "dailymail.com",
+    "count": 3,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "news.harvard.edu",
+    "count": 3,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "nypost.com",
+    "count": 3,
+    "bias": "Right"
+  },
+  {
+    "domain": "pbs.org",
+    "count": 3,
+    "bias": "Center"
+  },
+  {
+    "domain": "news.berkeley.edu",
+    "count": 2,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "news.utexas.edu",
+    "count": 2,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "publichealth.berkeley.edu",
+    "count": 2,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "rte.ie",
+    "count": 2,
+    "bias": "Center"
+  },
+  {
+    "domain": "thewrap.com",
+    "count": 2,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "aws.amazon.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "bleedingcool.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "cal.streetsblog.org",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "careers.amachicago.org",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "cbc.ca",
+    "count": 1,
+    "bias": "Left"
+  },
+  {
+    "domain": "cnbc.com",
+    "count": 1,
+    "bias": "Center"
+  },
+  {
+    "domain": "dailysignal.com",
+    "count": 1,
+    "bias": "Far Right"
+  },
+  {
+    "domain": "deadline.com",
+    "count": 1,
+    "bias": "Left"
+  },
+  {
+    "domain": "eff.org",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "forbes.com",
+    "count": 1,
+    "bias": "Center"
+  },
+  {
+    "domain": "frogsowar.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "gov.uk",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "hollywoodreporter.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "huffpost.com",
+    "count": 1,
+    "bias": "Left"
+  },
+  {
+    "domain": "indiewire.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "inquirer.com",
+    "count": 1,
+    "bias": "Left"
+  },
+  {
+    "domain": "irishexaminer.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "israelnationalnews.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "lawyersgunsmoneyblog.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "legalinsurrection.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "newser.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "nzherald.co.nz",
+    "count": 1,
+    "bias": "Center"
+  },
+  {
+    "domain": "oilprice.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "politicalwire.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "prnewswire.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "pypi.org",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "radaronline.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "rawstory.com",
+    "count": 1,
+    "bias": "Left"
+  },
+  {
+    "domain": "realclearinvestigations.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "reason.com",
+    "count": 1,
+    "bias": "Center"
+  },
+  {
+    "domain": "rt.com",
+    "count": 1,
+    "bias": "Far Right"
+  },
+  {
+    "domain": "screenrant.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "slashgear.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "snopes.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "sports.yahoo.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "talkingpointsmemo.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "techcrunch.com",
+    "count": 1,
+    "bias": "Center"
+  },
+  {
+    "domain": "the-gadgeteer.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "theartfulage.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "thebaffler.com",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "theglobeandmail.com",
+    "count": 1,
+    "bias": "Center"
+  },
+  {
+    "domain": "thejournal.ie",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "uncnews.unc.edu",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "washington.edu",
+    "count": 1,
+    "bias": "Unknown"
+  },
+  {
+    "domain": "yahoo.com",
+    "count": 1,
+    "bias": "Left"
+  }
+]

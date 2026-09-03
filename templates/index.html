@@ -7,16 +7,6 @@
   <link rel="stylesheet" href="/static/style.css">
 
   <style>
-    #status {
-      display: inline-block;
-      margin-left: 10px;
-      font-weight: bold;
-      color: #555;
-    }
-    .fade-out {
-      opacity: 0;
-      transition: opacity 1s ease-out;
-    }
     .articles-start {
       margin-top: 16px;
     }
@@ -26,37 +16,6 @@
 <body>
   <div class="container">
     <a id="top"></a>
-
-    <form method="get" action="/" onsubmit="showStatus()">
-      <label for="date">Test a specific date:</label>
-      <input type="date" id="date" name="date" value="{{ requested_date or '' }}">
-      <label><input type="checkbox" id="summarizeOnly" name="summarizeOnly"> Summarize only</label>
-      <button type="submit">Run</button>
-      <span id="status"></span>
-    </form>
-
-    <script>
-      function showStatus() {
-        const status = document.getElementById('status');
-        status.textContent = "Running pipeline...";
-        status.classList.remove("fade-out");
-      }
-
-      window.addEventListener("load", () => {
-        const summariesLength = {{ summaries|length or 0 }};
-        const status = document.getElementById('status');
-        const urlParams = new URLSearchParams(window.location.search);
-
-        if (urlParams.has("date")) {
-          if (summariesLength > 0) {
-            status.textContent = "✅ Done!";
-            setTimeout(() => status.classList.add("fade-out"), 5000);
-          } else {
-            status.textContent = "⚠️ No articles found.";
-          }
-        }
-      });
-    </script>
 
     {% set topics_count = summaries|length %}
     {% set estimated_minutes = ((topics_count * 0.75) + 2) | round(0, 'common') | int %}
@@ -78,7 +37,7 @@
     {% set front_page = summaries[:3] %}
     {% if front_page and front_page|length > 0 %}
       <div class="brief-card">
-        <h3 class="brief-title">If you read nothing else…</h3>
+        <h3 class="brief-title">If You Read Nothing Else…</h3>
         <p class="brief-subtitle">These are the most widely covered stories today.</p>
 
         <ul class="brief-list">
@@ -88,6 +47,91 @@
             </li>
           {% endfor %}
         </ul>
+      </div>
+    {% endif %}
+
+  {% if market_overview %}
+      {% set indices = market_overview.get('indexes', {}) %}
+      {% set sp = indices.get('sp500', {}) %}
+      {% set nd = indices.get('nasdaq', {}) %}
+      {% set dj = indices.get('dow', {}) %}
+
+      {% set sp_pct = sp.get('pct_change') or 0 %}
+      {% set nd_pct = nd.get('pct_change') or 0 %}
+      {% set dj_pct = dj.get('pct_change') or 0 %}
+
+      {% set portfolio_signal = (sp_pct * 0.5) + (nd_pct * 0.3) + (dj_pct * 0.2) %}
+
+      {% if portfolio_signal > 0.15 %}
+        {% set portfolio_dir = 'up' %}
+        {% set portfolio_symbol = '▲' %}
+        {% set portfolio_label = 'Up' %}
+      {% elif portfolio_signal < -0.15 %}
+        {% set portfolio_dir = 'down' %}
+        {% set portfolio_symbol = '▼' %}
+        {% set portfolio_label = 'Down' %}
+      {% else %}
+        {% set portfolio_dir = 'flat' %}
+        {% set portfolio_symbol = '■' %}
+        {% set portfolio_label = 'Flat' %}
+      {% endif %}
+
+      {% macro ticker(label, obj) -%}
+        {% set pct = obj.get('pct_change') %}
+        {% set dir = obj.get('direction', 'flat') %}
+        <div class="market-ticker">
+          <div class="market-ticker-label">{{ label }}</div>
+          {% if pct is not none %}
+            <div class="market-ticker-move">
+              <span class="market-arrow market-{{ dir }}" aria-hidden="true">
+                {% if dir == "up" %}▲{% elif dir == "down" %}▼{% else %}■{% endif %}
+              </span>
+              <span class="sr-only">
+                {% if dir == "up" %}Up{% elif dir == "down" %}Down{% else %}Flat{% endif %}
+              </span>
+              <span class="market-pct market-{{ dir }}">{{ "%0.2f"|format(pct) }}%</span>
+            </div>
+          {% else %}
+            <div class="market-ticker-move">
+              <span class="market-pct market-unknown">n/a</span>
+            </div>
+          {% endif %}
+        </div>
+      {%- endmacro %}
+
+      <div class="card market-card" role="region" aria-label="Market and Economy Overview">
+        <h2 class="market-title">What's Happening in the Markets</h2>
+
+        <div class="market-section">
+          <div class="market-tickers" aria-label="Major index performance">
+            {{ ticker("S&P", sp) }}
+            {{ ticker("Nasdaq", nd) }}
+            {{ ticker("Dow", dj) }}
+          </div>
+
+          <div class="market-summary">
+            <span class="market-summary-icon market-{{ portfolio_dir }}" aria-hidden="true">
+              {{ portfolio_symbol }}
+            </span>
+            <span class="sr-only">{{ portfolio_label }}</span>
+
+            <p class="market-sentence market-sentence-primary">
+              {{ market_overview.get('markets_because', 'Markets were mixed today.') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="market-divider"></div>
+
+        <div class="market-section market-money">
+          <div class="money-signal money-{{ portfolio_dir }}">
+            <span class="money-signal-icon" aria-hidden="true">{{ portfolio_symbol }}</span>
+            <span class="sr-only">{{ portfolio_label }}</span>
+            <span class="money-signal-text">
+              {{ market_overview.get('investments_doing', 'If you have any investments, they likely moved with the broader market today.') }}
+            </span>
+          </div>
+        </div>
       </div>
     {% endif %}
 

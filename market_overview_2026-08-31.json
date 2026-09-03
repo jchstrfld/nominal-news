@@ -1,0 +1,50 @@
+{
+  "date": "2026-08-31",
+  "label": "Market & Economy Overview",
+  "indexes": {
+    "nasdaq": {
+      "symbol": "^ndq",
+      "close_date": null,
+      "pct_change": null,
+      "direction": "unknown",
+      "error": "404 Client Error: Not Found for url: https://stooq.com/q/d/l/?s=%5Endq&i=d"
+    },
+    "sp500": {
+      "symbol": "^spx",
+      "close_date": null,
+      "pct_change": null,
+      "direction": "unknown",
+      "error": "404 Client Error: Not Found for url: https://stooq.com/q/d/l/?s=%5Espx&i=d"
+    },
+    "dow": {
+      "symbol": "^dji",
+      "close_date": null,
+      "pct_change": null,
+      "direction": "unknown",
+      "error": "404 Client Error: Not Found for url: https://stooq.com/q/d/l/?s=%5Edji&i=d"
+    }
+  },
+  "markets_because": "Market movements are currently uncertain, influenced by concerns over rising debt levels and geopolitical tensions, particularly related to oil prices and U.S. foreign policy. Additionally, economic forecasts are being shaped by the potential impacts of monetary policy changes.",
+  "investments_doing": "This environment may lead to cautious approaches for many investors as they assess risks and opportunities.",
+  "evidence_titles": [
+    "This could be the 10-year Treasury’s tipping point into the danger zone",
+    "Trump’s Economy Goes to the Polls",
+    "CNBC's The China Connection newsletter: McKinsey's contrarian economic view",
+    "The Reserve Bank should ponder how an OCR hike might actually increase prices – Conor English",
+    "The Staggering Financial Cost of 9/11",
+    "Waiting for the Trade Deficit to Go Away",
+    "$40 Trillion Debt Threatens the Whole Economy",
+    "As Trump pivots to Venezuela for energy, U.S big oil and big money invest in Canada",
+    "Fiscal Armageddon, Revisited",
+    "European Central Bankers Worry U.S. Tensions Could Bring More Market Turbulence",
+    "STAT+: Trump strikes nine more deals with drugmakers to lower prices",
+    "It’s the Debt, Stupid",
+    "Global oil prices surge to a 6-week high after the U.S. strikes Iran in Hormuz",
+    "It’s Not Just the Economics, Stupid",
+    "Scott Bessent pitches Trump-inspired finance competition at G20 ministers meeting",
+    "Trump seeks to boost U.S. refining capacity as White House lays out details of Venezuela oil deal",
+    "The Pentagon’s Venezuelan Oil Deal",
+    "Breitbart Business Digest: What the Warsh Hinge Point Means for Economic Policy"
+  ],
+  "generated_at": "2026-09-02T01:07:54Z"
+}

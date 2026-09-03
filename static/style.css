@@ -513,3 +513,184 @@ a:hover {
 .cat-climate-environment { background-color: #bdebad; }
 .cat-culture-society     { background-color: #d3a8f0; }
 
+/* --- Market & Economy Overview card --- */
+.market-card {
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.market-title {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  line-height: 1.25;
+  font-weight: 650;
+  color: #1e272e;
+}
+
+.market-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.market-section-label {
+  font-weight: 600;
+  display: block;
+  margin: 16px 0 6px 0;
+  color: #1e272e;
+  font-size: 0.95rem;
+}
+
+.market-tickers {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.market-ticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 999px;
+  background: #fafafa;
+}
+
+.market-ticker-label {
+  font-size: 0.74rem;
+  line-height: 1;
+  color: #666;
+  font-weight: 600;
+}
+
+.market-ticker-move {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.market-arrow {
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.market-up,
+.market-up.market-pct {
+  color: #0b6b2a;
+}
+
+.market-down,
+.market-down.market-pct {
+  color: #b00020;
+}
+
+.market-flat,
+.market-flat.market-pct {
+  color: #555;
+}
+
+.market-unknown {
+  color: #555;
+}
+
+.market-pct {
+  font-size: 0.85rem;
+}
+
+.market-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.market-summary-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+  flex: 0 0 auto;
+  position: relative;
+  top: 1px;
+}
+
+/* first-statement arrow only */
+.market-up.market-summary-icon {
+  color: #0b6b2a;
+}
+
+.market-down.market-summary-icon {
+  color: #b00020;
+}
+
+.market-flat.market-summary-icon {
+  color: #555;
+}
+
+.market-sentence {
+  margin: 0;
+  line-height: 1.45;
+  color: #333;
+}
+
+.market-sentence-primary {
+  font-size: 0.96rem;
+}
+
+.market-divider {
+  height: 1px;
+  background: #ececec;
+  margin: 14px 0 12px 0;
+}
+
+.market-money {
+  gap: 8px;
+}
+
+.money-signal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.money-signal-icon {
+  font-size: 0.9rem;
+  line-height: 1;
+  font-weight: 700;
+  flex: 0 0 auto;
+  position: relative;
+  top: 1px;
+}
+
+/* second-statement arrow only */
+.money-up .money-signal-icon {
+  color: #0b6b2a;
+}
+
+.money-down .money-signal-icon {
+  color: #b00020;
+}
+
+.money-flat .money-signal-icon {
+  color: #555;
+}
+
+.money-signal-text {
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

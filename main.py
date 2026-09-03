@@ -26,6 +26,18 @@ def list_summary_files() -> List[Path]:
     return sorted((BASE_DIR).glob("topic_summaries_*.json"))
 
 
+
+def load_market_overview(date_str: str) -> Optional[Dict[str, Any]]:
+    """Load market_overview_YYYY-MM-DD.json if present."""
+    path = BASE_DIR / f"market_overview_{date_str}.json"
+    if not path.exists():
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
 def latest_summary_date() -> Optional[str]:
     """Find the newest date that we have a topic_summaries_*.json file for."""
     dates: List[str] = []
@@ -88,12 +100,16 @@ async def homepage(
                 f"or set AUTO_RUN_PIPELINE=1 to generate on demand."
             )
 
+    
+    market_overview = load_market_overview(requested_date) if requested_date else None
+    
     return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
-            "summaries": summaries,
-            "requested_date": requested_date,
-            "status_msg": status_msg,
-        },
-    )
+            "index.html",
+            {
+                "request": request,
+                "summaries": summaries,
+                "requested_date": requested_date,
+                "status_msg": status_msg,
+                "market_overview": market_overview,
+            },
+        )

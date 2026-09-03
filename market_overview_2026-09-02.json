@@ -1,0 +1,50 @@
+{
+  "date": "2026-09-02",
+  "label": "Market & Economy Overview",
+  "indexes": {
+    "nasdaq": {
+      "symbol": "^ndq",
+      "close_date": null,
+      "pct_change": null,
+      "direction": "unknown",
+      "error": "404 Client Error: Not Found for url: https://stooq.com/q/d/l/?s=%5Endq&i=d"
+    },
+    "sp500": {
+      "symbol": "^spx",
+      "close_date": null,
+      "pct_change": null,
+      "direction": "unknown",
+      "error": "404 Client Error: Not Found for url: https://stooq.com/q/d/l/?s=%5Espx&i=d"
+    },
+    "dow": {
+      "symbol": "^dji",
+      "close_date": null,
+      "pct_change": null,
+      "direction": "unknown",
+      "error": "404 Client Error: Not Found for url: https://stooq.com/q/d/l/?s=%5Edji&i=d"
+    }
+  },
+  "markets_because": "Markets remained stable today as investors await further clarity on interest rate decisions from the Federal Reserve, particularly in light of rising utility bills and ongoing discussions about oil deals with Venezuela. The potential for increased refining capacity and the impact of food inflation are also contributing to market sentiment.",
+  "investments_doing": "This environment suggests that investors may want to stay informed about energy and inflation trends as they consider their portfolios.",
+  "evidence_titles": [
+    "Trump’s Economy Goes to the Polls",
+    "Fed’s Williams ‘is opening options’ to interest-rate hikes. Why that could be ‘a bad trade.’",
+    "How Oracle’s ‘extremely controversial’ stock could more than double from here",
+    "Prediction market profits are corrupting America, one public figure at a time",
+    "Sharp rise in utility bills pushes Russia's inflation further off target",
+    "Chevron stock on track for record high as oil giant outlines $7 billion plan to expand in Venezuela",
+    "The 42 Best Deals From the REI Labor Day Sale",
+    "It’s Not Just the Economics, Stupid",
+    "Trump seeks to boost U.S. refining capacity as White House lays out details of Venezuela oil deal",
+    "The Big Problems With the ‘Biggest Oil Deal’ Ever",
+    "The Pentagon’s Venezuelan Oil Deal",
+    "Food inflation will jump soon, Axios reporter predicts",
+    "Labor Day gas prices hit highest level in decades",
+    "Trump $1 coins go on sale today, priced at $1.55 to more than $2 each",
+    "eBay Coupons: 20% Off in September 2026",
+    "At G20 Summit, Some U.S. Allies Push Back on Trump’s Economic Approach",
+    "The US is gobbling up Venezuelan oil, but will it lower fuel prices?",
+    "Labor Day travel forecast: Gas prices may reach record high"
+  ],
+  "generated_at": "2026-09-02T16:03:04Z"
+}

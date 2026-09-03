@@ -37,10 +37,22 @@ args = parser.parse_args()
 date_str = args.date or datetime.today().strftime("%Y-%m-%d")
 print(f"📅 Using input date: {date_str}")
 
-INPUT_FILE = f"grouped_articles_final_{date_str}.json"
+expanded = f"grouped_articles_final_expanded_{date_str}.json"
+final_file = f"grouped_articles_final_{date_str}.json"
+
+# Use expanded only if it is at least as fresh as final.
+# Prevents stale expanded files from causing 1-topic summaries.
+if os.path.exists(expanded) and (
+    not os.path.exists(final_file) or os.path.getmtime(expanded) >= os.path.getmtime(final_file)
+):
+    INPUT_FILE = expanded
+else:
+    INPUT_FILE = final_file
+
+print(f"📄 Summarizer input: {INPUT_FILE}")
 OUTPUT_FILE = f"topic_summaries_{date_str}.json"
 
-MIN_ARTICLES = 6
+MIN_ARTICLES = 4
 MAX_ARTICLES_PER_CLUSTER = 10
 MAX_CLUSTERS = 10
 
@@ -954,13 +966,19 @@ summaries = []
 for idx, cluster in enumerate(top_clusters):
     print(f"🧠 Summarizing topic {idx + 1}/{len(top_clusters)} with {len(cluster['articles'])} articles")
 
-    all_articles = cluster["articles"]
+    # Verified core drives the summary.
+    core_articles = cluster["articles"]
 
-    # Use most-central articles for the actual summary (better coherence)
-    selected_articles = select_central_articles(all_articles, MAX_ARTICLES_PER_CLUSTER)
+    # Expanded coverage drives receipts/source counts only.
+    coverage_articles = cluster.get("coverage_articles") or core_articles
+
+    selected_articles = select_central_articles(
+        core_articles,
+        MAX_ARTICLES_PER_CLUSTER
+    )
 
     # Cache key should be stable for the cluster (use ALL URLs, not just the selected subset)
-    all_urls = sorted([a.get("url") for a in all_articles if a.get("url")])
+    all_urls = sorted([a.get("url") for a in core_articles if a.get("url")])
     cache_key = make_summ_key(all_urls, SUMM_MODEL, PROMPT_VERSION, MAX_ARTICLES_PER_CLUSTER)
 
     cached = get_cached_summary(summ_cache, cache_key)
@@ -978,7 +996,7 @@ for idx, cluster in enumerate(top_clusters):
         put_cached_summary(summ_cache, cache_key, headline, body, takeaways)
         summ_cache_dirty = True
 
-    all_articles = cluster["articles"]
+    all_articles = core_articles
 
     # Build image queries
     image_query = build_image_query(headline, body)
@@ -1030,14 +1048,14 @@ for idx, cluster in enumerate(top_clusters):
     image_source_url = img["source_url"] if img else ""
     image_license = img["license"] if img else ""
 
-    bias_dist = cluster.get("bias_distribution") or compute_bias_distribution(all_articles)
+    bias_dist = compute_bias_distribution(coverage_articles)
     if not bias_dist:
         print(f"⚠️ Cluster {idx} has no bias_distribution field")
 
     from urllib.parse import urlparse
     source_domains = sorted({
         urlparse(a.get("url")).netloc.replace("www.", "")
-        for a in all_articles
+        for a in coverage_articles
         if a.get("url")
     })
 
@@ -1048,9 +1066,9 @@ for idx, cluster in enumerate(top_clusters):
         "summary": body,
         "takeaways": takeaways,
         "bias_distribution": bias_dist,
-        "sources": [a.get("url") for a in all_articles if a.get("url")],
-        "num_sources": len(all_articles),
-        "html_chips": make_html_chips(all_articles),
+        "sources": [a.get("url") for a in coverage_articles if a.get("url")],
+        "num_sources": len(coverage_articles),
+        "html_chips": make_html_chips(coverage_articles),
 
         "image_query": image_query,
 
