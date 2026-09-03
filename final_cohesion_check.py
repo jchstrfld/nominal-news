@@ -126,7 +126,7 @@ EVENT_MAX_CALLS = int(os.getenv("NN_EVENT_MAX_CALLS", "24"))  # hard cap per run
 EVENT_CACHE_FILE = os.getenv("NN_EVENT_CACHE_FILE", "eventness_cache.json")
 
 # Bump whenever eventness prompt/acceptance semantics change.
-EVENT_CACHE_VERSION = "v3-shared-news-peg-2026-09"
+EVENT_CACHE_VERSION = "v2-evolving-event-2026-09"
 
 def _load_event_cache() -> dict:
     try:
@@ -342,6 +342,101 @@ HIGH_TRUST_DOMAINS = {
     "dw.com",
     "aljazeera.com",
 }
+
+
+def attention_metadata_from_articles(articles: list[dict]) -> dict:
+    """
+    Ranking-only attention footprint captured from the immediate pre-final
+    (grouped_articles_filtered) parent cluster.
+
+    This metadata never changes event membership and never adds articles back
+    after purity filtering.
+    """
+    urls = []
+    domains = []
+
+    for a in articles:
+        raw_url = a.get("url_normalized") or a.get("url") or ""
+        if not raw_url:
+            continue
+
+        key = canonicalize_url(raw_url)
+        if key:
+            urls.append(key)
+
+        dom = domain_from_url(raw_url)
+        if dom:
+            domains.append(dom)
+
+    return {
+        "_attention_urls": sorted(set(urls)),
+        "_attention_domains": sorted(set(domains)),
+        "attention_article_count": len(set(urls)) if urls else len(articles),
+        "attention_domain_count": len(set(domains)),
+    }
+
+
+def merge_attention_metadata(into: dict, src: dict) -> None:
+    """
+    Union attention lineage when two candidate clusters are merged.
+    Ranking metadata only; does not affect purity/article membership.
+    """
+    urls = set(into.get("_attention_urls", []))
+    urls.update(src.get("_attention_urls", []))
+
+    domains = set(into.get("_attention_domains", []))
+    domains.update(src.get("_attention_domains", []))
+
+    into["_attention_urls"] = sorted(urls)
+    into["_attention_domains"] = sorted(domains)
+
+    if urls:
+        into["attention_article_count"] = len(urls)
+    else:
+        into["attention_article_count"] = max(
+            int(into.get("attention_article_count", 0) or 0),
+            int(src.get("attention_article_count", 0) or 0),
+        )
+
+    into["attention_domain_count"] = len(domains)
+
+
+def attention_score(cluster: dict) -> float:
+    """
+    Final page-order score for already-validated events.
+
+    Primary signal: breadth in the immediate pre-final filtered lineage.
+      - unique domains dominate
+      - article volume is secondary
+      - verified-core breadth/size provide a small confirmation signal
+
+    This score is ranking-only. Purity/event validation still determines which
+    clusters exist and which articles belong to them.
+    """
+    arts = cluster.get("articles", [])
+    verified_size = len(arts)
+
+    verified_div = cluster.get("source_diversity") or {}
+    verified_domains = int(verified_div.get("unique_domains", 0) or 0)
+
+    attention_articles = int(
+        cluster.get("attention_article_count", verified_size) or verified_size
+    )
+    attention_domains = int(
+        cluster.get("attention_domain_count", verified_domains) or verified_domains
+    )
+
+    score = 0.0
+    score += attention_domains * 4.0
+    score += min(attention_articles, 20) * 0.75
+
+    # Small verification-strength confirmation; deliberately subordinate to
+    # the pre-final attention footprint.
+    score += verified_domains * 0.25
+    score += min(verified_size, 12) * 0.10
+
+    return round(score, 4)
+
 
 def importance_score(cluster: dict) -> float:
     """
@@ -584,6 +679,7 @@ def dedupe_topics(
                         by_key[key] = art
 
                 clusters[w]["articles"] = list(by_key.values())
+                merge_attention_metadata(clusters[w], clusters[l])
                 keep[l] = False
 
     return [clusters[i] for i in range(n) if keep[i]]
@@ -667,18 +763,17 @@ def validate_cluster_eventness_with_gpt(titles: list[str]) -> tuple[str, str]:
         return "SINGLE_EVENT", "Too few titles — keep"
 
     prompt = (
-        "You are a strict news clustering judge.\n"
-        "Decide whether these titles share ONE specific news peg: the same identifiable event, announcement, ruling, attack, disaster, filing, vote, resignation, deal, investigation, or tightly connected continuation of that same development.\n\n"
-        "SINGLE_EVENT: nearly every title can answer the same question 'What happened?' with substantially the same concrete development. "
-        "Follow-up reporting, aftermath, reaction, consequences, analysis, casualty/economic updates, and official responses are allowed ONLY when they are clearly caused by or directly anchored to that same news peg.\n"
-        "MIXED: the titles contain two or more distinct real-world developments, even if they involve the same country, war, person, government, company, policy area, or institution. "
-        "Separate sanctions, speeches, weapons reports, court actions, attacks, investigations, or policy moves are separate events unless one is explicitly a direct consequence or response to the same initiating development.\n"
-        "THEMATIC_BUCKET: the titles are broadly about the same subject but do not share one concrete news peg — for example several developments about Iran, AI, elections, crime, markets, or one public figure.\n\n"
-        "Important test: if a neutral headline summarizing ALL titles would need words like 'and', 'amid', 'as tensions grow', 'latest developments', or a broad topic label to connect otherwise separate developments, it is NOT SINGLE_EVENT.\n"
-        "Do not reject a genuine evolving event merely because outlets cover different consequences or reactions, but require those consequences/reactions to trace back to the same specific initiating development.\n\n"
+        "You are a news clustering judge.\n"
+        "Given these article titles, decide whether they describe:\n"
+        "A) ONE specific real-world news event/development (SINGLE_EVENT) — the titles share one underlying event or continuing development. "
+        "Direct aftermath, official responses, consequences, analysis, negotiations, casualty/economic updates, and follow-up reporting remain SINGLE_EVENT "
+        "when they are clearly anchored to that same underlying event.\n"
+        "B) multiple genuinely distinct incidents (MIXED) — e.g., separate accidents/crimes, separate policy actions, or unrelated events merely sharing a person, place, institution, or theme.\n"
+        "C) a broad theme/roundup/opinion pile (THEMATIC_BUCKET) — 'several things about X' with no single underlying event/development.\n\n"
+        "Be strict about unrelated incidents, but do NOT split one major evolving story merely because coverage includes different phases, consequences, reactions, or analysis.\n\n"
         "Return exactly two lines:\n"
         "Label: <SINGLE_EVENT|MIXED|THEMATIC_BUCKET>\n"
-        "Why: <one short sentence naming the shared news peg or explaining why no single peg exists>\n\n"
+        "Why: <one short sentence>\n\n"
         "Titles:\n- " + "\n- ".join(titles)
     )
 
@@ -1417,18 +1512,15 @@ def filter_articles_to_dominant_event(
     core_top_k: int = 4,
     min_core_sim: float = 0.50,
     min_centroid_sim: float = 0.56,
-    min_peer_sim: float = 0.58,
-    min_peer_count: int = 2,
     max_remove_frac: float = 0.30,
 ) -> tuple[list[dict], dict]:
     """
     Final conservative article-to-event membership cleanup.
 
     Builds a dominant event core from the most mutually central articles, then
-    removes only isolated articles that lack sufficient support from the
-    dominant event:
-      - weak against the dominant event core AND centroid, OR
-      - weak against the core and supported by fewer than min_peer_count peers
+    removes only articles that are weak against BOTH:
+      - the dominant event core
+      - the overall cluster centroid
 
     Safeguards:
       - never acts on clusters smaller than min_cluster_size
@@ -1493,30 +1585,10 @@ def filter_articles_to_dominant_event(
     core_sims = X @ core_vec
     centroid_sims = X @ centroid
 
-    # Peer support: valid event articles should usually have multiple strong
-    # semantic neighbors, while a one-off contaminant often has only one.
-    peer_counts = []
-    for i in range(m):
-        peer_counts.append(
-            int(np.sum([
-                1 for j in range(m)
-                if j != i and S[i, j] >= min_peer_sim
-            ]))
-        )
-
     remove_local = [
         i for i in range(m)
-        if (
-            (
-                core_sims[i] < min_core_sim
-                and centroid_sims[i] < min_centroid_sim
-            )
-            or
-            (
-                core_sims[i] < (min_core_sim + 0.04)
-                and peer_counts[i] < min_peer_count
-            )
-        )
+        if core_sims[i] < min_core_sim
+        and centroid_sims[i] < min_centroid_sim
     ]
 
     if not remove_local:
@@ -1541,7 +1613,6 @@ def filter_articles_to_dominant_event(
         "membership_removed": len(remove_original),
         "membership_min_core_sim": round(float(min(core_sims)), 3),
         "membership_min_centroid_sim": round(float(min(centroid_sims)), 3),
-        "membership_min_peer_count": int(min(peer_counts)),
     }
 
     return kept, diag
@@ -1578,6 +1649,7 @@ def merge_into_dominant_clusters(clusters: list[dict], date_str: str) -> list[di
             if u:
                 by_url[u] = art
         into["articles"] = list(by_url.values())
+        merge_attention_metadata(into, src)
 
         # refresh metrics
         into["source_diversity"] = source_diversity(into["articles"])
@@ -1713,12 +1785,15 @@ def main():
         diversity = source_diversity(arts_kept)
         bias_dist = cluster.get("bias_distribution") or aggregate_bias_distribution(arts_kept)
 
+        attention_meta = attention_metadata_from_articles(arts)
+
         final_candidates.append({
             "topic": cluster.get("topic", cluster.get("topic_title", "Merged Topic")),
             "articles": arts_kept,
             "source_diversity": diversity,
             "source_concentration": compute_source_concentration(arts_kept),
-            "bias_distribution": bias_dist
+            "bias_distribution": bias_dist,
+            **attention_meta,
         })
 
     # Attach time-density to each cluster (used for ranking and bucket control)
@@ -1860,31 +1935,33 @@ def main():
                 print("   -", (a.get("title") or "").strip())
 
     kept = []
-    deferred = []
-
-    # Positive-proof validation:
-    # - math-pure clusters are accepted for free
-    # - obvious mixed clusters are rejected for free
-    # - ambiguous clusters require an explicit SINGLE_EVENT GPT/cache judgment
-    #
-    # Daily live-call target stays intentionally small. A small reserve is used
-    # later only if we still need more validated candidates to fill top_k.
-    GPT_LIVE_TARGET = min(EVENT_MAX_CALLS, max(6, top_k + 2))
-    GPT_SAFETY_LIMIT = min(EVENT_MAX_CALLS, GPT_LIVE_TARGET + 3)
 
     for rank_pos, c in enumerate(pre_ranked):
+        # Only force-review a modest candidate pool.
+        # Large force pools can exhaust GPT budget and drop otherwise good clusters.
+        FORCE_POOL = min(max(top_k + 10, 20), 30)
+        force_review = rank_pos < FORCE_POOL
+
         arts = c.get("articles", [])
         titles = [a.get("title","") for a in arts if a.get("title")]
 
+        # Only consider GPT for larger clusters that still look "bucket-ish"
+        # (math-based signals; no lists)
         p10, std = cluster_cohesion_fast(arts)
         nn_mean, nn_p10 = cluster_nn_tightness(arts)
         ent_coh = cluster_entity_cohesion(nlp, titles) if "cluster_entity_cohesion" in globals() else 1.0
         dom_ent = dominant_entity_ratio(nlp, titles) if "dominant_entity_ratio" in globals() else 0.0
         action_consistency = event_action_consistency(nlp, titles) if "event_action_consistency" in globals() else 0.0
         multi_lump = _cluster_is_thematic_multi_lump(arts)
+
         tr = float(c.get("today_ratio", 1.0) or 1.0)
 
-        # Reject only strong mathematical evidence of incoherence.
+        # Conservative math-only purity gate.
+        # Drops obvious hodgepodge clusters before GPT/summarization.
+        #
+        # A strong dominant entity plus weak secondary entity is NOT, by itself,
+        # evidence of multiple events. Legitimate single events often have exactly
+        # that structure when outlets cover consequences or follow-up angles.
         small_low_cohesion_mixed = (
             len(arts) >= 5 and
             p10 < 0.60 and
@@ -1910,7 +1987,8 @@ def main():
             _print_decision_diag(c, rank_pos, "REJECT", "obvious_mixed_math")
             continue
 
-        # Positive math proof of one event.
+        # Math-pure auto-accept:
+        # Path 1 keeps the original tight-event behavior.
         tight_event_math = (
             len(arts) >= 5 and
             p10 >= 0.72 and
@@ -1921,6 +1999,9 @@ def main():
             action_consistency >= 0.40
         )
 
+        # Path 2 conservatively accepts larger evolving events with strong
+        # cohesion and entity anchoring, even when coverage spans reactions,
+        # consequences, and follow-up developments.
         broad_event_math = (
             len(arts) >= 8 and
             p10 >= 0.66 and
@@ -1932,6 +2013,7 @@ def main():
         )
 
         math_pure = tight_event_math or broad_event_math
+
         c["_tight_event_math"] = bool(tight_event_math)
         c["_broad_event_math"] = bool(broad_event_math)
         c["_math_pure"] = bool(math_pure)
@@ -1942,95 +2024,48 @@ def main():
             kept.append(c)
             continue
 
-        # Ambiguous means exactly that: do not accept without positive evidence.
-        sig = _cluster_sig_urls(c)
-        cache_key = f"{EVENT_CACHE_VERSION}::{EVENT_MODEL}::{sig}"
-        cached = event_cache.get(cache_key)
+        suspicious = (
+            multi_lump or
+            (len(arts) >= 12 and (
+                (ent_coh < 0.10) or
+                (p10 < 0.42) or
+                (p10 < 0.50 and std > 0.14) or
+                (len(arts) >= 25 and ent_coh < 0.16) or
+                (len(arts) >= 15 and tr < 0.25)
+            ))
+)
 
-        if cached:
-            lab = cached.get("label", "MIXED")
-            c["_gpt_source"] = "cache"
-            c["_gpt_label"] = lab
-            c["eventness_label"] = lab
-
-            if lab == "SINGLE_EVENT":
-                _print_decision_diag(c, rank_pos, "KEEP", "gpt_single_event_cache")
-                kept.append(c)
-            else:
-                _print_decision_diag(c, rank_pos, "REJECT", f"gpt_{lab.lower()}_cache")
-            continue
-
-        if no_openai or not os.getenv("OPENAI_API_KEY"):
-            c["eventness_label"] = "UNREVIEWED_NO_OPENAI"
-            c["_gpt_label"] = "UNREVIEWED_NO_OPENAI"
-            c["_gpt_source"] = "disabled"
-            _print_decision_diag(c, rank_pos, "DEFER", "no_positive_event_proof")
-            deferred.append((rank_pos, c))
-            continue
-
-        if event_calls < GPT_LIVE_TARGET:
-            lab, why = validate_cluster_eventness_with_gpt(titles)
-            event_cache[cache_key] = {"label": lab, "why": why}
-            event_calls += 1
-
-            c["_gpt_source"] = "live"
-            c["_gpt_label"] = lab
-            c["eventness_label"] = lab
-
-            if lab == "SINGLE_EVENT":
-                _print_decision_diag(c, rank_pos, "KEEP", "gpt_single_event_live")
-                kept.append(c)
-            else:
-                _print_decision_diag(c, rank_pos, "REJECT", f"gpt_{lab.lower()}_live")
-            continue
-
-        c["eventness_label"] = "UNREVIEWED_BUDGET"
-        c["_gpt_label"] = "UNREVIEWED_BUDGET"
-        c["_gpt_source"] = "budget"
-        _print_decision_diag(c, rank_pos, "DEFER", "daily_gpt_target_reached")
-        deferred.append((rank_pos, c))
-
-    # If the normal budget did not yield enough accepted candidates, spend only
-    # a tiny reserve on the highest-ranked deferred candidates until top_k is filled.
-    if (
-        len(kept) < top_k and
-        not no_openai and
-        os.getenv("OPENAI_API_KEY") and
-        deferred
-    ):
-        deferred_ranked = sorted(
-            deferred,
-            key=lambda rc: importance_score(rc[1]),
-            reverse=True,
-        )
-
-        for original_rank, c in deferred_ranked:
-            if len(kept) >= top_k or event_calls >= GPT_SAFETY_LIMIT:
-                break
-
-            titles = [a.get("title", "") for a in c.get("articles", []) if a.get("title")]
+        if (force_review or suspicious):
             sig = _cluster_sig_urls(c)
             cache_key = f"{EVENT_CACHE_VERSION}::{EVENT_MODEL}::{sig}"
-
             cached = event_cache.get(cache_key)
+
             if cached:
-                lab = cached.get("label", "MIXED")
-                source = "cache"
+                lab = cached.get("label", "SINGLE_EVENT")
+                c["_gpt_source"] = "cache"
             else:
+                if event_calls >= EVENT_MAX_CALLS:
+                    c["eventness_label"] = "UNREVIEWED_BUDGET"
+                    c["_gpt_label"] = "UNREVIEWED_BUDGET"
+                    c["_gpt_source"] = "budget"
+                    _print_decision_diag(c, rank_pos, "KEEP", "gpt_budget_exhausted_fallback")
+                    kept.append(c)
+                    continue
+
                 lab, why = validate_cluster_eventness_with_gpt(titles)
                 event_cache[cache_key] = {"label": lab, "why": why}
                 event_calls += 1
-                source = "live-reserve"
+                c["_gpt_source"] = "live"
 
-            c["_gpt_source"] = source
             c["_gpt_label"] = lab
             c["eventness_label"] = lab
 
-            if lab == "SINGLE_EVENT":
-                _print_decision_diag(c, original_rank, "KEEP", "gpt_single_event_reserve")
-                kept.append(c)
-            else:
-                _print_decision_diag(c, original_rank, "REJECT", f"gpt_{lab.lower()}_reserve")
+            if lab in {"THEMATIC_BUCKET", "MIXED"}:
+                _print_decision_diag(c, rank_pos, "REJECT", f"gpt_{lab.lower()}")
+                continue
+
+        _print_decision_diag(c, rank_pos, "KEEP", "passed_without_rejection")
+        kept.append(c)
 
     deduped = kept
 
@@ -2057,26 +2092,69 @@ def main():
 
     deduped = membership_cleaned
 
-    # Rank
-    ranked = sorted(deduped, key=importance_score, reverse=True)
+    # Final page order:
+    # purity determines eligibility; attention determines prominence.
+    for c in deduped:
+        c["attention_score"] = attention_score(c)
+
+    ranked = sorted(
+        deduped,
+        key=lambda c: (
+            float(c.get("attention_score", 0.0) or 0.0),
+            importance_score(c),  # tie-break only
+        ),
+        reverse=True,
+    )
 
     # Final safety pass:
-    # Nothing reaches final output without positive event proof.
-    # At this point every retained cluster must already be SINGLE_EVENT or
-    # SINGLE_EVENT_MATH. No budget fallback is allowed into ranked output.
-    ranked = [
-        c for c in ranked
-        if c.get("eventness_label") in {"SINGLE_EVENT", "SINGLE_EVENT_MATH"}
-    ]
+    # after mixed clusters are dropped, lower unreviewed clusters can get promoted.
+    # Vet promoted candidates before final cap.
+    if not no_openai and os.getenv("OPENAI_API_KEY"):
+        vetted = []
+        budget_fallback = []
 
-    if purity_report:
-        print(
-            f"\n[gpt-cost] live_calls={event_calls} "
-            f"daily_target={GPT_LIVE_TARGET} "
-            f"safety_limit={GPT_SAFETY_LIMIT} "
-            f"absolute_cap={EVENT_MAX_CALLS} "
-            f"validated_finalists={len(ranked)}"
-        )
+        for c in ranked:
+            lab = c.get("eventness_label")
+
+            if lab in {"SINGLE_EVENT", "SINGLE_EVENT_MATH"}:
+                vetted.append(c)
+
+            elif lab in {"MIXED", "THEMATIC_BUCKET", "MIXED_MATH"}:
+                if purity_report:
+                    print(f"[safety] topic={c.get('topic')} label={lab} decision=REJECT reason=final_safety_label")
+                continue
+
+            else:
+                if event_calls < EVENT_MAX_CALLS:
+                    titles = [a.get("title", "") for a in c.get("articles", []) if a.get("title")]
+
+                    sig = _cluster_sig_urls(c)
+                    cache_key = f"{EVENT_CACHE_VERSION}::{EVENT_MODEL}::{sig}"
+                    cached = event_cache.get(cache_key)
+
+                    if cached:
+                        lab = cached.get("label", "SINGLE_EVENT")
+                    else:
+                        lab, why = validate_cluster_eventness_with_gpt(titles)
+                        event_cache[cache_key] = {"label": lab, "why": why}
+                        event_calls += 1
+
+                    c["eventness_label"] = lab
+
+                    if lab == "SINGLE_EVENT":
+                        vetted.append(c)
+                    elif purity_report:
+                        print(f"[safety] topic={c.get('topic')} label={lab} decision=REJECT reason=final_safety_gpt")
+
+                else:
+                    c["eventness_label"] = "UNREVIEWED_BUDGET"
+                    budget_fallback.append(c)
+
+            if len(vetted) >= top_k:
+                break
+
+        if vetted:
+            ranked = vetted
 
     # Save cache if we made any calls
     if event_calls > 0:
@@ -2094,6 +2172,8 @@ def main():
             "_broad_event_math",
             "_gpt_label",
             "_gpt_source",
+            "_attention_urls",
+            "_attention_domains",
         ]:
             c.pop(k, None)
 
@@ -2118,7 +2198,10 @@ def main():
 
             print(
                 f"\n[{idx}] size={len(arts)} "
-                f"entropy={(c.get('source_diversity') or {}).get('entropy',0)}"
+                f"entropy={(c.get('source_diversity') or {}).get('entropy',0)} "
+                f"attention={c.get('attention_article_count', len(arts))}/"
+                f"{c.get('attention_domain_count', 0)}dom "
+                f"attention_score={c.get('attention_score', 0)}"
                 f"{membership_text}"
             )
             for a in arts[:5]:
