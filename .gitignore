@@ -55,6 +55,7 @@ embeddings_cache.json
 summaries_cache.json
 trust_log_*.json
 unmapped_bias.json
+grouped_articles_final_expanded_*.json
 Archive/*.json
 
 # Optional: logs

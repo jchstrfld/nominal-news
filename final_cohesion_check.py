@@ -59,6 +59,7 @@ def _parse_args():
     no_openai = False
     top_k = 10
     print_report = False
+    purity_report = False
 
     i = 0
     while i < len(args):
@@ -78,13 +79,16 @@ def _parse_args():
         elif a == "--print-report":
             print_report = True
             i += 1
+        elif a == "--purity-report":
+            purity_report = True
+            i += 1
         else:
             i += 1
 
     if not date_str:
         date_str = datetime.today().strftime("%Y-%m-%d")
 
-    return date_str, no_openai, top_k, print_report
+    return date_str, no_openai, top_k, print_report, purity_report
 
 _TRACKING_PARAMS = {
     "utm_source","utm_medium","utm_campaign","utm_term","utm_content",
@@ -120,6 +124,9 @@ def canonicalize_url(u: str) -> str:
 EVENT_MODEL = os.getenv("NN_EVENT_MODEL", "gpt-4o-mini")
 EVENT_MAX_CALLS = int(os.getenv("NN_EVENT_MAX_CALLS", "24"))  # hard cap per run
 EVENT_CACHE_FILE = os.getenv("NN_EVENT_CACHE_FILE", "eventness_cache.json")
+
+# Bump whenever eventness prompt/acceptance semantics change.
+EVENT_CACHE_VERSION = "v3-shared-news-peg-2026-09"
 
 def _load_event_cache() -> dict:
     try:
@@ -317,6 +324,83 @@ def matter_score(cluster: dict) -> float:
         base -= 1.0
 
     return base
+
+HIGH_TRUST_DOMAINS = {
+    "reuters.com",
+    "apnews.com",
+    "nytimes.com",
+    "bbc.com",
+    "wsj.com",
+    "ft.com",
+    "economist.com",
+    "washingtonpost.com",
+    "npr.org",
+    "abcnews.go.com",
+    "cbsnews.com",
+    "nbcnews.com",
+    "theguardian.com",
+    "dw.com",
+    "aljazeera.com",
+}
+
+def importance_score(cluster: dict) -> float:
+    """
+    Final ranking score after purity filtering.
+    Prioritizes broad, cross-outlet attention over merely coherent local/random events.
+    Ranking-only: does not drop clusters.
+    """
+    arts = cluster.get("articles", [])
+    size = len(arts)
+
+    div = cluster.get("source_diversity") or {}
+    uniq_domains = int(div.get("unique_domains", 0) or 0)
+    entropy = float(div.get("entropy", 0.0) or 0.0)
+    source_conc = float(cluster.get("source_concentration", 0.0) or 0.0)
+
+    bias_dist = cluster.get("bias_distribution") or {}
+    known_biases = [k for k in bias_dist.keys() if k != "Unknown"]
+    bias_breadth = len(known_biases)
+
+    today_ratio = float(cluster.get("today_ratio", 1.0) or 1.0)
+
+    high_trust_hits = 0
+    times = []
+    for a in arts:
+        raw_url = a.get("url_normalized") or a.get("url") or ""
+        dom = urlparse(raw_url).netloc.replace("www.", "").lower()
+        if dom in HIGH_TRUST_DOMAINS:
+            high_trust_hits += 1
+
+        raw = a.get("published_at") or ""
+        try:
+            times.append(datetime.fromisoformat(raw.replace("Z", "+00:00")))
+        except Exception:
+            pass
+
+    if len(times) >= 2:
+        span_hours = max(1.0, (max(times) - min(times)).total_seconds() / 3600)
+        velocity = min(3.0, len(times) / span_hours)
+    else:
+        velocity = 0.0
+
+    score = 0.0
+    score += min(size, 12) * 0.8
+    score += uniq_domains * 1.15
+    score += entropy * 1.4
+    score += bias_breadth * 0.9
+    score += velocity * 1.2
+    score += today_ratio * 2.0
+    score += min(high_trust_hits, 6) * 0.9
+
+    if source_conc >= 0.40:
+        score -= 1.5
+    if source_conc >= 0.60:
+        score -= 2.5
+
+    if cluster.get("eventness_label") in {"SINGLE_EVENT", "SINGLE_EVENT_MATH"}:
+        score += 1.0
+
+    return score
 
 # ----------------------------
 # Exact duplicate collapse
@@ -583,15 +667,18 @@ def validate_cluster_eventness_with_gpt(titles: list[str]) -> tuple[str, str]:
         return "SINGLE_EVENT", "Too few titles — keep"
 
     prompt = (
-        "You are a news clustering judge.\n"
-        "Given these article titles, decide whether they describe:\n"
-        "A) ONE specific real-world news event/development (SINGLE_EVENT) — same incident, same outcome, same protagonists.\n"
-        "B) multiple different incidents (MIXED) — e.g., multiple separate accidents/crimes in different places.\n"
-        "C) a broad theme/roundup/opinion pile (THEMATIC_BUCKET) — 'several things about X' with no single incident.\n\n"
-        "Be strict: if there are clearly multiple distinct incidents, label MIXED.\n\n"
+        "You are a strict news clustering judge.\n"
+        "Decide whether these titles share ONE specific news peg: the same identifiable event, announcement, ruling, attack, disaster, filing, vote, resignation, deal, investigation, or tightly connected continuation of that same development.\n\n"
+        "SINGLE_EVENT: nearly every title can answer the same question 'What happened?' with substantially the same concrete development. "
+        "Follow-up reporting, aftermath, reaction, consequences, analysis, casualty/economic updates, and official responses are allowed ONLY when they are clearly caused by or directly anchored to that same news peg.\n"
+        "MIXED: the titles contain two or more distinct real-world developments, even if they involve the same country, war, person, government, company, policy area, or institution. "
+        "Separate sanctions, speeches, weapons reports, court actions, attacks, investigations, or policy moves are separate events unless one is explicitly a direct consequence or response to the same initiating development.\n"
+        "THEMATIC_BUCKET: the titles are broadly about the same subject but do not share one concrete news peg — for example several developments about Iran, AI, elections, crime, markets, or one public figure.\n\n"
+        "Important test: if a neutral headline summarizing ALL titles would need words like 'and', 'amid', 'as tensions grow', 'latest developments', or a broad topic label to connect otherwise separate developments, it is NOT SINGLE_EVENT.\n"
+        "Do not reject a genuine evolving event merely because outlets cover different consequences or reactions, but require those consequences/reactions to trace back to the same specific initiating development.\n\n"
         "Return exactly two lines:\n"
         "Label: <SINGLE_EVENT|MIXED|THEMATIC_BUCKET>\n"
-        "Why: <one short sentence>\n\n"
+        "Why: <one short sentence naming the shared news peg or explaining why no single peg exists>\n\n"
         "Titles:\n- " + "\n- ".join(titles)
     )
 
@@ -963,6 +1050,52 @@ def _cluster_is_thematic_multi_lump(articles: list[dict]) -> bool:
     # If splitting improves tail cohesion a lot, it's a multi-topic thematic bucket.
     return (p10_after - p10_before) >= 0.10 and (std_before - std_after) >= 0.03
 
+def dominant_entity_ratio(nlp, titles: list[str]) -> float:
+    """Fraction of usable titles containing the most common named entity."""
+    if not nlp or not titles:
+        return 1.0
+
+    counts = Counter()
+    usable = 0
+    for t in titles[:18]:
+        ents = _entities(nlp, t)
+        if not ents:
+            continue
+        usable += 1
+        for e in ents:
+            counts[e] += 1
+
+    if usable < 4 or not counts:
+        return 0.0
+
+    return counts.most_common(1)[0][1] / usable
+
+
+def event_action_consistency(nlp, titles: list[str]) -> float:
+    """Measures whether titles share the same leading event action/frame."""
+    if not nlp or not titles:
+        return 0.0
+
+    actions = []
+    for t in titles[:18]:
+        doc = nlp(t)
+        verbs = [
+            tok.lemma_.lower()
+            for tok in doc
+            if tok.pos_ in {"VERB", "AUX"}
+            and not tok.is_stop
+            and len(tok.lemma_) > 2
+        ]
+        if verbs:
+            actions.append(verbs[0])
+
+    if len(actions) < 4:
+        return 0.0
+
+    counts = Counter(actions)
+    return counts.most_common(1)[0][1] / len(actions)
+
+
 def cluster_entity_cohesion(nlp, titles: list[str]) -> float:
     """
     Token-free event-specificity proxy.
@@ -993,6 +1126,426 @@ def cluster_entity_cohesion(nlp, titles: list[str]) -> float:
     if total_pairs == 0:
         return 1.0
     return shared_pairs / total_pairs
+
+def split_two_substantial_event_components(
+    articles: list[dict],
+    *,
+    min_cluster_size: int = 8,
+    min_part_size: int = 4,
+    min_part_frac: float = 0.30,
+    max_centroid_sim: float = 0.72,
+    min_p10_gain: float = 0.06,
+    min_std_gain: float = 0.025,
+) -> tuple[list[list[dict]], dict]:
+    """
+    Conservative math-only two-event splitter.
+
+    Attempts a cosine-space k=2 partition only for clusters large enough to
+    plausibly contain two real sub-events. Splits only when:
+      - both parts are substantial,
+      - the two part centroids are meaningfully distinct,
+      - and partitioning materially improves cohesion.
+
+    Returns ([part1, part2], diagnostics) when split; otherwise ([articles], diagnostics).
+    """
+    n = len(articles)
+    diag = {
+        "event_split": False,
+        "split_from": n,
+        "split_sizes": [n],
+    }
+
+    if n < min_cluster_size:
+        return [articles], diag
+
+    sem = _get_sem_embedder()
+    if sem is None:
+        return [articles], diag
+
+    texts = []
+    valid_idx = []
+
+    for i, a in enumerate(articles):
+        t = (a.get("title") or "").strip()
+        d = (a.get("description") or "").strip()
+        if d:
+            d = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", d))[:250]
+        txt = (t + ". " + d).strip() if t else d
+        if txt:
+            texts.append(txt)
+            valid_idx.append(i)
+
+    if len(texts) < min_cluster_size:
+        return [articles], diag
+
+    try:
+        X = sem.encode(texts, normalize_embeddings=True)
+        X = np.asarray(X, dtype=np.float32)
+    except Exception:
+        return [articles], diag
+
+    # Baseline cohesion.
+    _, p10_before, std_before = _cohesion_stats(X)
+
+    # Deterministic farthest-pair initialization for cosine k=2.
+    a0 = 0
+    s0 = (X @ X[a0:a0+1].T).reshape(-1)
+    a = int(np.argmin(s0))
+    sa = (X @ X[a:a+1].T).reshape(-1)
+    b = int(np.argmin(sa))
+
+    c1 = X[a].copy()
+    c2 = X[b].copy()
+    labels = None
+
+    for _ in range(8):
+        s1 = (X @ c1.reshape(-1, 1)).reshape(-1)
+        s2 = (X @ c2.reshape(-1, 1)).reshape(-1)
+        new_labels = (s2 > s1).astype(np.int32)
+
+        if new_labels.sum() == 0 or new_labels.sum() == len(new_labels):
+            return [articles], diag
+
+        if labels is not None and np.array_equal(new_labels, labels):
+            labels = new_labels
+            break
+
+        labels = new_labels
+
+        c1 = X[labels == 0].mean(axis=0)
+        c2 = X[labels == 1].mean(axis=0)
+        c1 = c1 / max(np.linalg.norm(c1), 1e-12)
+        c2 = c2 / max(np.linalg.norm(c2), 1e-12)
+
+    if labels is None:
+        return [articles], diag
+
+    idx1 = np.where(labels == 0)[0]
+    idx2 = np.where(labels == 1)[0]
+
+    n1, n2 = len(idx1), len(idx2)
+    if n1 < min_part_size or n2 < min_part_size:
+        return [articles], diag
+
+    if min(n1, n2) / len(X) < min_part_frac:
+        return [articles], diag
+
+    X1 = X[idx1]
+    X2 = X[idx2]
+
+    _, p10_1, std_1 = _cohesion_stats(X1)
+    _, p10_2, std_2 = _cohesion_stats(X2)
+
+    p10_after = (n1 * p10_1 + n2 * p10_2) / (n1 + n2)
+    std_after = (n1 * std_1 + n2 * std_2) / (n1 + n2)
+
+    cent1 = X1.mean(axis=0)
+    cent2 = X2.mean(axis=0)
+    cent1 = cent1 / max(np.linalg.norm(cent1), 1e-12)
+    cent2 = cent2 / max(np.linalg.norm(cent2), 1e-12)
+    centroid_sim = float(cent1 @ cent2)
+
+    cohesion_improved = (
+        (p10_after - p10_before >= min_p10_gain)
+        or
+        (std_before - std_after >= min_std_gain)
+    )
+
+    if centroid_sim > max_centroid_sim or not cohesion_improved:
+        return [articles], diag
+
+    original_idx1 = {valid_idx[int(i)] for i in idx1}
+    original_idx2 = {valid_idx[int(i)] for i in idx2}
+
+    part1 = [a for i, a in enumerate(articles) if i in original_idx1]
+    part2 = [a for i, a in enumerate(articles) if i in original_idx2]
+
+    # Largest part first for stable ordering.
+    parts = sorted([part1, part2], key=len, reverse=True)
+
+    diag = {
+        "event_split": True,
+        "split_from": n,
+        "split_sizes": [len(parts[0]), len(parts[1])],
+        "split_centroid_sim": round(centroid_sim, 3),
+        "split_p10_before": round(p10_before, 3),
+        "split_p10_after": round(p10_after, 3),
+        "split_std_before": round(std_before, 3),
+        "split_std_after": round(std_after, 3),
+    }
+
+    return parts, diag
+
+
+def extract_dominant_event_component(
+    articles: list[dict],
+    *,
+    min_cluster_size: int = 6,
+    min_component_size: int = 5,
+    sim_threshold: float = 0.54,
+    min_component_frac: float = 0.55,
+    min_p10_gain: float = 0.04,
+    min_std_gain: float = 0.025,
+) -> tuple[list[dict], dict]:
+    """
+    Math-only article-level cleanup.
+
+    Builds a semantic similarity graph inside one candidate cluster and extracts
+    the largest connected component only when that component:
+      - contains at least min_component_size articles,
+      - contains at least min_component_frac of the cluster,
+      - and materially improves cohesion.
+
+    This removes unrelated sub-stories while preserving the dominant event.
+    Returns (articles, diagnostics).
+    """
+    n = len(articles)
+    diag = {
+        "component_trimmed": False,
+        "component_from": n,
+        "component_to": n,
+    }
+
+    if n < min_cluster_size:
+        return articles, diag
+
+    sem = _get_sem_embedder()
+    if sem is None:
+        return articles, diag
+
+    texts = []
+    valid_idx = []
+
+    for i, a in enumerate(articles):
+        t = (a.get("title") or "").strip()
+        d = (a.get("description") or "").strip()
+        if d:
+            d = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", d))[:250]
+        txt = (t + ". " + d).strip() if t else d
+        if txt:
+            texts.append(txt)
+            valid_idx.append(i)
+
+    if len(texts) < min_component_size:
+        return articles, diag
+
+    try:
+        X = sem.encode(texts, normalize_embeddings=True)
+        X = np.asarray(X, dtype=np.float32)
+    except Exception:
+        return articles, diag
+
+    S = X @ X.T
+    m = len(texts)
+
+    # Connected components over strong semantic links.
+    seen = set()
+    components = []
+
+    for i in range(m):
+        if i in seen:
+            continue
+
+        stack = [i]
+        seen.add(i)
+        comp = []
+
+        while stack:
+            cur = stack.pop()
+            comp.append(cur)
+
+            nbrs = np.where(S[cur] >= sim_threshold)[0]
+            for j in nbrs:
+                j = int(j)
+                if j == cur or j in seen:
+                    continue
+                seen.add(j)
+                stack.append(j)
+
+        components.append(comp)
+
+    if not components:
+        return articles, diag
+
+    components.sort(key=len, reverse=True)
+    best = components[0]
+
+    if len(best) == m:
+        return articles, diag
+
+    if len(best) < min_component_size:
+        return articles, diag
+
+    if (len(best) / max(1, m)) < min_component_frac:
+        return articles, diag
+
+    # Compare cohesion before vs. after extraction.
+    _, p10_before, std_before = _cohesion_stats(X)
+    X_best = X[best, :]
+    _, p10_after, std_after = _cohesion_stats(X_best)
+
+    improved = (
+        (p10_after - p10_before >= min_p10_gain)
+        or
+        (std_before - std_after >= min_std_gain)
+    )
+
+    if not improved:
+        return articles, diag
+
+    keep_original_idx = {valid_idx[i] for i in best}
+    kept = [a for i, a in enumerate(articles) if i in keep_original_idx]
+
+    diag = {
+        "component_trimmed": True,
+        "component_from": n,
+        "component_to": len(kept),
+        "component_p10_before": round(p10_before, 3),
+        "component_p10_after": round(p10_after, 3),
+        "component_std_before": round(std_before, 3),
+        "component_std_after": round(std_after, 3),
+    }
+
+    return kept, diag
+
+
+def filter_articles_to_dominant_event(
+    articles: list[dict],
+    *,
+    min_cluster_size: int = 5,
+    min_keep: int = 4,
+    core_top_k: int = 4,
+    min_core_sim: float = 0.50,
+    min_centroid_sim: float = 0.56,
+    min_peer_sim: float = 0.58,
+    min_peer_count: int = 2,
+    max_remove_frac: float = 0.30,
+) -> tuple[list[dict], dict]:
+    """
+    Final conservative article-to-event membership cleanup.
+
+    Builds a dominant event core from the most mutually central articles, then
+    removes only isolated articles that lack sufficient support from the
+    dominant event:
+      - weak against the dominant event core AND centroid, OR
+      - weak against the core and supported by fewer than min_peer_count peers
+
+    Safeguards:
+      - never acts on clusters smaller than min_cluster_size
+      - never removes more than max_remove_frac
+      - always keeps at least min_keep articles
+      - if safeguards are exceeded, leaves the cluster unchanged
+    """
+    n = len(articles)
+    diag = {
+        "membership_trimmed": False,
+        "membership_from": n,
+        "membership_to": n,
+    }
+
+    if n < min_cluster_size:
+        return articles, diag
+
+    sem = _get_sem_embedder()
+    if sem is None:
+        return articles, diag
+
+    texts = []
+    valid_idx = []
+
+    for i, a in enumerate(articles):
+        t = (a.get("title") or "").strip()
+        d = (a.get("description") or "").strip()
+
+        if d:
+            d = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", d))[:250]
+
+        txt = (t + ". " + d).strip() if t else d
+        if txt:
+            texts.append(txt)
+            valid_idx.append(i)
+
+    if len(texts) < min_cluster_size:
+        return articles, diag
+
+    try:
+        X = sem.encode(texts, normalize_embeddings=True)
+        X = np.asarray(X, dtype=np.float32)
+    except Exception:
+        return articles, diag
+
+    m = len(X)
+    S = X @ X.T
+
+    # Mean similarity to all other articles = semantic centrality.
+    S_no_diag = S.copy()
+    np.fill_diagonal(S_no_diag, np.nan)
+    centrality = np.nanmean(S_no_diag, axis=1)
+
+    k = min(core_top_k, max(3, m // 2))
+    core_idx = np.argsort(centrality)[-k:]
+    core_vec = X[core_idx].mean(axis=0)
+    core_vec = core_vec / max(np.linalg.norm(core_vec), 1e-12)
+
+    centroid = X.mean(axis=0)
+    centroid = centroid / max(np.linalg.norm(centroid), 1e-12)
+
+    core_sims = X @ core_vec
+    centroid_sims = X @ centroid
+
+    # Peer support: valid event articles should usually have multiple strong
+    # semantic neighbors, while a one-off contaminant often has only one.
+    peer_counts = []
+    for i in range(m):
+        peer_counts.append(
+            int(np.sum([
+                1 for j in range(m)
+                if j != i and S[i, j] >= min_peer_sim
+            ]))
+        )
+
+    remove_local = [
+        i for i in range(m)
+        if (
+            (
+                core_sims[i] < min_core_sim
+                and centroid_sims[i] < min_centroid_sim
+            )
+            or
+            (
+                core_sims[i] < (min_core_sim + 0.04)
+                and peer_counts[i] < min_peer_count
+            )
+        )
+    ]
+
+    if not remove_local:
+        return articles, diag
+
+    max_remove = int(np.floor(n * max_remove_frac))
+    max_remove = min(max_remove, n - min_keep)
+
+    if max_remove <= 0 or len(remove_local) > max_remove:
+        return articles, diag
+
+    remove_original = {valid_idx[i] for i in remove_local}
+    kept = [a for i, a in enumerate(articles) if i not in remove_original]
+
+    if len(kept) < min_keep:
+        return articles, diag
+
+    diag = {
+        "membership_trimmed": True,
+        "membership_from": n,
+        "membership_to": len(kept),
+        "membership_removed": len(remove_original),
+        "membership_min_core_sim": round(float(min(core_sims)), 3),
+        "membership_min_centroid_sim": round(float(min(centroid_sims)), 3),
+        "membership_min_peer_count": int(min(peer_counts)),
+    }
+
+    return kept, diag
+
 
 def merge_into_dominant_clusters(clusters: list[dict], date_str: str) -> list[dict]:
     """
@@ -1064,10 +1617,29 @@ def merge_into_dominant_clusters(clusters: list[dict], date_str: str) -> list[di
     return [clusters[i] for i in range(len(clusters)) if i not in absorbed]
 
 # ----------------------------
+# Final-decision diagnostics
+# ----------------------------
+def _print_decision_diag(c: dict, rank_pos: int, decision: str, reason: str) -> None:
+    if not c.get("_purity_report_enabled"):
+        return
+    print(
+        f"[decision] pre_rank={rank_pos + 1} "
+        f"topic={c.get('topic')} "
+        f"size={len(c.get('articles', []))} "
+        f"math_pure={c.get('_math_pure', False)} "
+        f"tight_math={c.get('_tight_event_math', False)} "
+        f"broad_math={c.get('_broad_event_math', False)} "
+        f"gpt_label={c.get('_gpt_label', '') or 'N/A'} "
+        f"gpt_source={c.get('_gpt_source', '') or 'N/A'} "
+        f"decision={decision} "
+        f"reason={reason}"
+    )
+
+# ----------------------------
 # Main pipeline
 # ----------------------------
 def main():
-    date_str, no_openai, top_k, print_report = _parse_args()
+    date_str, no_openai, top_k, print_report, purity_report = _parse_args()
 
     # Env & OpenAI
     load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
@@ -1163,80 +1735,367 @@ def main():
 
     deduped = merge_into_dominant_clusters(deduped, date_str)
 
+    # Article-level dominant-event extraction.
+    # Preserve the cluster unless a large internal component is clearly cleaner.
+    component_cleaned = []
+
+    for c in deduped:
+        original_articles = c.get("articles", [])
+        core_articles, component_diag = extract_dominant_event_component(original_articles)
+
+        if component_diag.get("component_trimmed"):
+            c = dict(c)
+            c["articles"] = core_articles
+            c["source_diversity"] = source_diversity(core_articles)
+            c["source_concentration"] = compute_source_concentration(core_articles)
+            c["bias_distribution"] = aggregate_bias_distribution(core_articles)
+            c["today_ratio"] = round(cluster_today_ratio(core_articles, date_str), 3)
+            c["component_extraction"] = component_diag
+
+        component_cleaned.append(c)
+
+    deduped = component_cleaned
+
+    # Conservative two-event split.
+    # If one candidate still contains two substantial, internally coherent event
+    # components, promote each component to its own candidate before GPT/ranking.
+    #
+    # One additional validation pass is allowed on each split child:
+    #   1) dominant-component extraction
+    #   2) one more two-event split
+    # This is intentionally bounded to avoid recursive shredding.
+    split_candidates = []
+
+    for c in deduped:
+        parts, split_diag = split_two_substantial_event_components(c.get("articles", []))
+
+        if not split_diag.get("event_split"):
+            split_candidates.append(c)
+            continue
+
+        for part_num, part_articles in enumerate(parts, start=1):
+            c_part = dict(c)
+            c_part["articles"] = part_articles
+            c_part["source_diversity"] = source_diversity(part_articles)
+            c_part["source_concentration"] = compute_source_concentration(part_articles)
+            c_part["bias_distribution"] = aggregate_bias_distribution(part_articles)
+            c_part["today_ratio"] = round(cluster_today_ratio(part_articles, date_str), 3)
+            c_part["event_split"] = {
+                **split_diag,
+                "part": part_num,
+                "validation_depth": 1,
+            }
+
+            # Bounded child cleanup pass: dominant component first.
+            child_core, child_component_diag = extract_dominant_event_component(part_articles)
+            if child_component_diag.get("component_trimmed"):
+                c_part["articles"] = child_core
+                c_part["source_diversity"] = source_diversity(child_core)
+                c_part["source_concentration"] = compute_source_concentration(child_core)
+                c_part["bias_distribution"] = aggregate_bias_distribution(child_core)
+                c_part["today_ratio"] = round(cluster_today_ratio(child_core, date_str), 3)
+                c_part["child_component_extraction"] = child_component_diag
+
+            # Bounded child split pass: at most one extra split.
+            child_parts, child_split_diag = split_two_substantial_event_components(c_part.get("articles", []))
+
+            if child_split_diag.get("event_split"):
+                for child_num, child_articles in enumerate(child_parts, start=1):
+                    c_child = dict(c_part)
+                    c_child["articles"] = child_articles
+                    c_child["source_diversity"] = source_diversity(child_articles)
+                    c_child["source_concentration"] = compute_source_concentration(child_articles)
+                    c_child["bias_distribution"] = aggregate_bias_distribution(child_articles)
+                    c_child["today_ratio"] = round(cluster_today_ratio(child_articles, date_str), 3)
+                    c_child["child_event_split"] = {
+                        **child_split_diag,
+                        "parent_part": part_num,
+                        "part": child_num,
+                        "validation_depth": 2,
+                    }
+                    split_candidates.append(c_child)
+            else:
+                split_candidates.append(c_part)
+
+    deduped = split_candidates
+
     # Final, low-cost GPT pass: only on suspicious big buckets
     event_cache = _load_event_cache()
     event_calls = 0
 
     # Pre-rank to decide which ones are worth validating (top 15 by current score)
     pre_ranked = sorted(deduped, key=matter_score, reverse=True)
+    for c in pre_ranked:
+        c["_purity_report_enabled"] = bool(purity_report)
+
+    if purity_report:
+        print("\n=== Cluster purity diagnostics ===")
+        for idx, c in enumerate(pre_ranked, start=1):
+            arts = c.get("articles", [])
+            titles = [a.get("title", "") for a in arts if a.get("title")]
+            p10, std = cluster_cohesion_fast(arts)
+            nn_mean, nn_p10 = cluster_nn_tightness(arts)
+            ent_coh = cluster_entity_cohesion(nlp, titles)
+            multi_lump = _cluster_is_thematic_multi_lump(arts)
+
+            print(
+                f"\n[{idx}] topic={c.get('topic')} "
+                f"size={len(arts)} "
+                f"p10={p10:.3f} "
+                f"std={std:.3f} "
+                f"nn_p10={nn_p10:.3f} "
+                f"entity_coh={ent_coh:.3f} "
+                f"multi_lump={multi_lump} "
+                f"component_trim={((c.get('component_extraction') or {}).get('component_from', len(arts)))}"
+                f"→{((c.get('component_extraction') or {}).get('component_to', len(arts)))} "
+                f"event_split={((c.get('event_split') or {}).get('split_from', len(arts)))}"
+                f"→{((c.get('event_split') or {}).get('split_sizes', [len(arts)]))} "
+                f"child_trim={((c.get('child_component_extraction') or {}).get('component_from', len(arts)))}"
+                f"→{((c.get('child_component_extraction') or {}).get('component_to', len(arts)))} "
+                f"child_split={((c.get('child_event_split') or {}).get('split_from', len(arts)))}"
+                f"→{((c.get('child_event_split') or {}).get('split_sizes', [len(arts)]))}"
+            )
+
+            for a in arts[:8]:
+                print("   -", (a.get("title") or "").strip())
+
     kept = []
+    deferred = []
+
+    # Positive-proof validation:
+    # - math-pure clusters are accepted for free
+    # - obvious mixed clusters are rejected for free
+    # - ambiguous clusters require an explicit SINGLE_EVENT GPT/cache judgment
+    #
+    # Daily live-call target stays intentionally small. A small reserve is used
+    # later only if we still need more validated candidates to fill top_k.
+    GPT_LIVE_TARGET = min(EVENT_MAX_CALLS, max(6, top_k + 2))
+    GPT_SAFETY_LIMIT = min(EVENT_MAX_CALLS, GPT_LIVE_TARGET + 3)
 
     for rank_pos, c in enumerate(pre_ranked):
-        FORCE_POOL = max(top_k + 30, 60)
-        force_review = rank_pos < FORCE_POOL
-
         arts = c.get("articles", [])
         titles = [a.get("title","") for a in arts if a.get("title")]
 
-        # Only consider GPT for larger clusters that still look "bucket-ish"
-        # (math-based signals; no lists)
         p10, std = cluster_cohesion_fast(arts)
+        nn_mean, nn_p10 = cluster_nn_tightness(arts)
         ent_coh = cluster_entity_cohesion(nlp, titles) if "cluster_entity_cohesion" in globals() else 1.0
-
+        dom_ent = dominant_entity_ratio(nlp, titles) if "dominant_entity_ratio" in globals() else 0.0
+        action_consistency = event_action_consistency(nlp, titles) if "event_action_consistency" in globals() else 0.0
+        multi_lump = _cluster_is_thematic_multi_lump(arts)
         tr = float(c.get("today_ratio", 1.0) or 1.0)
 
-        suspicious = (
-            (len(arts) >= 12 and (
-                (ent_coh < 0.10) or
-                (p10 < 0.42) or
-                (p10 < 0.50 and std > 0.14) or
-                (len(arts) >= 25 and ent_coh < 0.16) or
-                (len(arts) >= 15 and tr < 0.25)
-            ))
+        # Reject only strong mathematical evidence of incoherence.
+        small_low_cohesion_mixed = (
+            len(arts) >= 5 and
+            p10 < 0.60 and
+            nn_p10 < 0.35 and
+            ent_coh < 0.15
         )
 
-        if (force_review or suspicious):
-            sig = _cluster_sig_urls(c)
-            cache_key = f"{EVENT_MODEL}::{sig}"
-            cached = event_cache.get(cache_key)
+        obvious_mixed_math = (
+            multi_lump or
+            small_low_cohesion_mixed or
+            (
+                len(arts) >= 6 and (
+                    (ent_coh == 0.0 and nn_p10 < 0.32) or
+                    (p10 < 0.48 and ent_coh < 0.08) or
+                    (nn_p10 < 0.32 and ent_coh < 0.08)
+                )
+            )
+        )
 
-            if cached:
-                lab = cached.get("label", "SINGLE_EVENT")
+        if obvious_mixed_math:
+            c["eventness_label"] = "MIXED_MATH"
+            c["_math_pure"] = False
+            _print_decision_diag(c, rank_pos, "REJECT", "obvious_mixed_math")
+            continue
+
+        # Positive math proof of one event.
+        tight_event_math = (
+            len(arts) >= 5 and
+            p10 >= 0.72 and
+            nn_p10 >= 0.60 and
+            std <= 0.08 and
+            ent_coh >= 0.18 and
+            dom_ent >= 0.70 and
+            action_consistency >= 0.40
+        )
+
+        broad_event_math = (
+            len(arts) >= 8 and
+            p10 >= 0.66 and
+            nn_p10 >= 0.55 and
+            std <= 0.10 and
+            ent_coh >= 0.45 and
+            dom_ent >= 0.75 and
+            not multi_lump
+        )
+
+        math_pure = tight_event_math or broad_event_math
+        c["_tight_event_math"] = bool(tight_event_math)
+        c["_broad_event_math"] = bool(broad_event_math)
+        c["_math_pure"] = bool(math_pure)
+
+        if math_pure:
+            c["eventness_label"] = "SINGLE_EVENT_MATH"
+            _print_decision_diag(c, rank_pos, "KEEP", "math_pure_auto_accept")
+            kept.append(c)
+            continue
+
+        # Ambiguous means exactly that: do not accept without positive evidence.
+        sig = _cluster_sig_urls(c)
+        cache_key = f"{EVENT_CACHE_VERSION}::{EVENT_MODEL}::{sig}"
+        cached = event_cache.get(cache_key)
+
+        if cached:
+            lab = cached.get("label", "MIXED")
+            c["_gpt_source"] = "cache"
+            c["_gpt_label"] = lab
+            c["eventness_label"] = lab
+
+            if lab == "SINGLE_EVENT":
+                _print_decision_diag(c, rank_pos, "KEEP", "gpt_single_event_cache")
+                kept.append(c)
             else:
-                if event_calls >= EVENT_MAX_CALLS:
-                    # If we can't afford to vet a forced candidate, we should not allow it to pass.
-                    if force_review:
-                        continue
-                    # Non-forced and no budget: let it pass through unlabelled
-                    kept.append(c)
-                    continue
+                _print_decision_diag(c, rank_pos, "REJECT", f"gpt_{lab.lower()}_cache")
+            continue
 
+        if no_openai or not os.getenv("OPENAI_API_KEY"):
+            c["eventness_label"] = "UNREVIEWED_NO_OPENAI"
+            c["_gpt_label"] = "UNREVIEWED_NO_OPENAI"
+            c["_gpt_source"] = "disabled"
+            _print_decision_diag(c, rank_pos, "DEFER", "no_positive_event_proof")
+            deferred.append((rank_pos, c))
+            continue
+
+        if event_calls < GPT_LIVE_TARGET:
+            lab, why = validate_cluster_eventness_with_gpt(titles)
+            event_cache[cache_key] = {"label": lab, "why": why}
+            event_calls += 1
+
+            c["_gpt_source"] = "live"
+            c["_gpt_label"] = lab
+            c["eventness_label"] = lab
+
+            if lab == "SINGLE_EVENT":
+                _print_decision_diag(c, rank_pos, "KEEP", "gpt_single_event_live")
+                kept.append(c)
+            else:
+                _print_decision_diag(c, rank_pos, "REJECT", f"gpt_{lab.lower()}_live")
+            continue
+
+        c["eventness_label"] = "UNREVIEWED_BUDGET"
+        c["_gpt_label"] = "UNREVIEWED_BUDGET"
+        c["_gpt_source"] = "budget"
+        _print_decision_diag(c, rank_pos, "DEFER", "daily_gpt_target_reached")
+        deferred.append((rank_pos, c))
+
+    # If the normal budget did not yield enough accepted candidates, spend only
+    # a tiny reserve on the highest-ranked deferred candidates until top_k is filled.
+    if (
+        len(kept) < top_k and
+        not no_openai and
+        os.getenv("OPENAI_API_KEY") and
+        deferred
+    ):
+        deferred_ranked = sorted(
+            deferred,
+            key=lambda rc: importance_score(rc[1]),
+            reverse=True,
+        )
+
+        for original_rank, c in deferred_ranked:
+            if len(kept) >= top_k or event_calls >= GPT_SAFETY_LIMIT:
+                break
+
+            titles = [a.get("title", "") for a in c.get("articles", []) if a.get("title")]
+            sig = _cluster_sig_urls(c)
+            cache_key = f"{EVENT_CACHE_VERSION}::{EVENT_MODEL}::{sig}"
+
+            cached = event_cache.get(cache_key)
+            if cached:
+                lab = cached.get("label", "MIXED")
+                source = "cache"
+            else:
                 lab, why = validate_cluster_eventness_with_gpt(titles)
                 event_cache[cache_key] = {"label": lab, "why": why}
                 event_calls += 1
+                source = "live-reserve"
 
+            c["_gpt_source"] = source
+            c["_gpt_label"] = lab
             c["eventness_label"] = lab
 
-            if lab in {"THEMATIC_BUCKET", "MIXED"}:
-                continue
+            if lab == "SINGLE_EVENT":
+                _print_decision_diag(c, original_rank, "KEEP", "gpt_single_event_reserve")
+                kept.append(c)
+            else:
+                _print_decision_diag(c, original_rank, "REJECT", f"gpt_{lab.lower()}_reserve")
 
-        kept.append(c)
+    deduped = kept
+
+    # Final article-to-event membership cleanup.
+    # This acts only on already accepted clusters and removes isolated residual
+    # articles that are weak against both the dominant event core and centroid.
+    membership_cleaned = []
+
+    for c in deduped:
+        original_articles = c.get("articles", [])
+        kept_articles, membership_diag = filter_articles_to_dominant_event(original_articles)
+
+        if membership_diag.get("membership_trimmed"):
+            c = dict(c)
+            c["articles"] = kept_articles
+            c["source_diversity"] = source_diversity(kept_articles)
+            c["source_concentration"] = compute_source_concentration(kept_articles)
+            c["bias_distribution"] = aggregate_bias_distribution(kept_articles)
+            c["today_ratio"] = round(cluster_today_ratio(kept_articles, date_str), 3)
+            c["membership_extraction"] = membership_diag
+
+        if len(c.get("articles", [])) >= 4:
+            membership_cleaned.append(c)
+
+    deduped = membership_cleaned
+
+    # Rank
+    ranked = sorted(deduped, key=importance_score, reverse=True)
+
+    # Final safety pass:
+    # Nothing reaches final output without positive event proof.
+    # At this point every retained cluster must already be SINGLE_EVENT or
+    # SINGLE_EVENT_MATH. No budget fallback is allowed into ranked output.
+    ranked = [
+        c for c in ranked
+        if c.get("eventness_label") in {"SINGLE_EVENT", "SINGLE_EVENT_MATH"}
+    ]
+
+    if purity_report:
+        print(
+            f"\n[gpt-cost] live_calls={event_calls} "
+            f"daily_target={GPT_LIVE_TARGET} "
+            f"safety_limit={GPT_SAFETY_LIMIT} "
+            f"absolute_cap={EVENT_MAX_CALLS} "
+            f"validated_finalists={len(ranked)}"
+        )
 
     # Save cache if we made any calls
     if event_calls > 0:
         _save_event_cache(event_cache)
 
-    deduped = kept
-
-    # Rank
-    ranked = sorted(deduped, key=matter_score, reverse=True)
-
-    # Ensure top candidates are event-vetted when OpenAI is enabled
-    if not no_openai and os.getenv("OPENAI_API_KEY"):
-        ranked = [c for c in ranked if c.get("eventness_label") == "SINGLE_EVENT"]
-
     # Cap top-K AFTER filtering
     capped = ranked[: max(1, top_k)]
+
+    # Remove run-only diagnostic keys before writing JSON.
+    for c in capped:
+        for k in [
+            "_purity_report_enabled",
+            "_math_pure",
+            "_tight_event_math",
+            "_broad_event_math",
+            "_gpt_label",
+            "_gpt_source",
+        ]:
+            c.pop(k, None)
 
     # Save
     with open(output_file, "w", encoding="utf-8") as f:
@@ -1249,7 +2108,19 @@ def main():
         print("\n=== Final clusters (console report) ===")
         for idx, c in enumerate(capped, start=1):
             arts = c.get("articles", [])
-            print(f"\n[{idx}] size={len(arts)} entropy={(c.get('source_diversity') or {}).get('entropy',0)}")
+            membership_diag = c.get("membership_extraction") or {}
+            membership_text = ""
+            if membership_diag.get("membership_trimmed"):
+                membership_text = (
+                    f" membership="
+                    f"{membership_diag.get('membership_from')}→{membership_diag.get('membership_to')}"
+                )
+
+            print(
+                f"\n[{idx}] size={len(arts)} "
+                f"entropy={(c.get('source_diversity') or {}).get('entropy',0)}"
+                f"{membership_text}"
+            )
             for a in arts[:5]:
                 print("   -", (a.get("title") or a.get("url") or "").strip())
         print("\n(Only first 5 article titles per cluster shown.)")

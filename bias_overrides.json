@@ -1,0 +1,2730 @@
+{
+  "10tv.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Columbus, Ohio https://mediabiasfactcheck.com/wbns-tv-10tv-com/"
+  },
+  "12news.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Phoenix, Arizona https://mediabiasfactcheck.com/12-news-kpnx/"
+  },
+  "12newsnow.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Beaumont, Texas https://mediabiasfactcheck.com/kbmt-12newsnow/"
+  },
+  "13newsnow.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Norfolk, Virginia https://mediabiasfactcheck.com/wvec-13newsnow/"
+  },
+  "13wmaz.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Macon, Georgia https://mediabiasfactcheck.com/wmaz-macon-news-bias/"
+  },
+  "4029tv.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Fort Smith, Arkansas https://mediabiasfactcheck.com/khbs-khog-fort-smith-news-bias/"
+  },
+  "41nbc.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Middle Georgia, Unknown Bias"
+  },
+  "5newsonline.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Fort Smith-Fayetteville, Arkansas https://mediabiasfactcheck.com/kfsm-fort-smith-fayetteville-news-bias/"
+  },
+  "979kickfm.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Quincy, Illinois, Unknown Bias"
+  },
+  "9news.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Denver, Colorado https://mediabiasfactcheck.com/9news-kusa/"
+  },
+  "abc.net.au": {
+    "bias": "Left",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": "Australia https://mediabiasfactcheck.com/abc-news-australia/"
+  },
+  "abc10.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Sacramento, California https://mediabiasfactcheck.com/kxtv-sacramento-news-bias/"
+  },
+  "abcnews.go.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "aei.org": {
+    "bias": "Right",
+    "sources": [],
+    "notes": "American Enterprise Institute https://mediabiasfactcheck.com/american-enterprise-institute/"
+  },
+  "ajc.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "Atlanta Journal-Constitution https://mediabiasfactcheck.com/atlanta-journal-constitution/"
+  },
+  "aljazeera.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "allafrica.com": {
+    "bias": "Center",
+    "sources": [],
+    "notes": "AllAfrica https://mediabiasfactcheck.com/allafrica/"
+  },
+  "apnews.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "arabherald.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Arab Herald, Unknown Bias "
+  },
+  "arstechnica.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "asia.nikkei.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "atlantamagazine.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Atlanta Magazine, Unknown Bias"
+  },
+  "austinglobe.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Austin Globe, Unknown Bias"
+  },
+  "axios.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "barrons.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "bbc.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "bbc.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "bignewsnetwork.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Big News Network https://mediabiasfactcheck.com/big-news-network/"
+  },
+  "billypenn.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "Billy Penn at WHYY, Philadelphia, Pennsylvania, https://mediabiasfactcheck.com/whyy-npr-philadelphia-bias/"
+  },
+  "bloomberg.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "bostonherald.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "breitbart.com": {
+    "bias": "Far Right",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "businessinsider.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "buzzfeednews.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "catcountry1073.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": ""
+  },
+  "cbc.ca": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "cbn.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "cbs19.tv": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Nacogdoches, Texas https://mediabiasfactcheck.com/kytx-nacogdoches-news-bias/"
+  },
+  "cbs8.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "San Diego, California https://mediabiasfactcheck.com/kfmb-san-diego-news-bias/"
+  },
+  "cbsnews.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "chicago.suntimes.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "Chicago, Illinois https://mediabiasfactcheck.com/chicago-sun-times/ https://www.allsides.com/news-source/chicago-sun-times-media-bias"
+  },
+  "chicagoreader.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "chron.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "Houston Chronicle Digital Presence, Houston, Texas https://mediabiasfactcheck.com/houston-chronicle/"
+  },
+  "citizensvoice.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Wilkes-Barre The Citizens' Voice, Wilkes-Barre, Pennsylvania https://mediabiasfactcheck.com/wilkes-barre-citizens-voice-bias/"
+  },
+  "city-journal.org": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "cnbc.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "cnn.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "commentary.org": {
+    "bias": "Right",
+    "sources": [],
+    "notes": "Commentary Magazine https://mediabiasfactcheck.com/commentary-magazine/ https://www.allsides.com/news-source/commentary-magazine-media-bias"
+  },
+  "csmonitor.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "ctvnews.ca": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "currentaffairs.org": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "dailyadvance.com": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "The Daily Advance, Elizabeth City, North Carolina https://mediabiasfactcheck.com/elizabeth-city-daily-advance-bias/"
+  },
+  "dailycaller.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "dailymail.co.uk": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "dailymaillive.co.uk": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "dailysignal.com": {
+    "bias": "Far Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "dailystar.co.uk": {
+    "bias": "Right",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Unknown Bias, https://mediabiasfactcheck.com/daily-star-uk/"
+  },
+  "dailytelegraph.com.au": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "dailywire.com": {
+    "bias": "Far Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "deadline.com": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/deadline-hollywood/ https://www.allsides.com/news-source/deadline-media-bias"
+  },
+  "denverpost.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "dw.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "economist.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "elmundo.es": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "elpais.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "engadget.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "eonline.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/e-news-bias/"
+  },
+  "euronews.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "finance.yahoo.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "financialnews.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "financialpost.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "firstcoastnews.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Jacksonville, Florida https://mediabiasfactcheck.com/first-coast-news/"
+  },
+  "fnlondon.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "forbes.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "fortune.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "fox10phoenix.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Phoenix, Arizona https://mediabiasfactcheck.com/ksaz-fox-10-phoenix-bias/ https://www.allsides.com/news-source/fox-10-phoenix-media-bias"
+  },
+  "fox26houston.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Houston, Texas https://mediabiasfactcheck.com/kriv-fox-26-houston-bias/"
+  },
+  "fox4news.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Dallas-Fort Worth, Texas https://mediabiasfactcheck.com/kdfw-fox-4-dallas-fort-worth-bias/"
+  },
+  "fox5atlanta.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Atlanta, Georgia https://mediabiasfactcheck.com/waga-fox-5-atlanta-bias/"
+  },
+  "fox5ny.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "New York City, New York https://mediabiasfactcheck.com/wnyw-fox-5-new-york-bias/"
+  },
+  "fox61.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Hartford, Connecticut https://mediabiasfactcheck.com/wtic-hartford-news/"
+  },
+  "foxbusiness.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "foxla.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Los Angeles, California https://mediabiasfactcheck.com/kttv-fox-11-los-angeles/"
+  },
+  "foxnews.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "france24.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "ft.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "fxstreet.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Unknown Bias, https://www.allsides.com/news-source/fxstreet-media-bias"
+  },
+  "globeandmail.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "gothamist.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "guardian.co.uk": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "haaretz.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "hellomagazine.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/hello-magazine-bias/"
+  },
+  "heraldglobe.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Unknown Bias"
+  },
+  "hngnews.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Unknown Bias"
+  },
+  "hollywoodlife.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Unknown Bias"
+  },
+  "huffpost.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "ibtimes.co.in": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/international-business-times/ https://adfontesmedia.com/international-business-times-bias-and-reliability/"
+  },
+  "ibtimes.co.uk": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/international-business-times-uk-bias-and-credibility/"
+  },
+  "idahopress.com": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Idaho Press, Nampa, Idaho https://mediabiasfactcheck.com/idaho-press-tribune"
+  },
+  "idahostatejournal.com": {
+    "bias": "Right",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Idaho State Journal, Pocatello, Idaho https://mediabiasfactcheck.com/idaho-state-journal/ https://www.allsides.com/news-source/idaho-state-journal-media-bias"
+  },
+  "ideastream.org": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/ideastream/"
+  },
+  "ijr.com": {
+    "bias": "Right",
+    "sources": [],
+    "notes": "Independent Journal Review, https://mediabiasfactcheck.com/independent-journal-review/ https://www.allsides.com/news-source/independent-journal-review-bias"
+  },
+  "independent.co.uk": {
+    "bias": "Left",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "informationweek.com": {
+    "bias": "Center",
+    "sources": [],
+    "notes": "https://mediabiasfactcheck.com/informationweek/"
+  },
+  "inquirer.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "iowacapitaldispatch.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "iraqsun.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Australia, Unknown Bias"
+  },
+  "japantimes.co.jp": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "jpost.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "k96fm.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Milan, Ohio, Unknown Bias"
+  },
+  "kabc.com": {
+    "bias": "Right",
+    "sources": [],
+    "notes": "Los Angeles, California https://mediabiasfactcheck.com/kabc-am-790/"
+  },
+  "kare11.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Minneapolis, Minnesota https://mediabiasfactcheck.com/kare-11-news/"
+  },
+  "kcentv.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Temple, Texas https://mediabiasfactcheck.com/kcentv-6-news"
+  },
+  "kdhlradio.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Faribault, Minnesota https://mediabiasfactcheck.com/kdhl-radio/"
+  },
+  "kesq.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Palm Springs, California https://mediabiasfactcheck.com/kesq-news-channel-3/"
+  },
+  "ketv.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Omaha, Nebraska https://mediabiasfactcheck.com/ketv-omaha-news/"
+  },
+  "kff.org": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "https://mediabiasfactcheck.com/kaiser-family-foundation/ https://adfontesmedia.com/kaiser-family-foundation-bias-and-reliability/"
+  },
+  "kgw.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Portland, Oregon https://mediabiasfactcheck.com/kgw-news/"
+  },
+  "khak.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Cedar Rapids, Iowa, Unknown Bias"
+  },
+  "khou.com": {
+    "bias": "Center",
+    "sources": [],
+    "notes": "Houston, Texas https://mediabiasfactcheck.com/khou-11-news/"
+  },
+  "kiiitv.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Corpus Christi, Texas https://mediabiasfactcheck.com/kiii-tv-news/"
+  },
+  "kikn.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Sioux Falls, South Dakota, Unknown Bias"
+  },
+  "king5.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Seattle, Washington https://mediabiasfactcheck.com/king-5-news/"
+  },
+  "kiro7.com": {
+    "bias": "Center",
+    "sources": [],
+    "notes": "Seattle, Washington https://mediabiasfactcheck.com/kiro-7-news/"
+  },
+  "kkyr.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Texarkana, Texas, Unknown Bias"
+  },
+  "kmbc.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Kansas City, Missouri https://mediabiasfactcheck.com/kmbc-9-news/"
+  },
+  "koat.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Albuquerque, New Mexico https://mediabiasfactcheck.com/koat-7-news/"
+  },
+  "koco.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Oklahoma City, Oklahoma https://mediabiasfactcheck.com/koco-5-news/"
+  },
+  "kqed.org": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "San Francisco, California https://mediabiasfactcheck.com/kqed/"
+  },
+  "krem.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Spokane, Washington https://mediabiasfactcheck.com/krem-2-news"
+  },
+  "ktvb.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Boise, Idaho https://mediabiasfactcheck.com/ktvb-7-news/"
+  },
+  "ktvu.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Oakland, California https://mediabiasfactcheck.com/ktvu-fox-2-news/"
+  },
+  "kvue.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Austin, Texas https://mediabiasfactcheck.com/kvue-abc-24-news/"
+  },
+  "kxkx.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Sedalia, Missouri, Unknown Bias"
+  },
+  "kyssfm.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Missoula, Montana, Unknown Bias"
+  },
+  "lasvegassun.com": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Las Vegas, Nevada https://mediabiasfactcheck.com/las-vegas-sun/"
+  },
+  "latimes.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "lefigaro.fr": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "lemonde.fr": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "local10.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Miami, Florida https://mediabiasfactcheck.com/wplg-local-10-news/"
+  },
+  "local12.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Cincinnati, Ohio https://mediabiasfactcheck.com/wkrc-local-12-news/"
+  },
+  "lonestar995fm.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Lubbock, Texas, Unknown Bias"
+  },
+  "mankatofreepress.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Mankato, Minnesota https://mediabiasfactcheck.com/mankato-free-press/"
+  },
+  "marketscreener.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/marketscreener-bias/"
+  },
+  "marketwatch.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "mediaite.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "middleeaststar.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Australia, Unknown Bias"
+  },
+  "mirror.co.uk": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "moneycontrol.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://adfontesmedia.com/moneycontrol-bias-and-reliability/"
+  },
+  "motherjones.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "https://mediabiasfactcheck.com/mother-jones/ https://www.allsides.com/news-source/mother-jones"
+  },
+  "msn.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "msnbc.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "mycountry955.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Baltimore, Maryland, Unknown Bias"
+  },
+  "mykxlg.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Watertown, South Dakota, Unknown Bias"
+  },
+  "mynbc5.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Burlington, Vermont https://mediabiasfactcheck.com/wptz-nbc-5-news/"
+  },
+  "nationalobserver.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "https://mediabiasfactcheck.com/national-observer/"
+  },
+  "nationalpost.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "nationalreview.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "nbcbayarea.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "San Jose, California https://mediabiasfactcheck.com/nbc-bay-area/"
+  },
+  "nbcnews.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "nbcwashington.com": {
+    "bias": "Center",
+    "sources": [],
+    "notes": "Washington, DC https://mediabiasfactcheck.com/nbc4-washington/"
+  },
+  "newkerala.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "India, Unknown Bias"
+  },
+  "news.sky.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "news.yahoo.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "newsday.com": {
+    "bias": "Center",
+    "sources": [],
+    "notes": "Long Island, New York https://mediabiasfactcheck.com/newsday/ https://www.allsides.com/news-source/newsday"
+  },
+  "newsnationnow.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "newsweek.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "newyorker.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "niagarafallsreview.ca": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Niagara Falls, Ontario https://mediabiasfactcheck.com/niagara-falls-review/"
+  },
+  "northcountrypublicradio.org": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Canton, New York https://mediabiasfactcheck.com/north-country-public-radio/"
+  },
+  "npr.org": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "nvdaily.com": {
+    "bias": "Right",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Woodstock, Virginia https://mediabiasfactcheck.com/northern-virginia-daily/"
+  },
+  "nydailynews.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "nypost.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "nyt.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "nytimes.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "nzherald.co.nz": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "oann.com": {
+    "bias": "Far Right",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "opinionjournal.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "oregonlive.com": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Portland, Oregon https://mediabiasfactcheck.com/oregonian/ https://www.allsides.com/news-source/oregonian-media-bias"
+  },
+  "oxygen.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/oxygen/"
+  },
+  "pasadenastarnews.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Pasadena, California https://mediabiasfactcheck.com/pasadena-star-news/"
+  },
+  "pbs.org": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "pennlive.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Harrisburg, Pennsylvania https://mediabiasfactcheck.com/pennlive/"
+  },
+  "pewresearch.org": {
+    "bias": "Center",
+    "sources": [],
+    "notes": "https://mediabiasfactcheck.com/pew-research/ https://adfontesmedia.com/pew-research-center-bias-and-reliability/"
+  },
+  "phoenixnewtimes.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "pitchfork.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "https://mediabiasfactcheck.com/pitchfork/"
+  },
+  "politico.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "postmillennial.com": {
+    "bias": "Far Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "postregister.com": {
+    "bias": "Right",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Idaho Falls, Idaho https://mediabiasfactcheck.com/post-register"
+  },
+  "presstelegram.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Long Beach, California https://mediabiasfactcheck.com/press-telegram/"
+  },
+  "propublica.org": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "q1065.fm": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Bangor, Maine, Unknown Bias"
+  },
+  "qz.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "rand.org": {
+    "bias": "Center",
+    "sources": [],
+    "notes": "https://mediabiasfactcheck.com/rand-corporation/ https://adfontesmedia.com/rand-corporation-bias-and-reliability"
+  },
+  "rawstory.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "https://mediabiasfactcheck.com/raw-story/ https://www.allsides.com/news-source/raw-story"
+  },
+  "realclearpolitics.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "reason.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "reuters.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "rockymounttelegram.com": {
+    "bias": "Right",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Rocky Mount, North Carolina https://mediabiasfactcheck.com/rocky-mount-telegram/"
+  },
+  "rollingstone.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "rt.com": {
+    "bias": "Far Right",
+    "sources": [],
+    "notes": "https://mediabiasfactcheck.com/rt-news/ https://www.allsides.com/news-source/rt-news"
+  },
+  "rte.ie": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "russiaherald.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": ""
+  },
+  "sbs.com.au": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/sbs-news-australia/ https://adfontesmedia.com/sbs-news-bias-and-reliability/"
+  },
+  "scientificamerican.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "scmp.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "semafor.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "sfchronicle.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "San Francisco, California https://mediabiasfactcheck.com/san-francisco-chronicle/ https://www.allsides.com/news-source/san-francisco-chronicle"
+  },
+  "sky.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "slate.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "smdailyjournal.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "San Mateo, California https://mediabiasfactcheck.com/san-mateo-daily-journal/"
+  },
+  "spectator.co.uk": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "spiegel.de": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "startribune.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "Minneapolis, Minnesota https://mediabiasfactcheck.com/star-tribune/ https://www.allsides.com/news-source/star-tribune"
+  },
+  "statnews.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "stcatharinesstandard.ca": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "St. Catharines, Ontario https://mediabiasfactcheck.com/st-catharines-standard"
+  },
+  "straightarrownews.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "straitstimes.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "stylecaster.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Unknown Bias"
+  },
+  "swoknews.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Lawton, Oklahoma, Unknown Bias"
+  },
+  "tasteofcountry.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": ""
+  },
+  "techcrunch.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "telegraph.co.uk": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "the-japan-news.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "theage.com.au": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/the-age-australia/ https://www.allsides.com/news-source/the-age"
+  },
+  "theatlantic.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "theboot.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Unknown Bias"
+  },
+  "thedailybeast.com": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/daily-beast/ https://www.allsides.com/news-source/daily-beast"
+  },
+  "thedispatch.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "theepochtimes.com": {
+    "bias": "Far Right",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "thegatewaypundit.com": {
+    "bias": "Far Right",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "theglobeandmail.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "theguardian.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_bias_overrides"
+    ],
+    "notes": ""
+  },
+  "thehill.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "thehindu.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "theinformation.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "thenation.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "thestar.com.my": {
+    "bias": "Right",
+    "sources": [],
+    "notes": "Malaysia, https://mediabiasfactcheck.com/the-star-malaysia/"
+  },
+  "thetimes.co.uk": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "thv11.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Little Rock, Arkansas https://mediabiasfactcheck.com/thv11-little-rock-news-bias/ https://www.allsides.com/news-source/thv11-media-bias"
+  },
+  "time.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "timesfreepress.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Chattanooga, Tennessee https://mediabiasfactcheck.com/times-free-press/"
+  },
+  "timesofindia.indiatimes.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "timesofisrael.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "tmz.com": {
+    "bias": "Right",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/tmz/"
+  },
+  "townhall.com": {
+    "bias": "Far Right",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/townhall/ https://www.allsides.com/news-source/townhall-bias"
+  },
+  "tucson.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Tucson, Arizona https://mediabiasfactcheck.com/arizona-daily-star/"
+  },
+  "unionleader.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "New Hampshire Union Leader, Manchester, New Hampshire, https://ground.news/interest/unionleadercom"
+  },
+  "upward.news": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "us.cnn.com": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/cnn/"
+  },
+  "usatoday.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "venturebeat.com": {
+    "bias": "Center",
+    "sources": [],
+    "notes": "Tech Website out of San Francisco, California https://ground.news/interest/venturebeat"
+  },
+  "vox.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "waka.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Montgomery, Alabama, Unknown Bias"
+  },
+  "wamc.org": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Albany, New York https://mediabiasfactcheck.com/wamc-npr-albany-bias-and-credibility/"
+  },
+  "washingtonexaminer.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "washingtonpost.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "washingtontimes.com": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "watoday.com.au": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Australia, Unknown Bias"
+  },
+  "wbaltv.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Baltimore, Maryland https://mediabiasfactcheck.com/wbal-baltimore-news-bias/"
+  },
+  "wbkr.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Owensboro, Kentucky, Unknown Bias"
+  },
+  "wcnc.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Charlotte, North Carolina https://mediabiasfactcheck.com/wcnc-charlotte-news/"
+  },
+  "wdrb.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Louisville, Kentucky https://mediabiasfactcheck.com/wdrb-louisville-news-bias/"
+  },
+  "westword.com": {
+    "bias": "Left",
+    "sources": [],
+    "notes": "Denver, Colorado https://mediabiasfactcheck.com/denver-westword/"
+  },
+  "wfaa.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Dallas, Texas https://mediabiasfactcheck.com/wfaa-dallas-news-bias/"
+  },
+  "wgal.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Lancaster, Pennsylvania https://mediabiasfactcheck.com/wgal-lancaster-news-bias/"
+  },
+  "wgna.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Albany, New York, Unknown Bias"
+  },
+  "wgntv.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "whas11.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Louisville, Kentucky https://mediabiasfactcheck.com/whas-louisville-news-bias/"
+  },
+  "whdh.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Boston, Massachusetts https://mediabiasfactcheck.com/whdh-boston-news-bias/"
+  },
+  "whio.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Dayton, Ohio https://mediabiasfactcheck.com/whio-dayton-news-bias/"
+  },
+  "wweek.com": {
+    "bias": "Unknown",
+    "sources": [],
+    "notes": "Portland, Oregon, Unknown Bias"
+  },
+  "wilx.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Lansing, Michigan https://mediabiasfactcheck.com/wilx-10/"
+  },
+  "wired.com": {
+    "bias": "Left",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "wjcl.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Savannah, Georgia https://mediabiasfactcheck.com/wjcl-savannah-news-bias/"
+  },
+  "wktv.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Utica, New York https://ground.news/interest/wktvcom"
+  },
+  "wmur.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Manchester, New Hampshire https://mediabiasfactcheck.com/wmur9/"
+  },
+  "wnaw.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "The Berkshires, Massachusetts, Unknown Bias"
+  },
+  "wqad.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Moline, Illinois https://mediabiasfactcheck.com/wqad-moline-news-bias/"
+  },
+  "wral.com": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Raleigh, North Carolina https://mediabiasfactcheck.com/wral/ https://www.allsides.com/news-source/wral-media-bias"
+  },
+  "wsj.com": {
+    "bias": "Center",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "wtae.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Pittsburgh, Pennsylvania https://mediabiasfactcheck.com/wtae-pittsburghs-action-news-4/"
+  },
+  "wthr.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Indianapolis, Indiana https://mediabiasfactcheck.com/wthr-indianapolis-news-bias/"
+  },
+  "wtol.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Toledo, Ohio https://mediabiasfactcheck.com/wtol-toledo-news-bias/"
+  },
+  "wusa9.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Washington, DC https://mediabiasfactcheck.com/wusa9-com/"
+  },
+  "wxii12.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Winston-Salem, North Carolina https://mediabiasfactcheck.com/wxii-winston-salem-news-bias/"
+  },
+  "wzzm13.com": {
+    "bias": "Center",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Grand Rapids, Michigan https://mediabiasfactcheck.com/wzzm-grand-rapids-news-bias/"
+  },
+  "y95country.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Southeast Wyoming, Unknown Bias"
+  },
+  "yahoo.com": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "https://mediabiasfactcheck.com/yahoo-news/ https://www.allsides.com/news-source/yahoo-news-media-bias https://adfontesmedia.com/yahoo-news-bias-and-reliability/"
+  },
+  "yakimaherald.com": {
+    "bias": "Left",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Yakima, Washington https://mediabiasfactcheck.com/yakima-herald-republic-bias-and-credibility/"
+  },
+  "yankton.net": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": "Yankton, South Dakota, Unknown Bias"
+  },
+  "yomiuri.co.jp": {
+    "bias": "Right",
+    "sources": [
+      "domain_aliases+bias_map"
+    ],
+    "notes": ""
+  },
+  "yumasun.com": {
+    "bias": "Unknown",
+    "sources": [
+      "unmapped_bias"
+    ],
+    "notes": ""
+  },
+  "abcnews.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "boredpanda.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "bringatrailer.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "cinemablend.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "citylimits.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "comicbookmovie.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "decider.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "esquire.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "ewtnnews.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "exystence.net": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "foreignpolicy.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "freerepublic.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "globalvoices.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "indianexpress.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "israelnationalnews.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "jalopnik.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "joblo.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "joehoft.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "kdvr.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "kpbs.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "memeorandum.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "nautil.us": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "news.berkeley.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "news.harvard.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "news.slashdot.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "news.umich.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "news.utexas.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "news10.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "newser.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "oilprice.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "osnews.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "punchng.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "pymnts.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "redstate.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "science.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "sciencenews.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "screenrant.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "sherlockmagazine.it": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "shtfplan.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "slashdot.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "space.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "strataigize.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "techradar.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "thebaffler.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "theblaze.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "thebulwark.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "thehindubusinessline.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "thejournal.ie": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "thestranger.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "thewrap.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "twistedsifter.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "vulture.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "washington.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "wcvb.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "whats-on-netflix.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "botanicalgarden.berkeley.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "publichealth.berkeley.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "aws.amazon.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "bleedingcool.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "cal.streetsblog.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "careers.amachicago.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "cryptobriefing.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "dailymail.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "eff.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "frogsowar.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "gov.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "hollywoodreporter.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "indiewire.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "irishexaminer.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "lawyersgunsmoneyblog.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "legalinsurrection.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "politicalwire.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "prnewswire.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "pypi.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "radaronline.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "realclearinvestigations.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "slashgear.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "snopes.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "sports.yahoo.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "talkingpointsmemo.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "the-gadgeteer.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "theartfulage.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "uncnews.unc.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "biztoc.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "channelnewsasia.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "comicbook.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "crikey.com.au": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "crooksandliars.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "f1chronicle.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "fool.com.au": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "gamesradar.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "gbnews.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "github.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "heavy.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "hiphopwired.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "sinocism.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "slashfilm.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "smh.com.au": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "soompi.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "thecomeback.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "thestreet.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "tribstar.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "vanguardngr.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "wnd.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  }
+}
