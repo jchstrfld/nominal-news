@@ -52,7 +52,7 @@ else:
 print(f"📄 Summarizer input: {INPUT_FILE}")
 OUTPUT_FILE = f"topic_summaries_{date_str}.json"
 
-MIN_ARTICLES = 4
+MIN_ARTICLES = 5
 MAX_ARTICLES_PER_CLUSTER = 10
 MAX_CLUSTERS = 10
 
@@ -789,6 +789,72 @@ def truncate_prompt(prompt, max_tokens):
     return ENCODING.decode(tokens[:max_tokens])
 
 
+def build_display_sources(cluster, coverage_articles):
+    """
+    Build one display/source-balance receipt per unique outlet domain.
+
+    Prefer the new cluster-level coverage_sources receipts when available so
+    syndicated GDELT outlets remain visible even when their duplicate content
+    is collapsed out of coverage_articles. Fall back to coverage_articles for
+    older expanded files.
+    """
+    receipts = cluster.get("coverage_sources") or []
+
+    if not receipts:
+        receipts = []
+        for a in coverage_articles:
+            url = a.get("url")
+            if not url:
+                continue
+            from urllib.parse import urlparse
+            domain = (urlparse(url).hostname or "").lower()
+            if domain.startswith("www."):
+                domain = domain[4:]
+            receipts.append({
+                "domain": domain,
+                "url": url,
+                "source": a.get("source") or a.get("source_name") or domain,
+                "bias": a.get("bias", "Unknown"),
+                "origin": "coverage",
+                "syndicated": False,
+            })
+
+    origin_rank = {"core": 0, "local": 1, "gdelt": 2, "coverage": 3}
+
+    by_domain = {}
+    for r in receipts:
+        domain = (r.get("domain") or "").lower().strip()
+        if not domain:
+            continue
+
+        candidate = dict(r)
+        candidate["source_name"] = (
+            r.get("source")
+            or r.get("source_name")
+            or domain
+        )
+
+        current = by_domain.get(domain)
+        if current is None:
+            by_domain[domain] = candidate
+            continue
+
+        candidate_key = (
+            origin_rank.get(candidate.get("origin"), 9),
+            bool(candidate.get("syndicated")),
+            candidate.get("bias") in (None, "", "Unknown"),
+        )
+        current_key = (
+            origin_rank.get(current.get("origin"), 9),
+            bool(current.get("syndicated")),
+            current.get("bias") in (None, "", "Unknown"),
+        )
+        if candidate_key < current_key:
+            by_domain[domain] = candidate
+
+    return list(by_domain.values())
+
+
 def make_html_chips(articles):
     color_map = {
         "Far Left": "#0B36B8",
@@ -954,8 +1020,12 @@ with open(INPUT_FILE, "r", encoding="utf-8") as f:
     clusters = json.load(f)
 
 valid_clusters = [c for c in clusters if len(c["articles"]) >= MIN_ARTICLES]
-ranked = sorted(valid_clusters, key=lambda c: len(c["articles"]), reverse=True)
-top_clusters = ranked[:MAX_CLUSTERS]
+
+# IMPORTANT:
+# final_cohesion_check.py already writes clusters in final importance order.
+# Preserve that order here. Re-sorting by verified-core article count would
+# overwrite the ranking decision and make the webpage order misleading.
+top_clusters = valid_clusters[:MAX_CLUSTERS]
 
 # load summaries cache once
 summ_cache = load_summ_cache()
@@ -969,8 +1039,9 @@ for idx, cluster in enumerate(top_clusters):
     # Verified core drives the summary.
     core_articles = cluster["articles"]
 
-    # Expanded coverage drives receipts/source counts only.
+    # Expanded content stays separate from the complete outlet receipt list.
     coverage_articles = cluster.get("coverage_articles") or core_articles
+    display_sources = build_display_sources(cluster, coverage_articles)
 
     selected_articles = select_central_articles(
         core_articles,
@@ -1048,15 +1119,15 @@ for idx, cluster in enumerate(top_clusters):
     image_source_url = img["source_url"] if img else ""
     image_license = img["license"] if img else ""
 
-    bias_dist = compute_bias_distribution(coverage_articles)
+    # Bias/source breadth is outlet-based: one receipt per unique domain.
+    bias_dist = compute_bias_distribution(display_sources)
     if not bias_dist:
         print(f"⚠️ Cluster {idx} has no bias_distribution field")
 
-    from urllib.parse import urlparse
     source_domains = sorted({
-        urlparse(a.get("url")).netloc.replace("www.", "")
-        for a in coverage_articles
-        if a.get("url")
+        s.get("domain")
+        for s in display_sources
+        if s.get("domain")
     })
 
     cat = classify_topic_category(headline, body, takeaways, source_domains)
@@ -1066,9 +1137,12 @@ for idx, cluster in enumerate(top_clusters):
         "summary": body,
         "takeaways": takeaways,
         "bias_distribution": bias_dist,
+        # Keep article URLs for the existing topic-dedupe safety valve, but
+        # display/count the complete unique outlet set from coverage_sources.
         "sources": [a.get("url") for a in coverage_articles if a.get("url")],
-        "num_sources": len(coverage_articles),
-        "html_chips": make_html_chips(coverage_articles),
+        "num_sources": len(display_sources),
+        "html_chips": make_html_chips(display_sources),
+        "coverage_outlet_count": len(display_sources),
 
         "image_query": image_query,
 
