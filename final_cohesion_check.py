@@ -122,11 +122,15 @@ def canonicalize_url(u: str) -> str:
 # Cluster-level GPT validation (eventness) — capped + cached
 
 EVENT_MODEL = os.getenv("NN_EVENT_MODEL", "gpt-4o-mini")
-EVENT_MAX_CALLS = int(os.getenv("NN_EVENT_MAX_CALLS", "24"))  # hard cap per run
+EVENT_MAX_CALLS = int(os.getenv("NN_EVENT_MAX_CALLS", "48"))  # hard ceiling; rank-safe stopping usually ends earlier
+MIN_PUBLISH_ARTICLES = int(os.getenv("NN_MIN_PUBLISH_ARTICLES", "4"))
+MIN_PUBLISH_DOMAINS = int(os.getenv("NN_MIN_PUBLISH_DOMAINS", "3"))
+_EVENT_TOKEN_USAGE = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+_EVENT_FINISH_REASONS = Counter()
 EVENT_CACHE_FILE = os.getenv("NN_EVENT_CACHE_FILE", "eventness_cache.json")
 
 # Bump whenever eventness prompt/acceptance semantics change.
-EVENT_CACHE_VERSION = "v2-evolving-event-2026-09"
+EVENT_CACHE_VERSION = "v6-discrete-event-anchor-2026-09"
 
 def _load_event_cache() -> dict:
     try:
@@ -748,69 +752,637 @@ Titles:
     except Exception as e:
         return True, f"OpenAI error skipped: {e}"
 
-def validate_cluster_eventness_with_gpt(titles: list[str]) -> tuple[str, str]:
+def purify_cluster_with_gpt(articles: list[dict]) -> dict:
     """
-    Returns (label, explanation)
-    label ∈ {"SINGLE_EVENT","MIXED","THEMATIC_BUCKET"}
-    Uses very small prompt (titles only).
+    One bounded publication-gate call for one candidate cluster.
+
+    The model must first distinguish:
+      - DISCRETE_EVENT: one current event/development can be stated as a single
+        neutral "What happened now?" sentence.
+      - TOPIC_WAVE: a shared subject, anniversary, conflict state, person,
+        institution, or collection of separate developments rather than one
+        publishable current event.
+
+    For a DISCRETE_EVENT it returns two nested memberships:
+      - core_indexes: strict same-event reporting used for summarization
+      - related_indexes: CORE plus direct reactions, immediate consequences,
+        tributes, and analysis explicitly anchored to that exact event
+
+    KEEP versus CLEAN is derived from returned membership; the model does not
+    decide it. The call both purifies and validates. There is no second GPT call.
     """
     if openai is None or not os.getenv("OPENAI_API_KEY"):
-        return "SINGLE_EVENT", "OpenAI disabled — default keep"
+        return {
+            "action": "ERROR",
+            "event_type": "",
+            "event": "",
+            "core_indexes": [],
+            "related_indexes": [],
+            "why": "OpenAI disabled",
+        }
 
-    # Keep it short to control cost
-    titles = [t.strip() for t in titles if t and t.strip()][:12]
-    if len(titles) < 4:
-        return "SINGLE_EVENT", "Too few titles — keep"
+    indexed = []
+    for i, article in enumerate(articles, start=1):
+        title = (article.get("title") or "").strip()
+        if not title:
+            continue
+        domain = domain_from_url(
+            article.get("url_normalized") or article.get("url") or ""
+        ) or "unknown-domain"
+        indexed.append((i, domain, title))
 
-    prompt = (
-        "You are a news clustering judge.\n"
-        "Given these article titles, decide whether they describe:\n"
-        "A) ONE specific real-world news event/development (SINGLE_EVENT) — the titles share one underlying event or continuing development. "
-        "Direct aftermath, official responses, consequences, analysis, negotiations, casualty/economic updates, and follow-up reporting remain SINGLE_EVENT "
-        "when they are clearly anchored to that same underlying event.\n"
-        "B) multiple genuinely distinct incidents (MIXED) — e.g., separate accidents/crimes, separate policy actions, or unrelated events merely sharing a person, place, institution, or theme.\n"
-        "C) a broad theme/roundup/opinion pile (THEMATIC_BUCKET) — 'several things about X' with no single underlying event/development.\n\n"
-        "Be strict about unrelated incidents, but do NOT split one major evolving story merely because coverage includes different phases, consequences, reactions, or analysis.\n\n"
-        "Return exactly two lines:\n"
-        "Label: <SINGLE_EVENT|MIXED|THEMATIC_BUCKET>\n"
-        "Why: <one short sentence>\n\n"
-        "Titles:\n- " + "\n- ".join(titles)
+    if len(indexed) < MIN_PUBLISH_ARTICLES:
+        return {
+            "action": "REJECT",
+            "event_type": "TOPIC_WAVE",
+            "event": "",
+            "core_indexes": [],
+            "related_indexes": [],
+            "why": "Too few titled articles",
+        }
+
+    titles_block = "\n".join(
+        f"[{i}] ({domain}) {title}"
+        for i, domain, title in indexed
     )
 
-    # Try preferred model; fall back to gpt-3.5-turbo if needed
-    for model in [EVENT_MODEL, "gpt-3.5-turbo"]:
-        try:
-            resp = openai.ChatCompletion.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": "Be strict and concise."},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0
-            )
-            content = (resp.choices[0].message["content"] or "").strip()
-            lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
-            lab = ""
-            why = ""
-            for ln in lines:
-                if ln.lower().startswith("label:"):
-                    lab = ln.split(":", 1)[1].strip().upper()
-                if ln.lower().startswith("why:"):
-                    why = ln.split(":", 1)[1].strip()
-            if lab not in {"SINGLE_EVENT", "MIXED", "THEMATIC_BUCKET"}:
-                # fallback parse: first token on first line
-                first = lines[0].upper() if lines else ""
-                if "THEMATIC" in first:
-                    lab = "THEMATIC_BUCKET"
-                elif "MIXED" in first:
-                    lab = "MIXED"
-                else:
-                    lab = "SINGLE_EVENT"
-            return lab, why or "OK"
-        except Exception:
-            continue
+    prompt = (
+        "You are the final publication gate for a high-precision news briefing.\n"
+        "First classify the candidate as exactly one of these:\n"
+        "DISCRETE_EVENT: one identifiable current event or development that can be stated as one neutral "
+        "'What happened now?' sentence.\n"
+        "TOPIC_WAVE: a shared topic, anniversary, historical subject, person, institution, country, conflict, "
+        "or multiple separate developments without one qualifying current event.\n\n"
+        "If noisy titles contain one qualifying DISCRETE_EVENT, salvage that event by selecting only its memberships. "
+        "Do not reject merely because unrelated titles are present.\n\n"
+        "CORE titles must independently report the same discrete event and be safe to summarize together. "
+        "Every CORE title must answer the same 'What happened now?' sentence.\n"
+        "RELATED titles may include CORE plus direct reactions, immediate consequences, tributes, or analysis "
+        "explicitly anchored to that exact event. A title is not RELATED merely because it shares a person, "
+        "country, war, institution, political issue, or broad subject.\n\n"
+        "Anniversary coverage, memorial collections, archival articles, historical retrospectives, or broad conflict "
+        "status are TOPIC_WAVE unless the titles concern the same current ceremony, release, filing, finding, strike, "
+        "ruling, briefing, agreement, announcement, or similarly identifiable development. Separate attacks, "
+        "lawsuits, policy actions, and other incidents remain separate events.\n\n"
+        "Choose the discrete event with the greatest distinct-domain support; use article count only as a tie-breaker. "
+        f"The CORE must contain at least {MIN_PUBLISH_ARTICLES} titles from at least "
+        f"{MIN_PUBLISH_DOMAINS} distinct outlet domains.\n"
+        "For DISCRETE_EVENT, populate both index arrays using the numbered titles; CORE must be a subset of RELATED. "
+        "For TOPIC_WAVE, return both arrays empty.\n\n"
+        "Return exactly one compact JSON object with these keys and no markdown: "
+        "event_type, event, core_indexes, related_indexes, why. "
+        "Allowed event_type values are DISCRETE_EVENT and TOPIC_WAVE.\n\n"
+        "Numbered titles:\n" + titles_block
+    )
 
-    return "SINGLE_EVENT", "OpenAI error — default keep"
+    try:
+        resp = openai.ChatCompletion.create(
+            model=EVENT_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Be strict, literal, concise, and return valid JSON only.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0,
+            max_tokens=180,
+            request_timeout=45,
+        )
+    except Exception as exc:
+        return {
+            "action": "ERROR",
+            "event_type": "",
+            "event": "",
+            "core_indexes": [],
+            "related_indexes": [],
+            "why": f"OpenAI validation error: {type(exc).__name__}",
+        }
+
+    choice = resp.choices[0]
+    finish_reason = str(getattr(choice, "finish_reason", None) or "unknown")
+    _EVENT_FINISH_REASONS[finish_reason] += 1
+
+    usage = getattr(resp, "usage", None)
+    if usage is not None:
+        for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+            try:
+                _EVENT_TOKEN_USAGE[key] += int(usage.get(key, 0) or 0)
+            except Exception:
+                pass
+
+    if finish_reason != "stop":
+        return {
+            "action": "ERROR",
+            "event_type": "",
+            "event": "",
+            "core_indexes": [],
+            "related_indexes": [],
+            "why": f"Unexpected finish_reason={finish_reason}",
+            "finish_reason": finish_reason,
+        }
+
+    content = (choice.message["content"] or "").strip()
+    if content.startswith("```"):
+        lines = content.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        content = "\n".join(lines).strip()
+
+    try:
+        left = content.index("{")
+        right = content.rindex("}") + 1
+        obj = json.loads(content[left:right])
+    except Exception:
+        return {
+            "action": "ERROR",
+            "event_type": "",
+            "event": "",
+            "core_indexes": [],
+            "related_indexes": [],
+            "why": "Invalid structured validation response",
+            "finish_reason": finish_reason,
+        }
+
+    event_type = str(obj.get("event_type") or "").strip().upper()
+    if event_type not in {"DISCRETE_EVENT", "TOPIC_WAVE"}:
+        return {
+            "action": "ERROR",
+            "event_type": event_type,
+            "event": "",
+            "core_indexes": [],
+            "related_indexes": [],
+            "why": "Invalid event_type",
+            "finish_reason": finish_reason,
+        }
+
+    valid_article_indexes = {i for i, _, _ in indexed}
+
+    def normalize_indexes(values) -> list[int]:
+        out = []
+        for value in values or []:
+            try:
+                idx = int(value)
+            except Exception:
+                continue
+            if idx in valid_article_indexes and idx not in out:
+                out.append(idx)
+        return sorted(out)
+
+    core_indexes = normalize_indexes(obj.get("core_indexes"))
+    related_indexes = normalize_indexes(obj.get("related_indexes"))
+    event = str(obj.get("event") or "").strip()[:300]
+    why = str(obj.get("why") or "").strip()[:300]
+
+    if event_type == "TOPIC_WAVE":
+        return {
+            "action": "REJECT",
+            "event_type": event_type,
+            "event": event,
+            "core_indexes": [],
+            "related_indexes": [],
+            "why": why or "No qualifying discrete current event",
+            "finish_reason": finish_reason,
+        }
+
+    # DISCRETE_EVENT: trust only the memberships explicitly returned.
+    related_indexes = sorted(set(related_indexes) | set(core_indexes))
+    if not event or not core_indexes or not related_indexes:
+        return {
+            "action": "ERROR",
+            "event_type": event_type,
+            "event": event,
+            "core_indexes": core_indexes,
+            "related_indexes": related_indexes,
+            "why": why or "Incomplete discrete-event membership",
+            "finish_reason": finish_reason,
+        }
+
+    action = (
+        "KEEP"
+        if set(related_indexes) == valid_article_indexes
+        else "CLEAN"
+    )
+
+    return {
+        "action": action,
+        "event_type": event_type,
+        "event": event,
+        "core_indexes": core_indexes,
+        "related_indexes": related_indexes,
+        "why": why or "Discrete event identified",
+        "finish_reason": finish_reason,
+    }
+
+
+_RELATED_ANCHOR_STOPWORDS = {
+    "the", "and", "for", "with", "from", "that", "this", "after", "before",
+    "into", "over", "under", "says", "said", "say", "new", "latest", "live",
+    "amid", "about", "more", "will", "has", "have", "had", "was", "were",
+    "are", "its", "their", "his", "her", "what", "when", "where", "why",
+    "how", "news", "report", "reports", "update", "updates", "video", "watch",
+    "today", "yesterday", "tomorrow", "year", "years", "day", "days",
+}
+
+_RELATED_PHRASE_STOPWORDS = _RELATED_ANCHOR_STOPWORDS | {
+    "a", "an", "of", "in", "on", "at", "to", "as", "by", "or", "but",
+    "is", "be", "been", "being", "it", "they", "he", "she", "we", "you",
+    "i", "do", "does", "did",
+}
+
+
+def _related_phrase_sequence(text: str) -> list[str]:
+    """Normalize text into a compact sequence suitable for phrase matching."""
+    text = (text or "").lower().replace("’", "'")
+    text = re.sub(r"[-–—/]+", " ", text)
+    raw = re.findall(r"[a-z0-9][a-z0-9']*", text)
+    return [
+        token.strip("'")
+        for token in raw
+        if len(token.strip("'")) >= 2
+        and token.strip("'") not in _RELATED_PHRASE_STOPWORDS
+    ]
+
+
+def _related_anchor_tokens(text: str) -> set[str]:
+    return {
+        token
+        for token in _related_phrase_sequence(text)
+        if len(token) >= 4
+    }
+
+
+def _related_ngram_phrases(text: str, min_n: int = 2, max_n: int = 4) -> set[str]:
+    tokens = _related_phrase_sequence(text)
+    phrases = set()
+    for n in range(min_n, max_n + 1):
+        for i in range(len(tokens) - n + 1):
+            phrases.add(" ".join(tokens[i:i + n]))
+    return phrases
+
+
+def _proper_name_phrases(text: str) -> set[str]:
+    """
+    Extract multi-token capitalized names/institutions without a fixed entity list.
+    These are useful identity anchors, but identity alone is not enough to prove
+    that an article covers the same development.
+    """
+    spans = re.findall(
+        r"\b(?:[A-Z][A-Za-z'’.-]*|[A-Z]{2,})"
+        r"(?:\s+(?:[A-Z][A-Za-z'’.-]*|[A-Z]{2,})){1,4}\b",
+        text or "",
+    )
+
+    out = set()
+    for span in spans:
+        tokens = _related_phrase_sequence(span)
+        for n in range(2, min(4, len(tokens)) + 1):
+            for i in range(len(tokens) - n + 1):
+                out.add(" ".join(tokens[i:i + n]))
+    return out
+
+
+def _event_anchor_terms(core_articles: list[dict], event_sentence: str) -> set[str]:
+    """Derive event-specific lexical anchors from the selected core itself."""
+    counts = Counter()
+    for article in core_articles:
+        title_tokens = _related_anchor_tokens(article.get("title") or "")
+        counts.update(title_tokens)
+
+    event_tokens = _related_anchor_tokens(event_sentence)
+    min_core_support = max(2, (len(core_articles) + 2) // 3)
+
+    anchors = {
+        token
+        for token, count in counts.items()
+        if count >= min_core_support or (token in event_tokens and count >= 1)
+    }
+    anchors.update(token for token in event_tokens if counts.get(token, 0) >= 1)
+    return anchors
+
+
+def _event_anchor_phrases(
+    core_articles: list[dict],
+    event_sentence: str,
+) -> tuple[set[str], set[str]]:
+    """
+    Return (event_phrases, identity_phrases), derived only from the core and
+    canonical event sentence.
+
+    Repeated core phrases and event-sentence phrases supported by a core title
+    become anchors. Proper-name phrases are tracked separately so a shared
+    person/institution cannot, by itself, rescue a different event.
+    """
+    phrase_counts = Counter()
+    core_phrase_union = set()
+    identity_phrases = set()
+
+    for article in core_articles:
+        title = article.get("title") or ""
+        title_phrases = _related_ngram_phrases(title)
+        phrase_counts.update(title_phrases)
+        core_phrase_union.update(title_phrases)
+        identity_phrases.update(_proper_name_phrases(title))
+
+    event_phrases = _related_ngram_phrases(event_sentence)
+    identity_phrases.update(_proper_name_phrases(event_sentence))
+
+    supported_identity = identity_phrases & core_phrase_union
+    all_anchors = {
+        phrase for phrase, count in phrase_counts.items() if count >= 2
+    }
+    all_anchors.update(event_phrases & core_phrase_union)
+
+    return all_anchors - supported_identity, supported_identity
+
+
+def _related_membership_text(article: dict) -> str:
+    title = (article.get("title") or "").strip()
+    desc = (article.get("description") or "").strip()
+    desc = re.sub(r"<[^>]+>", " ", desc)
+    desc = re.sub(r"\s+", " ", desc)[:300]
+    return f"{title}. {desc}".strip()
+
+
+def filter_related_articles_to_core(
+    core_articles: list[dict],
+    candidate_articles: list[dict],
+    event_sentence: str,
+    *,
+    gpt_related_articles: list[dict] | None = None,
+) -> tuple[list[dict], dict]:
+    """
+    Free, conservative event-attention verification over the ENTIRE original
+    candidate—not only the indexes GPT marked RELATED.
+
+    CORE is never altered. The local pass may:
+      - restore a GPT-omitted article when it is strongly anchored to the exact
+        event; and
+      - remove a GPT-selected article that shares only the person/topic but not
+        the same development.
+
+    This affects attention/ranking metadata only. Summary membership remains the
+    strict GPT-selected CORE.
+    """
+    diag = {
+        "applied": False,
+        "from": len(candidate_articles),
+        "to": len(candidate_articles),
+        "gpt_selected": len(gpt_related_articles or []),
+        "restored": [],
+        "removed": [],
+    }
+
+    if not core_articles:
+        return [], {**diag, "reason": "missing_core"}
+
+    def article_key(article: dict) -> str:
+        raw = article.get("url_normalized") or article.get("url") or ""
+        return canonicalize_url(raw) or (article.get("title") or "").strip().lower()
+
+    core_keys = {article_key(article) for article in core_articles}
+    core_keys.discard("")
+    gpt_related_keys = {
+        article_key(article)
+        for article in (gpt_related_articles or [])
+        if article_key(article)
+    }
+
+    # Preserve original candidate order while removing duplicate records.
+    deduped_candidates = []
+    seen = set()
+    for article in candidate_articles:
+        key = article_key(article)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        deduped_candidates.append(article)
+
+    non_core = [
+        article for article in deduped_candidates
+        if article_key(article) not in core_keys
+    ]
+    if not non_core:
+        core_ordered = [
+            article for article in deduped_candidates
+            if article_key(article) in core_keys
+        ]
+        return core_ordered, {
+            **diag,
+            "applied": True,
+            "from": len(deduped_candidates),
+            "to": len(core_ordered),
+        }
+
+    sem = _get_sem_embedder()
+    if sem is None:
+        return list(core_articles), {
+            **diag,
+            "applied": True,
+            "from": len(deduped_candidates),
+            "to": len(core_articles),
+            "reason": "semantic_model_unavailable_core_only",
+            "removed": [
+                {
+                    "title": (article.get("title") or "").strip(),
+                    "gpt_selected": article_key(article) in gpt_related_keys,
+                    "reason": "unverified",
+                }
+                for article in non_core
+            ],
+        }
+
+    core_texts = [_related_membership_text(article) for article in core_articles]
+    candidate_texts = [_related_membership_text(article) for article in non_core]
+
+    try:
+        core_X = np.asarray(
+            sem.encode(core_texts, normalize_embeddings=True),
+            dtype=np.float32,
+        )
+        candidate_X = np.asarray(
+            sem.encode(candidate_texts, normalize_embeddings=True),
+            dtype=np.float32,
+        )
+        event_vec = np.asarray(
+            sem.encode([event_sentence or " "], normalize_embeddings=True),
+            dtype=np.float32,
+        )[0]
+    except Exception:
+        return list(core_articles), {
+            **diag,
+            "applied": True,
+            "from": len(deduped_candidates),
+            "to": len(core_articles),
+            "reason": "semantic_encoding_failed_core_only",
+            "removed": [
+                {
+                    "title": (article.get("title") or "").strip(),
+                    "gpt_selected": article_key(article) in gpt_related_keys,
+                    "reason": "unverified",
+                }
+                for article in non_core
+            ],
+        }
+
+    core_vec = core_X.mean(axis=0)
+    core_vec = core_vec / max(np.linalg.norm(core_vec), 1e-12)
+
+    token_anchors = _event_anchor_terms(core_articles, event_sentence)
+    event_phrases, identity_phrases = _event_anchor_phrases(
+        core_articles,
+        event_sentence,
+    )
+    identity_tokens = {
+        token
+        for phrase in identity_phrases
+        for token in phrase.split()
+        if len(token) >= 4
+    }
+    event_token_anchors = token_anchors - identity_tokens
+
+    kept_non_core_keys = set()
+    restored = []
+    removed = []
+
+    for article, vec in zip(non_core, candidate_X):
+        key = article_key(article)
+        was_gpt_selected = key in gpt_related_keys
+
+        peer_sims = core_X @ vec
+        max_peer = float(np.max(peer_sims)) if len(peer_sims) else 0.0
+        peer_support = int(np.sum(peer_sims >= 0.48))
+        core_sim = float(vec @ core_vec)
+        event_sim = float(vec @ event_vec)
+        semantic_peak = max(core_sim, event_sim)
+
+        full_text = _related_membership_text(article)
+        title_phrases = _related_ngram_phrases(article.get("title") or "")
+        full_phrases = _related_ngram_phrases(full_text)
+        article_tokens = _related_anchor_tokens(full_text)
+
+        token_hits = sorted(token_anchors & article_tokens)
+        event_token_hits = sorted(event_token_anchors & article_tokens)
+        title_event_phrase_hits = sorted(event_phrases & title_phrases)
+        full_event_phrase_hits = sorted(event_phrases & full_phrases)
+        title_identity_hits = sorted(identity_phrases & title_phrases)
+        full_identity_hits = sorted(identity_phrases & full_phrases)
+
+        keep_reason = ""
+
+        # Event/action phrase in the headline is the strongest general signal.
+        if (
+            title_event_phrase_hits
+            and len(token_hits) >= 2
+            and max_peer >= 0.44
+            and semantic_peak >= 0.40
+        ):
+            keep_reason = "title_event_phrase"
+
+        # Event phrase in the description is useful, but requires more support.
+        elif (
+            full_event_phrase_hits
+            and len(event_token_hits) >= 1
+            and len(token_hits) >= 3
+            and max_peer >= 0.49
+            and semantic_peak >= 0.42
+        ):
+            keep_reason = "full_event_phrase"
+
+        # Strong distributed lexical + semantic agreement can recover paraphrases.
+        elif (
+            len(event_token_hits) >= 2
+            and len(token_hits) >= 4
+            and max_peer >= 0.52
+            and semantic_peak >= 0.44
+            and peer_support >= 1
+        ):
+            keep_reason = "multi_anchor_semantic"
+
+        # A shared named person/institution is not enough by itself. It can
+        # support membership only when at least one event token and strong
+        # semantic agreement are also present.
+        elif (
+            title_identity_hits
+            and len(event_token_hits) >= 1
+            and max_peer >= (0.56 if was_gpt_selected else 0.60)
+            and semantic_peak >= (0.46 if was_gpt_selected else 0.50)
+        ):
+            keep_reason = "identity_plus_event"
+
+        elif (
+            full_identity_hits
+            and len(event_token_hits) >= 2
+            and max_peer >= (0.56 if was_gpt_selected else 0.60)
+            and semantic_peak >= (0.46 if was_gpt_selected else 0.50)
+        ):
+            keep_reason = "full_identity_plus_event"
+
+        # Near-duplicate paraphrases may omit a repeated phrase but must still
+        # share multiple anchors and be exceptionally close to a core report.
+        elif (
+            max_peer >= 0.72
+            and semantic_peak >= 0.52
+            and len(token_hits) >= 3
+            and len(event_token_hits) >= 1
+        ):
+            keep_reason = "near_duplicate_semantic"
+
+        if keep_reason:
+            kept_non_core_keys.add(key)
+            if not was_gpt_selected:
+                restored.append({
+                    "title": (article.get("title") or "").strip(),
+                    "reason": keep_reason,
+                    "core_sim": round(core_sim, 3),
+                    "event_sim": round(event_sim, 3),
+                    "max_peer_sim": round(max_peer, 3),
+                    "event_token_hits": event_token_hits,
+                    "event_phrase_hits": title_event_phrase_hits or full_event_phrase_hits,
+                    "identity_phrase_hits": title_identity_hits or full_identity_hits,
+                })
+        else:
+            removed.append({
+                "title": (article.get("title") or "").strip(),
+                "gpt_selected": was_gpt_selected,
+                "core_sim": round(core_sim, 3),
+                "event_sim": round(event_sim, 3),
+                "max_peer_sim": round(max_peer, 3),
+                "peer_support": peer_support,
+                "token_hits": token_hits,
+                "event_token_hits": event_token_hits,
+                "event_phrase_hits": title_event_phrase_hits or full_event_phrase_hits,
+                "identity_phrase_hits": title_identity_hits or full_identity_hits,
+            })
+
+    final_keys = core_keys | kept_non_core_keys
+    filtered = [
+        article for article in deduped_candidates
+        if article_key(article) in final_keys
+    ]
+
+    # Ensure every CORE article is present even if absent from the candidate list.
+    filtered_keys = {article_key(article) for article in filtered}
+    for article in core_articles:
+        key = article_key(article)
+        if key and key not in filtered_keys:
+            filtered.append(article)
+            filtered_keys.add(key)
+
+    return filtered, {
+        "applied": True,
+        "from": len(deduped_candidates),
+        "to": len(filtered),
+        "gpt_selected": len(gpt_related_keys),
+        "token_anchor_count": len(token_anchors),
+        "event_phrase_count": len(event_phrases),
+        "identity_phrase_count": len(identity_phrases),
+        "restored": restored,
+        "removed": removed,
+    }
+
 
 # ----------------------------
 # Tail trimming
@@ -1511,16 +2083,19 @@ def filter_articles_to_dominant_event(
     min_keep: int = 4,
     core_top_k: int = 4,
     min_core_sim: float = 0.50,
-    min_centroid_sim: float = 0.56,
+    min_peer_sim: float = 0.52,
+    min_peer_support: int = 2,
     max_remove_frac: float = 0.30,
 ) -> tuple[list[dict], dict]:
     """
     Final conservative article-to-event membership cleanup.
 
     Builds a dominant event core from the most mutually central articles, then
-    removes only articles that are weak against BOTH:
-      - the dominant event core
-      - the overall cluster centroid
+    removes only articles that are weak against the dominant event core AND lack
+    support from enough other core-like articles.
+
+    This avoids letting a contaminated whole-cluster centroid rescue an article
+    that belongs to a related-but-distinct event.
 
     Safeguards:
       - never acts on clusters smaller than min_cluster_size
@@ -1529,6 +2104,7 @@ def filter_articles_to_dominant_event(
       - if safeguards are exceeded, leaves the cluster unchanged
     """
     n = len(articles)
+
     diag = {
         "membership_trimmed": False,
         "membership_from": n,
@@ -1550,9 +2126,14 @@ def filter_articles_to_dominant_event(
         d = (a.get("description") or "").strip()
 
         if d:
-            d = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", d))[:250]
+            d = re.sub(
+                r"\s+",
+                " ",
+                re.sub(r"<[^>]+>", " ", d)
+            )[:250]
 
         txt = (t + ". " + d).strip() if t else d
+
         if txt:
             texts.append(txt)
             valid_idx.append(i)
@@ -1561,7 +2142,10 @@ def filter_articles_to_dominant_event(
         return articles, diag
 
     try:
-        X = sem.encode(texts, normalize_embeddings=True)
+        X = sem.encode(
+            texts,
+            normalize_embeddings=True
+        )
         X = np.asarray(X, dtype=np.float32)
     except Exception:
         return articles, diag
@@ -1569,54 +2153,133 @@ def filter_articles_to_dominant_event(
     m = len(X)
     S = X @ X.T
 
-    # Mean similarity to all other articles = semantic centrality.
+    # Semantic centrality: mean similarity to all other articles.
     S_no_diag = S.copy()
     np.fill_diagonal(S_no_diag, np.nan)
     centrality = np.nanmean(S_no_diag, axis=1)
 
     k = min(core_top_k, max(3, m // 2))
     core_idx = np.argsort(centrality)[-k:]
-    core_vec = X[core_idx].mean(axis=0)
-    core_vec = core_vec / max(np.linalg.norm(core_vec), 1e-12)
 
-    centroid = X.mean(axis=0)
-    centroid = centroid / max(np.linalg.norm(centroid), 1e-12)
+    # Dominant-event core centroid.
+    core_vec = X[core_idx].mean(axis=0)
+    core_vec = core_vec / max(
+        np.linalg.norm(core_vec),
+        1e-12
+    )
 
     core_sims = X @ core_vec
-    centroid_sims = X @ centroid
 
-    remove_local = [
+    # Core-like reference set:
+    # articles that are at least reasonably aligned with the dominant core.
+    core_like_idx = [
         i for i in range(m)
-        if core_sims[i] < min_core_sim
-        and centroid_sims[i] < min_centroid_sim
+        if core_sims[i] >= min_core_sim
     ]
+
+    # Ensure the actual selected central core is always represented.
+    core_like_idx = sorted(
+        set(core_like_idx) | set(core_idx.tolist())
+    )
+
+    remove_local = []
+    article_diags = []
+
+    for i in range(m):
+        # Similarity to other core-like articles.
+        peer_sims = []
+
+        for j in core_like_idx:
+            if i == j:
+                continue
+            peer_sims.append(float(S[i, j]))
+
+        peer_support = sum(
+            1 for s in peer_sims
+            if s >= min_peer_sim
+        )
+
+        weak_core = float(core_sims[i]) < min_core_sim
+        weak_peer_support = peer_support < min_peer_support
+
+        should_remove = (
+            weak_core
+            and weak_peer_support
+        )
+
+        article_diags.append({
+            "local_index": i,
+            "title": (
+                articles[valid_idx[i]].get("title") or ""
+            ).strip(),
+            "core_sim": round(float(core_sims[i]), 3),
+            "peer_support": int(peer_support),
+            "removed": bool(should_remove),
+        })
+
+        if should_remove:
+            remove_local.append(i)
 
     if not remove_local:
         return articles, diag
 
     max_remove = int(np.floor(n * max_remove_frac))
-    max_remove = min(max_remove, n - min_keep)
+    max_remove = min(
+        max_remove,
+        n - min_keep
+    )
 
-    if max_remove <= 0 or len(remove_local) > max_remove:
+    if max_remove <= 0:
         return articles, diag
 
-    remove_original = {valid_idx[i] for i in remove_local}
-    kept = [a for i, a in enumerate(articles) if i not in remove_original]
+    # If too many articles fail, remove only the weakest ones rather than
+    # discarding the whole cleanup attempt.
+    if len(remove_local) > max_remove:
+        remove_local = sorted(
+            remove_local,
+            key=lambda i: (
+                float(core_sims[i]),
+                sum(
+                    1
+                    for j in core_like_idx
+                    if i != j and float(S[i, j]) >= min_peer_sim
+                ),
+            ),
+        )[:max_remove]
+
+    remove_original = {
+        valid_idx[i]
+        for i in remove_local
+    }
+
+    kept = [
+        a for i, a in enumerate(articles)
+        if i not in remove_original
+    ]
 
     if len(kept) < min_keep:
         return articles, diag
+
+    removed_details = [
+        d for d in article_diags
+        if d["local_index"] in remove_local
+    ]
 
     diag = {
         "membership_trimmed": True,
         "membership_from": n,
         "membership_to": len(kept),
         "membership_removed": len(remove_original),
-        "membership_min_core_sim": round(float(min(core_sims)), 3),
-        "membership_min_centroid_sim": round(float(min(centroid_sims)), 3),
+        "membership_min_core_sim": round(
+            float(min(core_sims)),
+            3
+        ),
+        "membership_peer_threshold": min_peer_sim,
+        "membership_min_peer_support": min_peer_support,
+        "membership_removed_articles": removed_details,
     }
 
     return kept, diag
-
 
 def merge_into_dominant_clusters(clusters: list[dict], date_str: str) -> list[dict]:
     """
@@ -1937,10 +2600,6 @@ def main():
     kept = []
 
     for rank_pos, c in enumerate(pre_ranked):
-        # Only force-review a modest candidate pool.
-        # Large force pools can exhaust GPT budget and drop otherwise good clusters.
-        FORCE_POOL = min(max(top_k + 10, 20), 30)
-        force_review = rank_pos < FORCE_POOL
 
         arts = c.get("articles", [])
         titles = [a.get("title","") for a in arts if a.get("title")]
@@ -2019,52 +2678,20 @@ def main():
         c["_math_pure"] = bool(math_pure)
 
         if math_pure:
-            c["eventness_label"] = "SINGLE_EVENT_MATH"
-            _print_decision_diag(c, rank_pos, "KEEP", "math_pure_auto_accept")
-            kept.append(c)
-            continue
+            # Strong mathematical cohesion is useful evidence, but does not prove
+            # that every article refers to one specific event.
+            c["eventness_label"] = "MATH_COHERENT"
 
-        suspicious = (
-            multi_lump or
-            (len(arts) >= 12 and (
-                (ent_coh < 0.10) or
-                (p10 < 0.42) or
-                (p10 < 0.50 and std > 0.14) or
-                (len(arts) >= 25 and ent_coh < 0.16) or
-                (len(arts) >= 15 and tr < 0.25)
-            ))
-)
-
-        if (force_review or suspicious):
-            sig = _cluster_sig_urls(c)
-            cache_key = f"{EVENT_CACHE_VERSION}::{EVENT_MODEL}::{sig}"
-            cached = event_cache.get(cache_key)
-
-            if cached:
-                lab = cached.get("label", "SINGLE_EVENT")
-                c["_gpt_source"] = "cache"
-            else:
-                if event_calls >= EVENT_MAX_CALLS:
-                    c["eventness_label"] = "UNREVIEWED_BUDGET"
-                    c["_gpt_label"] = "UNREVIEWED_BUDGET"
-                    c["_gpt_source"] = "budget"
-                    _print_decision_diag(c, rank_pos, "KEEP", "gpt_budget_exhausted_fallback")
-                    kept.append(c)
-                    continue
-
-                lab, why = validate_cluster_eventness_with_gpt(titles)
-                event_cache[cache_key] = {"label": lab, "why": why}
-                event_calls += 1
-                c["_gpt_source"] = "live"
-
-            c["_gpt_label"] = lab
-            c["eventness_label"] = lab
-
-            if lab in {"THEMATIC_BUCKET", "MIXED"}:
-                _print_decision_diag(c, rank_pos, "REJECT", f"gpt_{lab.lower()}")
-                continue
-
-        _print_decision_diag(c, rank_pos, "KEEP", "passed_without_rejection")
+        # No GPT validation here.
+        # Math filtering/splitting removes obvious contamination first.
+        # Exact GPT event validation happens once, after membership cleanup
+        # and attention ranking, so API budget is spent only on finalists.
+        _print_decision_diag(
+            c,
+            rank_pos,
+            "KEEP",
+            "passed_math_filter_pending_final_validation",
+        )
         kept.append(c)
 
     deduped = kept
@@ -2106,55 +2733,311 @@ def main():
         reverse=True,
     )
 
-    # Final safety pass:
-    # after mixed clusters are dropped, lower unreviewed clusters can get promoted.
-    # Vet promoted candidates before final cap.
+    # GPT validation queue:
+    # attention is the primary key because the publication goal is the most-
+    # discussed valid events. Mathematical cohesion only breaks attention ties
+    # so likely-clean candidates are handled efficiently without allowing a
+    # lower-attention story to jump ahead of a higher-attention one.
+    review_queue = sorted(
+        ranked,
+        key=lambda c: (
+            float(c.get("attention_score", 0.0) or 0.0),
+            cluster_cohesion_fast(c.get("articles", []))[0],
+            cluster_nn_tightness(c.get("articles", []))[1],
+            importance_score(c),
+        ),
+        reverse=True,
+    )
+
+    # Final structured publication gate:
+    # one call identifies a strict summary CORE and broader event-specific RELATED
+    # coverage. A local core-anchored pass then verifies every RELATED-only article
+    # before that material can affect attention ranking.
+    event_cache_hits = 0
+    reviewed_candidates = 0
+    purifier_stop_reason = "not_run"
+
     if not no_openai and os.getenv("OPENAI_API_KEY"):
         vetted = []
-        budget_fallback = []
+        purifier_stop_reason = "queue_exhausted"
 
-        for c in ranked:
-            lab = c.get("eventness_label")
+        for queue_pos, c in enumerate(review_queue):
+            # Once 10 valid events exist, stop only when the best possible
+            # remaining candidate cannot enter the top 10. A candidate's
+            # pre-clean attention score is an upper bound because purification
+            # can preserve or reduce support, but cannot increase it.
+            if len(vetted) >= top_k:
+                provisional = sorted(
+                    vetted,
+                    key=lambda item: (
+                        float(item.get("attention_score", 0.0) or 0.0),
+                        importance_score(item),
+                    ),
+                    reverse=True,
+                )
+                cutoff_attention = float(
+                    provisional[top_k - 1].get("attention_score", 0.0) or 0.0
+                )
+                remaining_upper_bound = float(
+                    c.get("attention_score", 0.0) or 0.0
+                )
+                if remaining_upper_bound < cutoff_attention:
+                    purifier_stop_reason = "top_k_rank_secured"
+                    break
 
-            if lab in {"SINGLE_EVENT", "SINGLE_EVENT_MATH"}:
-                vetted.append(c)
+            original_articles = c.get("articles", [])
+            sig = _cluster_sig_urls(c)
+            cache_key = f"{EVENT_CACHE_VERSION}::{EVENT_MODEL}::{sig}"
+            cached = event_cache.get(cache_key)
 
-            elif lab in {"MIXED", "THEMATIC_BUCKET", "MIXED_MATH"}:
+            valid_cached = (
+                isinstance(cached, dict)
+                and cached.get("action") in {"KEEP", "CLEAN", "REJECT"}
+                and cached.get("event_type") in {"DISCRETE_EVENT", "TOPIC_WAVE"}
+            )
+
+            if valid_cached:
+                result = cached
+                event_cache_hits += 1
+            else:
+                if event_calls >= EVENT_MAX_CALLS:
+                    purifier_stop_reason = "live_call_cap_reached_before_rank_secured"
+                    if purity_report:
+                        print(
+                            f"[safety] topic={c.get('topic')} "
+                            f"decision=STOP reason=gpt_live_call_cap_reached"
+                        )
+                    break
+
+                result = purify_cluster_with_gpt(original_articles)
+                event_calls += 1
+
+                if result.get("action") in {"KEEP", "CLEAN", "REJECT"}:
+                    # Cache URL membership rather than only numeric indexes. The
+                    # cluster signature is order-independent, so CORE/RELATED
+                    # membership remains stable if article order changes.
+                    result = dict(result)
+
+                    def urls_for_indexes(index_key: str) -> list[str]:
+                        zero_based = {
+                            int(i) - 1
+                            for i in result.get(index_key, [])
+                            if isinstance(i, int) or str(i).isdigit()
+                        }
+                        return sorted({
+                            canonicalize_url(
+                                article.get("url_normalized") or article.get("url") or ""
+                            )
+                            for idx, article in enumerate(original_articles)
+                            if idx in zero_based
+                            and (article.get("url_normalized") or article.get("url"))
+                        })
+
+                    result["core_urls"] = urls_for_indexes("core_indexes")
+                    result["related_urls"] = urls_for_indexes("related_indexes")
+                    event_cache[cache_key] = result
+
+            reviewed_candidates += 1
+            action = str(result.get("action") or "ERROR").upper()
+            event_type = str(result.get("event_type") or "").upper()
+
+            if action == "ERROR":
                 if purity_report:
-                    print(f"[safety] topic={c.get('topic')} label={lab} decision=REJECT reason=final_safety_label")
+                    print(
+                        f"[safety] topic={c.get('topic')} "
+                        f"action=ERROR decision=SKIP "
+                        f"reason={result.get('why', '')}"
+                    )
                 continue
 
-            else:
-                if event_calls < EVENT_MAX_CALLS:
-                    titles = [a.get("title", "") for a in c.get("articles", []) if a.get("title")]
+            if action == "REJECT" or event_type != "DISCRETE_EVENT":
+                if purity_report:
+                    print(
+                        f"[safety] topic={c.get('topic')} "
+                        f"event_type={event_type or 'UNKNOWN'} "
+                        f"action=REJECT decision=REJECT "
+                        f"reason={result.get('why', '')}"
+                    )
+                continue
 
-                    sig = _cluster_sig_urls(c)
-                    cache_key = f"{EVENT_CACHE_VERSION}::{EVENT_MODEL}::{sig}"
-                    cached = event_cache.get(cache_key)
+            def select_membership(url_key: str, index_key: str) -> list[dict]:
+                urls = {
+                    str(u).strip()
+                    for u in result.get(url_key, [])
+                    if str(u).strip()
+                }
+                if urls:
+                    return [
+                        article
+                        for article in original_articles
+                        if canonicalize_url(
+                            article.get("url_normalized") or article.get("url") or ""
+                        ) in urls
+                    ]
 
-                    if cached:
-                        lab = cached.get("label", "SINGLE_EVENT")
-                    else:
-                        lab, why = validate_cluster_eventness_with_gpt(titles)
-                        event_cache[cache_key] = {"label": lab, "why": why}
-                        event_calls += 1
+                zero_based = {
+                    int(i) - 1
+                    for i in result.get(index_key, [])
+                    if isinstance(i, int) or str(i).isdigit()
+                }
+                return [
+                    article
+                    for idx, article in enumerate(original_articles)
+                    if idx in zero_based
+                ]
 
-                    c["eventness_label"] = lab
+            core_articles = select_membership("core_urls", "core_indexes")
+            gpt_related_articles = select_membership("related_urls", "related_indexes")
 
-                    if lab == "SINGLE_EVENT":
-                        vetted.append(c)
-                    elif purity_report:
-                        print(f"[safety] topic={c.get('topic')} label={lab} decision=REJECT reason=final_safety_gpt")
+            # CORE is always part of RELATED. Preserve original cluster order.
+            core_ids = {id(article) for article in core_articles}
+            related_ids = {id(article) for article in gpt_related_articles}
+            if core_ids - related_ids:
+                gpt_related_articles = [
+                    article
+                    for article in original_articles
+                    if id(article) in (related_ids | core_ids)
+                ]
 
-                else:
-                    c["eventness_label"] = "UNREVIEWED_BUDGET"
-                    budget_fallback.append(c)
+            core_domains = {
+                domain_from_url(a.get("url_normalized") or a.get("url") or "")
+                for a in core_articles
+            }
+            core_domains.discard("")
 
-            if len(vetted) >= top_k:
-                break
+            if (
+                len(core_articles) < MIN_PUBLISH_ARTICLES
+                or len(core_domains) < MIN_PUBLISH_DOMAINS
+            ):
+                if purity_report:
+                    print(
+                        f"[safety] topic={c.get('topic')} action={action} "
+                        f"decision=REJECT reason=insufficient_core_support "
+                        f"core_articles={len(core_articles)} core_domains={len(core_domains)}"
+                    )
+                continue
 
-        if vetted:
-            ranked = vetted
+            related_articles, related_filter_diag = filter_related_articles_to_core(
+                core_articles,
+                original_articles,
+                result.get("event") or "",
+                gpt_related_articles=gpt_related_articles,
+            )
+
+            related_domains = {
+                domain_from_url(a.get("url_normalized") or a.get("url") or "")
+                for a in related_articles
+            }
+            related_domains.discard("")
+
+            original_titled_keys = {
+                canonicalize_url(a.get("url_normalized") or a.get("url") or "")
+                or (a.get("title") or "").strip().lower()
+                for a in original_articles
+                if (a.get("title") or "").strip()
+            }
+            final_related_keys = {
+                canonicalize_url(a.get("url_normalized") or a.get("url") or "")
+                or (a.get("title") or "").strip().lower()
+                for a in related_articles
+                if (a.get("title") or "").strip()
+            }
+            final_action = (
+                "KEEP"
+                if final_related_keys == original_titled_keys
+                else "CLEAN"
+            )
+
+            published = dict(c)
+            published["articles"] = core_articles
+            published["related_articles"] = related_articles
+            published["source_diversity"] = source_diversity(core_articles)
+            published["source_concentration"] = compute_source_concentration(core_articles)
+            published["bias_distribution"] = aggregate_bias_distribution(core_articles)
+            published["today_ratio"] = round(
+                cluster_today_ratio(core_articles, date_str), 3
+            )
+            published["eventness_label"] = "SINGLE_EVENT"
+            published["event_type"] = "DISCRETE_EVENT"
+            published["canonical_event"] = result.get("event") or ""
+            published["related_article_count"] = len(related_articles)
+            published["related_domain_count"] = len(related_domains)
+            published["related_source_diversity"] = source_diversity(related_articles)
+
+            core_ids = {id(article) for article in core_articles}
+            related_ids = {id(article) for article in related_articles}
+            published["publication_purification"] = {
+                "action": final_action,
+                "gpt_membership_action": action,
+                "event_type": "DISCRETE_EVENT",
+                "from": len(original_articles),
+                "to": len(core_articles),
+                "core_to": len(core_articles),
+                "gpt_related_to": len(gpt_related_articles),
+                "related_to": len(related_articles),
+                "related_only_titles": [
+                    (article.get("title") or "").strip()
+                    for article in original_articles
+                    if id(article) in related_ids and id(article) not in core_ids
+                ],
+                "removed_titles": [
+                    (article.get("title") or "").strip()
+                    for article in original_articles
+                    if id(article) not in related_ids
+                ],
+                "local_related_filter": related_filter_diag,
+                "why": result.get("why") or "",
+            }
+
+            # Rank from locally verified event-specific RELATED coverage while
+            # summarizing strictly from CORE.
+            related_attention = attention_metadata_from_articles(related_articles)
+            published.update(related_attention)
+            published["attention_score"] = attention_score(published)
+            vetted.append(published)
+
+            if purity_report:
+                local_removed = len(related_filter_diag.get("removed", []))
+                local_restored = len(related_filter_diag.get("restored", []))
+                print(
+                    f"[safety] topic={c.get('topic')} event_type=DISCRETE_EVENT "
+                    f"action={final_action} decision=KEEP "
+                    f"core={len(core_articles)}/{len(core_domains)}dom "
+                    f"related={len(related_articles)}/{len(related_domains)}dom "
+                    f"local_related_restored={local_restored} "
+                    f"local_related_removed={local_removed}"
+                )
+
+        if purifier_stop_reason == "queue_exhausted":
+            purifier_stop_reason = (
+                "queue_exhausted_rank_complete"
+                if len(vetted) >= top_k
+                else "queue_exhausted_before_target"
+            )
+
+        ranked = sorted(
+            vetted,
+            key=lambda c: (
+                float(c.get("attention_score", 0.0) or 0.0),
+                importance_score(c),
+            ),
+            reverse=True,
+        )
+
+        finish_reason_text = ", ".join(
+            f"{reason}:{count}"
+            for reason, count in sorted(_EVENT_FINISH_REASONS.items())
+        ) or "none"
+
+        print(
+            "🧾 Event purifier: "
+            f"{event_calls} live calls, {event_cache_hits} cache hits, "
+            f"{reviewed_candidates}/{len(review_queue)} candidates reviewed, "
+            f"{_EVENT_TOKEN_USAGE['prompt_tokens']} input tokens, "
+            f"{_EVENT_TOKEN_USAGE['completion_tokens']} output tokens, "
+            f"finish_reasons={finish_reason_text}, "
+            f"stop={purifier_stop_reason}, cap={EVENT_MAX_CALLS}"
+        )
 
     # Save cache if we made any calls
     if event_calls > 0:
