@@ -1,9 +1,10 @@
 # run_pipeline_by_date.py — full pipeline runner with --date support
 
-import os
-import subprocess
-from datetime import datetime
 import argparse
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
 
 STAGE_SCRIPTS = [
     "fetch_articles_by_date.py",
@@ -29,15 +30,32 @@ def run():
         date_str = date_obj.strftime("%Y-%m-%d")
     except Exception:
         print("❌ Invalid date format. Use YYYY-MM-DD")
-        return
+        return 1
 
+    base_dir = Path(__file__).resolve().parent
     print(f"🚀 Running full pipeline for {date_str}...")
 
     for script in STAGE_SCRIPTS:
+        script_path = base_dir / script
+
+        if not script_path.exists():
+            print(f"❌ Missing pipeline stage: {script}")
+            print("🛑 Pipeline stopped.")
+            return 1
+
         print(f"➡️ Running: {script}")
-        subprocess.run(["python", script, "--date", date_str])
+        result = subprocess.run(
+            [sys.executable, str(script_path), "--date", date_str],
+            cwd=str(base_dir),
+        )
+
+        if result.returncode != 0:
+            print(f"❌ Stage failed: {script} (exit code {result.returncode})")
+            print("🛑 Pipeline stopped. Downstream stages were not run.")
+            return result.returncode or 1
 
     print(f"✅ Finished pipeline for {date_str}")
+    return 0
 
 if __name__ == "__main__":
-    run()
+    raise SystemExit(run())

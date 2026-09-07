@@ -52,7 +52,7 @@ else:
 print(f"📄 Summarizer input: {INPUT_FILE}")
 OUTPUT_FILE = f"topic_summaries_{date_str}.json"
 
-MIN_ARTICLES = 5
+MIN_ARTICLES = 4
 MAX_ARTICLES_PER_CLUSTER = 10
 MAX_CLUSTERS = 10
 
@@ -60,7 +60,7 @@ MAX_TOKENS = 7000
 ENCODING = tiktoken.encoding_for_model("gpt-4")
 
 # Cache config (bump PROMPT_VERSION when you change the prompt format)
-PROMPT_VERSION = "v1.0-2025-08-12"
+PROMPT_VERSION = "v1.1-evidence-only-2026-09-05"
 SUMM_MODEL = "gpt-4"
 
 
@@ -762,18 +762,59 @@ def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str =
 # Everything below here is your original non-image logic
 # ----------------------------
 
+BIAS_LABELS = ["Far Left", "Left", "Center", "Right", "Far Right", "Unknown"]
+
+
+def normalize_bias_label(raw):
+    value = (raw or "Unknown").strip().lower().replace("_", "-")
+    aliases = {
+        "far-left": "Far Left",
+        "far left": "Far Left",
+        "left": "Left",
+        "center-left": "Left",
+        "lean-left": "Left",
+        "lean left": "Left",
+        "center": "Center",
+        "right": "Right",
+        "center-right": "Right",
+        "lean-right": "Right",
+        "lean right": "Right",
+        "far-right": "Far Right",
+        "far right": "Far Right",
+        "unknown": "Unknown",
+        "uncategorized": "Unknown",
+    }
+    return aliases.get(value, "Unknown")
+
+
+def compute_bias_counts(articles):
+    """Exact outlet counts, including uncategorized/Unknown domains."""
+    counts = {label: 0 for label in BIAS_LABELS}
+    for article in articles:
+        counts[normalize_bias_label(article.get("bias"))] += 1
+    return {label: count for label, count in counts.items() if count > 0}
+
+
 def compute_bias_distribution(articles):
-    counts = {}
-    total = 0
-    for a in articles:
-        bias_raw = a.get("bias") or "Unknown"
-        bias = bias_raw.title().replace("-", " ")
-        if bias != "Unknown":
-            counts[bias] = counts.get(bias, 0) + 1
-            total += 1
-    if total == 0:
+    """Largest-remainder percentages over every displayed outlet; sums to 100."""
+    counts = compute_bias_counts(articles)
+    total = sum(counts.values())
+    if total <= 0:
         return {}
-    return {k: round(v / total * 100) for k, v in counts.items()}
+
+    exact = {label: counts.get(label, 0) * 100.0 / total for label in BIAS_LABELS}
+    whole = {label: int(exact[label]) for label in BIAS_LABELS}
+    leftover = 100 - sum(whole.values())
+
+    ranked_remainders = sorted(
+        BIAS_LABELS,
+        key=lambda label: (exact[label] - whole[label], -BIAS_LABELS.index(label)),
+        reverse=True,
+    )
+    for label in ranked_remainders[:leftover]:
+        whole[label] += 1
+
+    return {label: whole[label] for label in BIAS_LABELS if whole[label] > 0}
 
 
 def format_article(a):
@@ -867,9 +908,7 @@ def make_html_chips(articles):
     bias_order = ["Far Left", "Left", "Center", "Right", "Far Right", "Unknown"]
 
     def bias_sort_key(article):
-        bias = (article.get("bias") or "Unknown").title().replace("-", " ")
-        if bias not in bias_order:
-            bias = "Unknown"
+        bias = normalize_bias_label(article.get("bias"))
         return (bias_order.index(bias), (article.get("source_name") or "").lower())
 
     sorted_articles = sorted(articles, key=bias_sort_key)
@@ -878,9 +917,7 @@ def make_html_chips(articles):
     for a in sorted_articles:
         url = a.get("url", "#")
         source = a.get("source_name") or url.split("//")[-1].split("/")[0]
-        bias = (a.get("bias") or "Unknown").title().replace("-", " ")
-        if bias not in color_map:
-            bias = "Unknown"
+        bias = normalize_bias_label(a.get("bias"))
         bias_color = color_map[bias]
         bias_color_20 = bias_color + "33"
         chips.append(
@@ -893,15 +930,25 @@ def make_html_chips(articles):
 def summarize_cluster(articles):
     text_block = "\n\n".join([format_article(a) for a in articles])
     prompt = f"""
-You are a neutral news assistant. Summarize the key theme across the following news articles. Provide:
-1. A short, clear headline summarizing the topic
+You are a neutral, evidence-bound news editor.
+
+Use only facts explicitly stated in the supplied articles. Do not add background
+knowledge, inferred motives, unsupported causes, assumed consequences, or facts
+from memory. Do not claim a condition is ongoing unless an article explicitly
+says so. If the articles disagree or remain uncertain, state that uncertainty.
+
+All output must describe the single event shared by these articles. Provide:
+1. A short, factual headline
 2. A factual summary in 3-4 sentences
-3. Three bullet-point takeaways explaining why it matters (political, economic, legal, civil, etc)
+3. Three concise takeaways grounded directly in the supplied reporting
+
+If there are fewer than three distinct supported implications, use supported
+factual context rather than speculation.
 
 Articles:
 {text_block}
 
-Respond in this format:
+Respond in this exact format:
 Headline: <headline>
 Summary: <summary>
 Takeaways:
@@ -915,10 +962,16 @@ Takeaways:
         response = openai.ChatCompletion.create(
             model=SUMM_MODEL,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": (
+                        "Write neutral news copy using only the evidence supplied "
+                        "by the user. Never introduce outside facts."
+                    ),
+                },
+                {"role": "user", "content": prompt},
             ],
-            temperature=0.4
+            temperature=0,
         )
         return response.choices[0].message["content"]
     except Exception as e:
@@ -1004,7 +1057,15 @@ def dedupe_topic_summaries(items, url_overlap=0.50, title_sim=0.86, body_sim=0.8
             if _looks_like_duplicate(kept, cand, url_overlap, title_sim, body_sim):
                 merged_sources = list({*(kept.get("sources") or []), *(cand.get("sources") or [])})
                 kept["sources"] = merged_sources
-                kept["num_sources"] = len(merged_sources)
+                kept["independent_report_count"] = max(
+                    int(kept.get("independent_report_count") or 0),
+                    int(cand.get("independent_report_count") or 0),
+                )
+                kept["distinct_report_count"] = max(
+                    int(kept.get("distinct_report_count") or 0),
+                    int(cand.get("distinct_report_count") or 0),
+                )
+                # Display chips/counts remain those of the higher-ranked kept card.
                 merged = True
                 break
         if not merged:
@@ -1120,6 +1181,7 @@ for idx, cluster in enumerate(top_clusters):
     image_license = img["license"] if img else ""
 
     # Bias/source breadth is outlet-based: one receipt per unique domain.
+    bias_counts = compute_bias_counts(display_sources)
     bias_dist = compute_bias_distribution(display_sources)
     if not bias_dist:
         print(f"⚠️ Cluster {idx} has no bias_distribution field")
@@ -1132,17 +1194,30 @@ for idx, cluster in enumerate(top_clusters):
 
     cat = classify_topic_category(headline, body, takeaways, source_domains)
 
+    # Unique outlets and distinct report/content families are separate measures.
+    try:
+        independent_report_count = int(
+            cluster.get("distinct_report_count")
+            or cluster.get("independent_report_count")
+            or len(coverage_articles)
+        )
+    except Exception:
+        independent_report_count = len(coverage_articles)
+
     summaries.append({
         "topic_title": headline,
         "summary": body,
         "takeaways": takeaways,
         "bias_distribution": bias_dist,
+        "bias_counts": bias_counts,
         # Keep article URLs for the existing topic-dedupe safety valve, but
         # display/count the complete unique outlet set from coverage_sources.
         "sources": [a.get("url") for a in coverage_articles if a.get("url")],
         "num_sources": len(display_sources),
         "html_chips": make_html_chips(display_sources),
         "coverage_outlet_count": len(display_sources),
+        "independent_report_count": independent_report_count,
+        "distinct_report_count": independent_report_count,
 
         "image_query": image_query,
 

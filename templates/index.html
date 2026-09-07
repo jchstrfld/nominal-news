@@ -227,7 +227,7 @@
                 {% endif %}
 
                 {% if pct_uncat > 0 %}
-                  <span class="balance-label seg-unknown" style="width: {{ pct_uncat }}%">
+                  <span class="balance-label seg-unknown" style="width: {{ pct_uncat }}%; background:#6b7280;">
                     {% if pct_uncat >= min_full_label_pct %}
                       Uncategorized {{ pct_uncat }}%
                     {% elif pct_uncat >= min_percent_only_pct %}
@@ -247,62 +247,36 @@
           {% endif %}
 
           {% if topic.html_chips %}
-            {% set n_sources = topic.num_sources or 0 %}
-            {% set dist = topic.bias_distribution or {} %}
+            {% set n_outlets = topic.coverage_outlet_count or topic.num_sources or 0 %}
+            {% set n_reports = topic.distinct_report_count or topic.independent_report_count or 0 %}
+            {% set counts = topic.bias_counts or {} %}
 
-            {# ---- Accurate lean counts (no rounding leftovers) ---- #}
-
-            {# 1) Compute Uncategorized ONLY from explicit pct (if present) #}
-            {% set pct_uncat = (dist.get('Unknown', 0) or 0) + (dist.get('Uncategorized', 0) or 0) %}
-            {% set uncat = ((n_sources * pct_uncat) / 100) | round(0, 'common') | int %}
-            {% if uncat < 0 %}{% set uncat = 0 %}{% endif %}
-            {% if uncat > n_sources %}{% set uncat = n_sources %}{% endif %}
-
-            {# 2) Remaining sources to allocate among known leans #}
-            {% set remaining = n_sources - uncat %}
-
-            {# 3) Compute raw (non-rounded) expected counts for known buckets using remaining #}
-            {% set raw_far_left = (remaining * (dist.get('Far Left', 0) or 0)) / 100 %}
-            {% set raw_left     = (remaining * (dist.get('Left', 0) or 0)) / 100 %}
-            {% set raw_center   = (remaining * (dist.get('Center', 0) or 0)) / 100 %}
-            {% set raw_right    = (remaining * (dist.get('Right', 0) or 0)) / 100 %}
-            {% set raw_far_right= (remaining * (dist.get('Far Right', 0) or 0)) / 100 %}
-
-            {# 4) Floor them #}
-            {% set far_left = raw_far_left | round(0, 'floor') | int %}
-            {% set left     = raw_left | round(0, 'floor') | int %}
-            {% set center   = raw_center | round(0, 'floor') | int %}
-            {% set right    = raw_right | round(0, 'floor') | int %}
-            {% set far_right= raw_far_right | round(0, 'floor') | int %}
-
-            {# 5) Distribute remainder to largest fractional parts (Largest Remainder Method) #}
-            {% set allocated = far_left + left + center + right + far_right %}
-            {% set remainder = remaining - allocated %}
-
-            {% set fracs = [
-              {'k':'far_left', 'rem': (raw_far_left - far_left)},
-              {'k':'left', 'rem': (raw_left - left)},
-              {'k':'center', 'rem': (raw_center - center)},
-              {'k':'right', 'rem': (raw_right - right)},
-              {'k':'far_right', 'rem': (raw_far_right - far_right)}
-            ] | sort(attribute='rem', reverse=True) %}
-
-            {% for i in range(remainder) %}
-              {% set key = fracs[i % (fracs|length)].k %}
-              {% if key == 'far_left' %}{% set far_left = far_left + 1 %}
-              {% elif key == 'left' %}{% set left = left + 1 %}
-              {% elif key == 'center' %}{% set center = center + 1 %}
-              {% elif key == 'right' %}{% set right = right + 1 %}
-              {% elif key == 'far_right' %}{% set far_right = far_right + 1 %}
-              {% endif %}
-            {% endfor %}
-
-            {# 6) Final Uncategorized count #}
-            {% set unknown = uncat %}
+            {# Exact outlet counts produced by the summarizer. #}
+            {% if counts and counts|length > 0 %}
+              {% set far_left = counts.get('Far Left', 0) or 0 %}
+              {% set left = counts.get('Left', 0) or 0 %}
+              {% set center = counts.get('Center', 0) or 0 %}
+              {% set right = counts.get('Right', 0) or 0 %}
+              {% set far_right = counts.get('Far Right', 0) or 0 %}
+              {% set unknown = (counts.get('Unknown', 0) or 0) + (counts.get('Uncategorized', 0) or 0) %}
+            {% else %}
+              {# Backward-compatible approximation for older saved summary files. #}
+              {% set dist = topic.bias_distribution or {} %}
+              {% set far_left = ((n_outlets * (dist.get('Far Left', 0) or 0)) / 100) | round(0, 'common') | int %}
+              {% set left = ((n_outlets * (dist.get('Left', 0) or 0)) / 100) | round(0, 'common') | int %}
+              {% set center = ((n_outlets * (dist.get('Center', 0) or 0)) / 100) | round(0, 'common') | int %}
+              {% set right = ((n_outlets * (dist.get('Right', 0) or 0)) / 100) | round(0, 'common') | int %}
+              {% set far_right = ((n_outlets * (dist.get('Far Right', 0) or 0)) / 100) | round(0, 'common') | int %}
+              {% set unknown = n_outlets - far_left - left - center - right - far_right %}
+              {% if unknown < 0 %}{% set unknown = 0 %}{% endif %}
+            {% endif %}
 
             <details class="sources-collapsible sources-block">
               <summary class="sources-summary">
-                <span class="sources-summary-text">{{ n_sources }} Stories</span>
+                <span class="sources-summary-text">
+                  Covered by {{ n_outlets }} outlet{% if n_outlets != 1 %}s{% endif %}
+                  {% if n_reports > 0 %} in {{ n_reports }} unique write-up{% if n_reports != 1 %}s{% endif %}{% endif %}
+                </span>
 
                 <span class="sources-balance">
                   {% if far_left > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#0b2e8a"></span>{{ far_left }} Far Left</span>{% endif %}
