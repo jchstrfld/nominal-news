@@ -1,5 +1,7 @@
 # final_cohesion_check.py — high-precision, token-efficient final pass
-# - Loads grouped_articles_filtered_{date}.json
+# - Loads grouped_articles_filtered_{date}.json by default
+# - Supports optional --input-file / --output-file overrides for isolated shadow tests
+# - Can write an optional post-purity GDELT global-ranking shadow comparison
 # - Runs exact + semantic de-duplication (token-free)
 # - Optionally validates clusters with GPT (can be skipped via --no-openai)
 # - Adds source diversity & bias distribution
@@ -9,6 +11,9 @@
 # Usage examples:
 #   python final_cohesion_check.py --date 2025-09-24 --no-openai --top-k 10 --print-report
 #   python final_cohesion_check.py --date 2025-09-24
+#   python final_cohesion_check.py --date 2025-09-24 --input-file shadow_filtered.json --output-file shadow_final.json
+#   python final_cohesion_check.py --date 2025-09-24 --gdelt-ranking-shadow
+#   python final_cohesion_check.py --date 2025-09-24 --gdelt-ranking-shadow --gdelt-audit-file gdelt_discovery_candidates_2025-09-24.json
 #
 # Notes:
 # - No OpenAI tokens are used if you pass --no-openai (or no key is present).
@@ -19,8 +24,12 @@ from __future__ import annotations
 
 import json
 import os
+import copy
 import sys
 import re
+import hashlib
+import importlib.util
+from bisect import bisect_right
 from pathlib import Path
 from datetime import datetime, timedelta
 from collections import Counter
@@ -60,6 +69,12 @@ def _parse_args():
     top_k = 10
     print_report = False
     purity_report = False
+    input_file = None
+    output_file = None
+    gdelt_ranking_shadow = False
+    gdelt_ranking_shadow_file = None
+    gdelt_audit_file = None
+    gdelt_global_output_file = None
 
     i = 0
     while i < len(args):
@@ -82,13 +97,61 @@ def _parse_args():
         elif a == "--purity-report":
             purity_report = True
             i += 1
+        elif a == "--input-file":
+            if i + 1 >= len(args) or args[i + 1].startswith("--"):
+                print("❌ No value provided after --input-file")
+                sys.exit(1)
+            input_file = args[i + 1]
+            i += 2
+        elif a == "--output-file":
+            if i + 1 >= len(args) or args[i + 1].startswith("--"):
+                print("❌ No value provided after --output-file")
+                sys.exit(1)
+            output_file = args[i + 1]
+            i += 2
+        elif a == "--gdelt-ranking-shadow":
+            gdelt_ranking_shadow = True
+            i += 1
+        elif a == "--gdelt-ranking-shadow-file":
+            if i + 1 >= len(args) or args[i + 1].startswith("--"):
+                print("❌ No value provided after --gdelt-ranking-shadow-file")
+                sys.exit(1)
+            gdelt_ranking_shadow_file = args[i + 1]
+            gdelt_ranking_shadow = True
+            i += 2
+        elif a == "--gdelt-audit-file":
+            if i + 1 >= len(args) or args[i + 1].startswith("--"):
+                print("❌ No value provided after --gdelt-audit-file")
+                sys.exit(1)
+            gdelt_audit_file = args[i + 1]
+            gdelt_ranking_shadow = True
+            i += 2
+        elif a == "--gdelt-global-output-file":
+            if i + 1 >= len(args) or args[i + 1].startswith("--"):
+                print("❌ No value provided after --gdelt-global-output-file")
+                sys.exit(1)
+            gdelt_global_output_file = args[i + 1]
+            gdelt_ranking_shadow = True
+            i += 2
         else:
             i += 1
 
     if not date_str:
         date_str = datetime.today().strftime("%Y-%m-%d")
 
-    return date_str, no_openai, top_k, print_report, purity_report
+    return (
+        date_str,
+        no_openai,
+        top_k,
+        print_report,
+        purity_report,
+        input_file,
+        output_file,
+        gdelt_ranking_shadow,
+        gdelt_ranking_shadow_file,
+        gdelt_audit_file,
+        gdelt_global_output_file,
+    )
 
 _TRACKING_PARAMS = {
     "utm_source","utm_medium","utm_campaign","utm_term","utm_content",
@@ -441,6 +504,728 @@ def attention_score(cluster: dict) -> float:
 
     return round(score, 4)
 
+
+
+def _clamp01(value) -> float:
+    try:
+        return max(0.0, min(1.0, float(value)))
+    except Exception:
+        return 0.0
+
+
+def _local_attention_percentile(score: float, sorted_reference_scores: list[float]) -> float:
+    """
+    Map a raw local attention score onto the fixed pre-review candidate
+    distribution. The reference distribution never changes during purification,
+    so a candidate's pre-clean value remains a valid upper bound.
+    """
+    if not sorted_reference_scores:
+        return 0.0
+    try:
+        value = float(score)
+    except Exception:
+        value = 0.0
+    return _clamp01(bisect_right(sorted_reference_scores, value) / len(sorted_reference_scores))
+
+
+def _gdelt_global_attention_from_articles(
+    articles: list[dict],
+    *,
+    min_retained_articles: int = 2,
+) -> dict:
+    """
+    Recover event-level GDELT attention metadata only from discovery articles
+    that remain attached to the candidate/event.
+
+    Requiring at least two retained representatives from the same GDELT
+    candidate prevents an accidental single-article merge from granting global
+    ranking credit. The publication purifier remains the authority on event
+    eligibility.
+    """
+    by_candidate: dict[str, dict] = {}
+
+    for article in articles or []:
+        candidate_id = str(article.get("gdelt_candidate_id") or "").strip()
+        meta = article.get("gdelt_global_attention")
+        if not candidate_id or not isinstance(meta, dict):
+            continue
+
+        rec = by_candidate.setdefault(
+            candidate_id,
+            {
+                "candidate_id": candidate_id,
+                "canonical_title": str(
+                    article.get("gdelt_canonical_title") or ""
+                ).strip(),
+                "preview_type": str(
+                    article.get("gdelt_preview_type") or ""
+                ).strip(),
+                "retained_article_urls": set(),
+                "discovery_percentile": 0.0,
+                "discovery_score": 0.0,
+                "target_day_writeup_family_count": 0,
+                "target_day_outlet_count": 0,
+                "all_supporting_writeup_family_count": 0,
+                "all_supporting_outlet_count": 0,
+                "active_window_count": 0,
+                "language_count": 0,
+                "cross_language_url_count": 0,
+                "target_date": str(meta.get("target_date") or "").strip(),
+            },
+        )
+
+        article_url = canonicalize_url(
+            article.get("url_normalized") or article.get("url") or ""
+        )
+        if article_url:
+            rec["retained_article_urls"].add(article_url)
+
+        if not rec["canonical_title"]:
+            rec["canonical_title"] = str(
+                article.get("gdelt_canonical_title") or ""
+            ).strip()
+        if not rec["preview_type"]:
+            rec["preview_type"] = str(
+                article.get("gdelt_preview_type") or ""
+            ).strip()
+
+        for key in [
+            "discovery_percentile",
+            "discovery_score",
+            "target_day_writeup_family_count",
+            "target_day_outlet_count",
+            "all_supporting_writeup_family_count",
+            "all_supporting_outlet_count",
+            "active_window_count",
+            "language_count",
+            "cross_language_url_count",
+        ]:
+            try:
+                rec[key] = max(float(rec.get(key, 0) or 0), float(meta.get(key, 0) or 0))
+            except Exception:
+                pass
+
+    eligible = []
+    for rec in by_candidate.values():
+        retained_count = len(rec.pop("retained_article_urls", set()))
+        rec["retained_article_count"] = retained_count
+        rec["discovery_percentile"] = _clamp01(rec.get("discovery_percentile", 0.0))
+
+        for key in [
+            "target_day_writeup_family_count",
+            "target_day_outlet_count",
+            "all_supporting_writeup_family_count",
+            "all_supporting_outlet_count",
+            "active_window_count",
+            "language_count",
+            "cross_language_url_count",
+        ]:
+            rec[key] = int(rec.get(key, 0) or 0)
+
+        rec["discovery_score"] = round(float(rec.get("discovery_score", 0.0) or 0.0), 3)
+        if retained_count >= max(1, min_retained_articles):
+            eligible.append(rec)
+
+    eligible.sort(
+        key=lambda item: (
+            float(item.get("discovery_percentile", 0.0) or 0.0),
+            float(item.get("discovery_score", 0.0) or 0.0),
+            int(item.get("target_day_writeup_family_count", 0) or 0),
+            int(item.get("target_day_outlet_count", 0) or 0),
+        ),
+        reverse=True,
+    )
+
+    primary = eligible[0] if eligible else None
+    return {
+        "eligible": bool(primary),
+        "minimum_retained_articles": max(1, min_retained_articles),
+        "global_signal": (
+            round(float(primary.get("discovery_percentile", 0.0)), 4)
+            if primary else None
+        ),
+        "primary_candidate_id": (
+            primary.get("candidate_id") if primary else None
+        ),
+        "candidates": eligible,
+    }
+
+
+
+_GDELT_RUNTIME_MODULE = None
+_GDELT_RUNTIME_ERROR = None
+GDELT_CATALOG_POTENTIAL_MATCH_THRESHOLD = 0.48
+GDELT_CATALOG_FINAL_MATCH_THRESHOLD = 0.54
+
+
+def _load_gdelt_runtime_module():
+    """Lazy-load the adjacent audit's reusable matcher only in shadow mode."""
+    global _GDELT_RUNTIME_MODULE, _GDELT_RUNTIME_ERROR
+    if _GDELT_RUNTIME_MODULE is not None:
+        return _GDELT_RUNTIME_MODULE
+    if _GDELT_RUNTIME_ERROR is not None:
+        return None
+
+    path = Path(__file__).resolve().parent / "audit_gdelt_global_discovery.py"
+    if not path.exists():
+        _GDELT_RUNTIME_ERROR = f"missing {path.name}"
+        return None
+
+    module_name = "_nominal_news_gdelt_runtime_matcher"
+    try:
+        spec = importlib.util.spec_from_file_location(module_name, path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("unable to create module spec")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+        required = [
+            "runtime_event_payload_from_cluster",
+            "prepare_runtime_event_matcher",
+            "runtime_event_match_options",
+            "assign_runtime_event_matches",
+        ]
+        missing = [name for name in required if not hasattr(module, name)]
+        if missing:
+            raise RuntimeError("missing runtime matcher API: " + ", ".join(missing))
+        _GDELT_RUNTIME_MODULE = module
+        return module
+    except Exception as exc:
+        sys.modules.pop(module_name, None)
+        _GDELT_RUNTIME_ERROR = f"{type(exc).__name__}: {exc}"
+        return None
+
+
+def _load_gdelt_audit_payload(
+    date_str: str,
+    override_path: str | None,
+) -> tuple[dict | None, dict]:
+    if override_path:
+        paths = [Path(override_path)]
+    else:
+        paths = [
+            Path(f"gdelt_discovery_candidates_{date_str}.json"),
+            Path(f"gdelt_global_discovery_audit_{date_str}.json"),
+        ]
+        paths.sort(
+            key=lambda path: path.stat().st_mtime if path.exists() else -1.0,
+            reverse=True,
+        )
+
+    errors = []
+    for path in paths:
+        if not path.exists():
+            errors.append(f"missing:{path}")
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            errors.append(f"invalid_json:{path}:{type(exc).__name__}")
+            continue
+        payload_date = str(payload.get("date") or "").strip()
+        if payload_date and payload_date != date_str:
+            errors.append(f"date_mismatch:{path}:{payload_date}")
+            continue
+        candidates = payload.get("candidates")
+        if not isinstance(candidates, list) or not candidates:
+            errors.append(f"missing_candidates:{path}")
+            continue
+        return payload, {
+            "status": "OK",
+            "file": str(path),
+            "candidate_count": len(candidates),
+            "audit_schema_version": payload.get("audit_schema_version"),
+            "errors": errors,
+        }
+
+    return None, {
+        "status": "UNAVAILABLE",
+        "file": None,
+        "candidate_count": 0,
+        "errors": errors,
+    }
+
+
+def _gdelt_option_evidence(option: dict | None, catalog_file: str | None) -> dict:
+    if not option:
+        return {
+            "eligible": False,
+            "matching_mode": "FULL_AUDIT_CATALOG",
+            "catalog_file": catalog_file,
+            "global_signal": None,
+            "primary_candidate_id": None,
+            "candidates": [],
+        }
+    clean = {key: value for key, value in option.items() if not key.startswith("_")}
+    return {
+        "eligible": True,
+        "matching_mode": "FULL_AUDIT_CATALOG",
+        "catalog_file": catalog_file,
+        "global_signal": round(float(clean.get("discovery_percentile", 0.0) or 0.0), 4),
+        "primary_candidate_id": clean.get("candidate_id"),
+        "candidates": [clean],
+    }
+
+
+def _combine_gdelt_shadow_evidence(
+    retained_evidence: dict | None,
+    catalog_evidence: dict | None,
+) -> dict:
+    retained_evidence = retained_evidence or {}
+    catalog_evidence = catalog_evidence or {}
+    rows = []
+    for evidence in [retained_evidence, catalog_evidence]:
+        if evidence.get("eligible"):
+            rows.extend(
+                dict(row) for row in (evidence.get("candidates") or [])
+                if isinstance(row, dict)
+            )
+    if not rows:
+        return catalog_evidence or retained_evidence
+
+    by_id = {}
+    for row in rows:
+        candidate_id = str(row.get("candidate_id") or "").strip()
+        if not candidate_id:
+            continue
+        previous = by_id.get(candidate_id)
+        if previous is None:
+            by_id[candidate_id] = row
+            continue
+        chosen = row if row.get("match_source") else previous
+        other = previous if chosen is row else row
+        chosen = dict(chosen)
+        chosen["retained_article_count"] = max(
+            int(chosen.get("retained_article_count", 0) or 0),
+            int(other.get("retained_article_count", 0) or 0),
+        )
+        by_id[candidate_id] = chosen
+
+    merged = list(by_id.values())
+    merged.sort(
+        key=lambda row: (
+            int(row.get("match_basis") == "CANDIDATE_ID"),
+            int(row.get("retained_article_count", 0) or 0),
+            float(row.get("discovery_percentile", 0.0) or 0.0),
+            float(row.get("match_similarity", 0.0) or 0.0),
+        ),
+        reverse=True,
+    )
+    primary = merged[0]
+    return {
+        "eligible": True,
+        "matching_mode": (
+            "RETAINED_ARTICLES_AND_FULL_CATALOG"
+            if retained_evidence.get("eligible") and catalog_evidence.get("eligible")
+            else (
+                "FULL_AUDIT_CATALOG"
+                if catalog_evidence.get("eligible")
+                else "RETAINED_DISCOVERY_ARTICLES"
+            )
+        ),
+        "catalog_file": catalog_evidence.get("catalog_file"),
+        "global_signal": round(float(primary.get("discovery_percentile", 0.0) or 0.0), 4),
+        "primary_candidate_id": primary.get("candidate_id"),
+        "candidates": merged,
+    }
+
+
+def _prepare_gdelt_full_catalog_matcher(
+    date_str: str,
+    audit_override: str | None,
+    clusters: list[dict],
+) -> tuple[object | None, dict | None, dict]:
+    payload, diag = _load_gdelt_audit_payload(date_str, audit_override)
+    module = _load_gdelt_runtime_module()
+    if payload is None or module is None:
+        if module is None:
+            diag["matcher_status"] = "UNAVAILABLE"
+            diag["matcher_error"] = _GDELT_RUNTIME_ERROR
+        return module, None, diag
+
+    event_payloads = [
+        module.runtime_event_payload_from_cluster(
+            cluster,
+            event_id=_shadow_event_id(cluster),
+        )
+        for cluster in clusters
+    ]
+    matcher = module.prepare_runtime_event_matcher(
+        payload,
+        event_payloads,
+        _get_sem_embedder(),
+    )
+    diag["matcher_status"] = matcher.get("semantic_mode") or matcher.get("status")
+    diag["match_threshold_potential"] = GDELT_CATALOG_POTENTIAL_MATCH_THRESHOLD
+    diag["match_threshold_final"] = GDELT_CATALOG_FINAL_MATCH_THRESHOLD
+    return module, matcher, diag
+
+
+def _gdelt_catalog_options_for_cluster(
+    cluster: dict,
+    module,
+    matcher: dict | None,
+    *,
+    threshold: float,
+    max_matches: int,
+) -> list[dict]:
+    if module is None or not matcher or matcher.get("status") != "OK":
+        return []
+    payload = module.runtime_event_payload_from_cluster(
+        cluster,
+        event_id=_shadow_event_id(cluster),
+    )
+    return module.runtime_event_match_options(
+        payload,
+        matcher,
+        threshold=threshold,
+        max_matches=max_matches,
+    )
+
+
+def _resolve_all_approved_gdelt_matches(
+    approved_events: list[dict],
+    module,
+    matcher: dict | None,
+    local_reference_scores: list[float],
+    *,
+    apply: bool,
+) -> dict:
+    """Enforce one full-audit candidate per approved event and vice versa."""
+    event_payloads = []
+    for event in approved_events:
+        payload = (
+            module.runtime_event_payload_from_cluster(
+                event,
+                event_id=_shadow_event_id(event),
+            )
+            if module is not None else None
+        )
+        if payload is not None:
+            event_payloads.append(payload)
+
+    assignment_result = (
+        module.assign_runtime_event_matches(
+            event_payloads,
+            matcher,
+            threshold=GDELT_CATALOG_FINAL_MATCH_THRESHOLD,
+            max_matches_per_event=5,
+        )
+        if module is not None and matcher and matcher.get("status") == "OK"
+        else {"assignments": {}, "stats": {}}
+    )
+    assignments = assignment_result.get("assignments") or {}
+    used_candidate_ids = {
+        option.get("candidate_id")
+        for option in assignments.values()
+        if option.get("candidate_id")
+    }
+
+    by_event = {}
+    for event in approved_events:
+        event_id = _shadow_event_id(event)
+        option = assignments.get(event_id)
+        catalog_evidence = _gdelt_option_evidence(
+            option,
+            (matcher or {}).get("catalog_file"),
+        )
+        retained = _gdelt_global_attention_from_articles(
+            event.get("related_articles", event.get("articles", [])),
+            min_retained_articles=2,
+        )
+
+        if option:
+            assigned_id = option.get("candidate_id")
+            same_rows = [
+                row for row in (retained.get("candidates") or [])
+                if row.get("candidate_id") == assigned_id
+            ]
+            retained = {
+                "eligible": bool(same_rows),
+                "global_signal": retained.get("global_signal") if same_rows else None,
+                "primary_candidate_id": assigned_id if same_rows else None,
+                "candidates": same_rows,
+            }
+        elif retained.get("eligible"):
+            retained_id = retained.get("primary_candidate_id")
+            if not retained_id or retained_id in used_candidate_ids:
+                retained = {
+                    "eligible": False,
+                    "global_signal": None,
+                    "primary_candidate_id": None,
+                    "candidates": [],
+                }
+            else:
+                used_candidate_ids.add(retained_id)
+
+        evidence = _combine_gdelt_shadow_evidence(retained, catalog_evidence)
+        local_signal = _local_attention_percentile(
+            float(event.get("attention_score", 0.0) or 0.0),
+            local_reference_scores,
+        )
+        global_signal = evidence.get("global_signal") if evidence.get("eligible") else None
+        shadow_score = _gdelt_shadow_blended_score(local_signal, global_signal)
+        by_event[event_id] = {
+            "local_signal": local_signal,
+            "global_signal": global_signal,
+            "shadow_score": shadow_score,
+            "evidence": evidence,
+        }
+        if apply:
+            event["_gdelt_shadow_local_signal"] = local_signal
+            event["_gdelt_shadow_global_signal"] = global_signal
+            event["_gdelt_shadow_score"] = shadow_score
+            event["_gdelt_shadow_evidence"] = evidence
+
+    stats = dict(assignment_result.get("stats") or {})
+    stats.update({
+        "approved_event_count": len(approved_events),
+        "matched_approved_event_count": sum(
+            1 for row in by_event.values() if row["evidence"].get("eligible")
+        ),
+        "unmatched_approved_event_count": sum(
+            1 for row in by_event.values() if not row["evidence"].get("eligible")
+        ),
+    })
+    return {"by_event": by_event, "stats": stats}
+
+def _gdelt_shadow_blended_score(
+    local_signal: float,
+    global_signal: float | None,
+) -> float:
+    """
+    Shadow-only ranking:
+      - no GDELT evidence: preserve 100% of the local signal
+      - both signals: 80% of the stronger signal + 20% confirmation from the
+        weaker signal
+
+    Absence from the bounded GDELT sample never penalizes a locally prominent
+    event.
+    """
+    local = _clamp01(local_signal)
+    if global_signal is None:
+        return round(local * 100.0, 3)
+
+    global_value = _clamp01(global_signal)
+    stronger = max(local, global_value)
+    weaker = min(local, global_value)
+    return round((0.80 * stronger + 0.20 * weaker) * 100.0, 3)
+
+
+def _shadow_event_id(cluster: dict) -> str:
+    signature = _cluster_sig_urls(cluster)
+    if not signature:
+        signature = str(cluster.get("canonical_event") or cluster.get("topic") or "")
+    return "event_" + hashlib.sha1(signature.encode("utf-8", errors="ignore")).hexdigest()[:12]
+
+
+def _shadow_event_title(cluster: dict) -> str:
+    canonical = str(cluster.get("canonical_event") or "").strip()
+    if canonical:
+        return canonical
+    for article in cluster.get("articles", []):
+        title = str(article.get("title") or "").strip()
+        if title:
+            return title
+    return str(cluster.get("topic") or "Untitled event")
+
+
+def _write_gdelt_ranking_shadow(
+    *,
+    path: str,
+    date_str: str,
+    input_file: str,
+    output_file: str,
+    approved_events: list[dict],
+    top_k: int,
+    review_queue_size: int,
+    reviewed_candidates: int,
+    event_calls: int,
+    event_cache_hits: int,
+    purifier_stop_reason: str,
+    gdelt_catalog_diag: dict,
+    gdelt_assignment_stats: dict,
+    global_output_file: str | None = None,
+) -> None:
+    """Write a separate comparison file; never alter production page order."""
+    local_sorted = sorted(
+        approved_events,
+        key=lambda item: (
+            float(item.get("attention_score", 0.0) or 0.0),
+            importance_score(item),
+        ),
+        reverse=True,
+    )
+    shadow_sorted = sorted(
+        approved_events,
+        key=lambda item: (
+            float(item.get("_gdelt_shadow_score", 0.0) or 0.0),
+            float(item.get("attention_score", 0.0) or 0.0),
+            importance_score(item),
+        ),
+        reverse=True,
+    )
+
+    local_rank = {_shadow_event_id(c): i for i, c in enumerate(local_sorted, start=1)}
+    shadow_rank = {_shadow_event_id(c): i for i, c in enumerate(shadow_sorted, start=1)}
+
+    def row(cluster: dict) -> dict:
+        event_id = _shadow_event_id(cluster)
+        evidence = cluster.get("_gdelt_shadow_evidence") or {
+            "eligible": False,
+            "global_signal": None,
+            "primary_candidate_id": None,
+            "candidates": [],
+        }
+        core_articles = cluster.get("articles", [])
+        related_articles = cluster.get("related_articles", core_articles)
+        core_gdelt = sum(
+            1 for a in core_articles if a.get("origin") == "gdelt_discovery"
+        )
+        related_gdelt = sum(
+            1 for a in related_articles if a.get("origin") == "gdelt_discovery"
+        )
+
+        if core_gdelt and core_gdelt == len(core_articles):
+            source_type = "GDELT_DISCOVERY"
+        elif evidence.get("eligible"):
+            source_type = "LOCAL_WITH_GDELT_CONFIRMATION"
+        else:
+            source_type = "LOCAL_ONLY"
+
+        return {
+            "event_id": event_id,
+            "title": _shadow_event_title(cluster),
+            "topic": cluster.get("topic"),
+            "source_type": source_type,
+            "local_rank": local_rank.get(event_id),
+            "global_shadow_rank": shadow_rank.get(event_id),
+            "local_attention_score": round(
+                float(cluster.get("attention_score", 0.0) or 0.0), 4
+            ),
+            "local_signal": round(
+                float(cluster.get("_gdelt_shadow_local_signal", 0.0) or 0.0), 4
+            ),
+            "global_signal": cluster.get("_gdelt_shadow_global_signal"),
+            "global_shadow_score": round(
+                float(cluster.get("_gdelt_shadow_score", 0.0) or 0.0), 3
+            ),
+            "core_article_count": len(core_articles),
+            "core_domain_count": int(
+                (cluster.get("source_diversity") or {}).get("unique_domains", 0) or 0
+            ),
+            "related_article_count": len(related_articles),
+            "related_domain_count": int(
+                cluster.get("related_domain_count", 0) or 0
+            ),
+            "retained_gdelt_core_articles": core_gdelt,
+            "retained_gdelt_related_articles": related_gdelt,
+            "gdelt_global_attention": evidence,
+        }
+
+    rows_by_id = {
+        _shadow_event_id(c): row(c)
+        for c in approved_events
+    }
+    local_rows = [rows_by_id[_shadow_event_id(c)] for c in local_sorted]
+    shadow_rows = [rows_by_id[_shadow_event_id(c)] for c in shadow_sorted]
+
+    limit = max(1, top_k)
+    local_top_ids = [_shadow_event_id(c) for c in local_sorted[:limit]]
+    shadow_top_ids = [_shadow_event_id(c) for c in shadow_sorted[:limit]]
+    local_top_set = set(local_top_ids)
+    shadow_top_set = set(shadow_top_ids)
+
+    promoted = [rows_by_id[eid] for eid in shadow_top_ids if eid not in local_top_set]
+    displaced = [rows_by_id[eid] for eid in local_top_ids if eid not in shadow_top_set]
+
+    rank_changes = []
+    for event_id in sorted(local_top_set | shadow_top_set):
+        item = rows_by_id[event_id]
+        if item["local_rank"] != item["global_shadow_rank"]:
+            rank_changes.append({
+                "event_id": event_id,
+                "title": item["title"],
+                "local_rank": item["local_rank"],
+                "global_shadow_rank": item["global_shadow_rank"],
+                "rank_change": (
+                    item["local_rank"] - item["global_shadow_rank"]
+                    if item["local_rank"] is not None
+                    and item["global_shadow_rank"] is not None
+                    else None
+                ),
+            })
+
+    rank_secure = purifier_stop_reason in {
+        "top_k_local_and_global_rank_secured",
+        "queue_exhausted_rank_complete",
+    }
+
+    payload = {
+        "schema_version": "1.1",
+        "date": date_str,
+        "status": "OK",
+        "shadow_only": True,
+        "live_page_order_changed_by_shadow_score": False,
+        "local_ranking_formula_unchanged": True,
+        "input_file": input_file,
+        "local_output_file": output_file,
+        "global_output_file": global_output_file,
+        "eligibility": (
+            "Only purifier-approved DISCRETE_EVENT clusters are compared. "
+            "GDELT cannot bypass the publication gate."
+        ),
+        "formula": {
+            "local_only": "100 × local attention percentile",
+            "local_and_global": (
+                "100 × (0.80 × stronger(local, GDELT) + "
+                "0.20 × weaker(local, GDELT))"
+            ),
+            "local_signal": (
+                "Percentile of the event's local attention score in the fixed "
+                "pre-review candidate distribution."
+            ),
+            "global_signal": (
+                "GDELT discovery percentile assigned only after the event "
+                "passes the publication purifier. Exact retained-candidate "
+                "evidence is preferred; otherwise every approved event is "
+                "matched against the full bounded audit catalog using the "
+                "audit's strict identity/action/development gate."
+            ),
+            "absence_rule": (
+                "No GDELT match does not reduce a local event's score."
+            ),
+        },
+        "gdelt_catalog": {
+            **(gdelt_catalog_diag or {}),
+            "assignment": gdelt_assignment_stats or {},
+            "one_candidate_per_approved_event": True,
+            "one_approved_event_per_candidate": True,
+        },
+        "review": {
+            "queue_candidate_count": review_queue_size,
+            "reviewed_candidate_count": reviewed_candidates,
+            "approved_event_count": len(approved_events),
+            "live_calls": event_calls,
+            "cache_hits": event_cache_hits,
+            "stop_reason": purifier_stop_reason,
+            "local_and_global_top_k_rank_secured": rank_secure,
+        },
+        "top_k": limit,
+        "local_top_k": local_rows[:limit],
+        "global_shadow_top_k": shadow_rows[:limit],
+        "changes": {
+            "promoted_into_global_top_k": promoted,
+            "displaced_from_global_top_k": displaced,
+            "rank_changes_within_union": rank_changes,
+        },
+        "all_purifier_approved_events_by_global_shadow_rank": shadow_rows,
+    }
+
+    Path(path).write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
 
 def importance_score(cluster: dict) -> float:
     """
@@ -2371,18 +3156,96 @@ def _print_decision_diag(c: dict, rank_pos: int, decision: str, reason: str) -> 
     )
 
 # ----------------------------
+# Output cleaning
+# ----------------------------
+_OUTPUT_TRANSIENT_KEYS = [
+    "_purity_report_enabled",
+    "_math_pure",
+    "_tight_event_math",
+    "_broad_event_math",
+    "_gpt_label",
+    "_gpt_source",
+    "_attention_urls",
+    "_attention_domains",
+    "_gdelt_shadow_local_upper_signal",
+    "_gdelt_shadow_global_upper_signal",
+    "_gdelt_shadow_potential_score",
+    "_gdelt_shadow_potential_evidence",
+    "_gdelt_catalog_match_options",
+    "_gdelt_shadow_local_signal",
+    "_gdelt_shadow_global_signal",
+    "_gdelt_shadow_score",
+    "_gdelt_shadow_evidence",
+]
+
+
+def _clusters_for_output(clusters: list[dict]) -> list[dict]:
+    """Deep-copy clusters and remove run-only diagnostic fields."""
+    cleaned = copy.deepcopy(clusters)
+    for cluster in cleaned:
+        for key in _OUTPUT_TRANSIENT_KEYS:
+            cluster.pop(key, None)
+    return cleaned
+
+
+# ----------------------------
 # Main pipeline
 # ----------------------------
 def main():
-    date_str, no_openai, top_k, print_report, purity_report = _parse_args()
+    (
+        date_str,
+        no_openai,
+        top_k,
+        print_report,
+        purity_report,
+        input_override,
+        output_override,
+        gdelt_ranking_shadow,
+        gdelt_ranking_shadow_override,
+        gdelt_audit_override,
+        gdelt_global_output_override,
+    ) = _parse_args()
 
     # Env & OpenAI
     load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
     if openai is not None:
         openai.api_key = os.getenv("OPENAI_API_KEY")
 
-    input_file = f"grouped_articles_filtered_{date_str}.json"
-    output_file = f"grouped_articles_final_{date_str}.json"
+    input_file = (
+        input_override
+        or f"grouped_articles_filtered_{date_str}.json"
+    )
+    output_file = (
+        output_override
+        or (
+            f"grouped_articles_final_gdelt_shadow_{date_str}.json"
+            if gdelt_ranking_shadow
+            else f"grouped_articles_final_{date_str}.json"
+        )
+    )
+    gdelt_ranking_shadow_file = (
+        gdelt_ranking_shadow_override
+        or f"gdelt_global_ranking_shadow_{date_str}.json"
+    )
+    gdelt_global_output_file = (
+        gdelt_global_output_override
+        or f"grouped_articles_final_global_shadow_{date_str}.json"
+    )
+    gdelt_runtime_module = None
+    gdelt_catalog_matcher = None
+    gdelt_catalog_diag = {
+        "status": "DISABLED",
+        "file": None,
+        "candidate_count": 0,
+        "errors": [],
+    }
+    gdelt_assignment_stats = {}
+
+    if gdelt_ranking_shadow:
+        print(
+            f"🌐 GDELT global-ranking shadow enabled; "
+            f"local-order output is isolated at {output_file}"
+        )
 
     if not Path(input_file).exists():
         print(f"❌ Missing {input_file}. Run the upstream grouping step first.")
@@ -2734,20 +3597,120 @@ def main():
     )
 
     # GPT validation queue:
-    # attention is the primary key because the publication goal is the most-
-    # discussed valid events. Mathematical cohesion only breaks attention ties
-    # so likely-clean candidates are handled efficiently without allowing a
-    # lower-attention story to jump ahead of a higher-attention one.
-    review_queue = sorted(
-        ranked,
-        key=lambda c: (
-            float(c.get("attention_score", 0.0) or 0.0),
-            cluster_cohesion_fast(c.get("articles", []))[0],
-            cluster_nn_tightness(c.get("articles", []))[1],
-            importance_score(c),
-        ),
-        reverse=True,
+    # Default behavior remains local-attention-first. In explicit GDELT shadow
+    # mode, globally strong candidates may move earlier in the review queue, but
+    # production output is still sorted by the existing local attention score.
+    shadow_local_reference_scores = sorted(
+        float(c.get("attention_score", 0.0) or 0.0)
+        for c in ranked
     )
+
+    if gdelt_ranking_shadow:
+        (
+            gdelt_runtime_module,
+            gdelt_catalog_matcher,
+            gdelt_catalog_diag,
+        ) = _prepare_gdelt_full_catalog_matcher(
+            date_str,
+            gdelt_audit_override,
+            ranked,
+        )
+        if gdelt_catalog_matcher is not None:
+            gdelt_catalog_matcher["catalog_file"] = gdelt_catalog_diag.get("file")
+            print(
+                f"🌐 Full-audit GDELT matcher: "
+                f"{gdelt_catalog_diag.get('candidate_count', 0)} candidates "
+                f"from {gdelt_catalog_diag.get('file')} "
+                f"({gdelt_catalog_diag.get('matcher_status')})"
+            )
+        else:
+            detail = gdelt_catalog_diag.get("matcher_error") or "; ".join(
+                gdelt_catalog_diag.get("errors") or []
+            )
+            print(
+                "⚠️ Full-audit GDELT matcher unavailable; "
+                "using retained discovery-article evidence only"
+                + (f": {detail}" if detail else "")
+            )
+
+        for c in ranked:
+            local_upper = _local_attention_percentile(
+                float(c.get("attention_score", 0.0) or 0.0),
+                shadow_local_reference_scores,
+            )
+            retained_evidence = _gdelt_global_attention_from_articles(
+                c.get("articles", []),
+                min_retained_articles=2,
+            )
+            potential_options = _gdelt_catalog_options_for_cluster(
+                c,
+                gdelt_runtime_module,
+                gdelt_catalog_matcher,
+                threshold=GDELT_CATALOG_POTENTIAL_MATCH_THRESHOLD,
+                max_matches=3,
+            )
+            catalog_evidence = _gdelt_option_evidence(
+                potential_options[0] if potential_options else None,
+                gdelt_catalog_diag.get("file"),
+            )
+            global_evidence = _combine_gdelt_shadow_evidence(
+                retained_evidence,
+                catalog_evidence,
+            )
+            global_upper = (
+                global_evidence.get("global_signal")
+                if global_evidence.get("eligible")
+                else None
+            )
+            c["_gdelt_shadow_local_upper_signal"] = local_upper
+            c["_gdelt_shadow_global_upper_signal"] = global_upper
+            c["_gdelt_shadow_potential_score"] = _gdelt_shadow_blended_score(
+                local_upper,
+                global_upper,
+            )
+            c["_gdelt_shadow_potential_evidence"] = global_evidence
+
+        review_queue = sorted(
+            ranked,
+            key=lambda c: (
+                float(c.get("_gdelt_shadow_potential_score", 0.0) or 0.0),
+                float(c.get("attention_score", 0.0) or 0.0),
+                cluster_cohesion_fast(c.get("articles", []))[0],
+                cluster_nn_tightness(c.get("articles", []))[1],
+                importance_score(c),
+            ),
+            reverse=True,
+        )
+
+        # Suffix maxima make stopping rank-safe for BOTH the unchanged local
+        # order and the GDELT global shadow order, regardless of queue ordering.
+        shadow_suffix_local_upper = [0.0] * (len(review_queue) + 1)
+        shadow_suffix_global_upper = [0.0] * (len(review_queue) + 1)
+        for idx in range(len(review_queue) - 1, -1, -1):
+            shadow_suffix_local_upper[idx] = max(
+                shadow_suffix_local_upper[idx + 1],
+                float(review_queue[idx].get("attention_score", 0.0) or 0.0),
+            )
+            shadow_suffix_global_upper[idx] = max(
+                shadow_suffix_global_upper[idx + 1],
+                float(
+                    review_queue[idx].get("_gdelt_shadow_potential_score", 0.0)
+                    or 0.0
+                ),
+            )
+    else:
+        review_queue = sorted(
+            ranked,
+            key=lambda c: (
+                float(c.get("attention_score", 0.0) or 0.0),
+                cluster_cohesion_fast(c.get("articles", []))[0],
+                cluster_nn_tightness(c.get("articles", []))[1],
+                importance_score(c),
+            ),
+            reverse=True,
+        )
+        shadow_suffix_local_upper = []
+        shadow_suffix_global_upper = []
 
     # Final structured publication gate:
     # one call identifies a strict summary CORE and broader event-specific RELATED
@@ -2756,18 +3719,18 @@ def main():
     event_cache_hits = 0
     reviewed_candidates = 0
     purifier_stop_reason = "not_run"
+    vetted = []
 
     if not no_openai and os.getenv("OPENAI_API_KEY"):
-        vetted = []
         purifier_stop_reason = "queue_exhausted"
 
         for queue_pos, c in enumerate(review_queue):
-            # Once 10 valid events exist, stop only when the best possible
-            # remaining candidate cannot enter the top 10. A candidate's
-            # pre-clean attention score is an upper bound because purification
-            # can preserve or reduce support, but cannot increase it.
+            # Once enough valid events exist, stop only when unreviewed
+            # candidates cannot enter the top K. In GDELT shadow mode, BOTH the
+            # unchanged local ranking and the global shadow ranking must be
+            # secured before stopping.
             if len(vetted) >= top_k:
-                provisional = sorted(
+                provisional_local = sorted(
                     vetted,
                     key=lambda item: (
                         float(item.get("attention_score", 0.0) or 0.0),
@@ -2776,14 +3739,53 @@ def main():
                     reverse=True,
                 )
                 cutoff_attention = float(
-                    provisional[top_k - 1].get("attention_score", 0.0) or 0.0
+                    provisional_local[top_k - 1].get("attention_score", 0.0)
+                    or 0.0
                 )
-                remaining_upper_bound = float(
-                    c.get("attention_score", 0.0) or 0.0
-                )
-                if remaining_upper_bound < cutoff_attention:
-                    purifier_stop_reason = "top_k_rank_secured"
-                    break
+
+                if gdelt_ranking_shadow:
+                    provisional_assignment = _resolve_all_approved_gdelt_matches(
+                        vetted,
+                        gdelt_runtime_module,
+                        gdelt_catalog_matcher,
+                        shadow_local_reference_scores,
+                        apply=False,
+                    )
+                    provisional_shadow = sorted(
+                        vetted,
+                        key=lambda item: (
+                            float(
+                                provisional_assignment["by_event"]
+                                .get(_shadow_event_id(item), {})
+                                .get("shadow_score", 0.0)
+                            ),
+                            float(item.get("attention_score", 0.0) or 0.0),
+                            importance_score(item),
+                        ),
+                        reverse=True,
+                    )
+                    cutoff_event_id = _shadow_event_id(provisional_shadow[top_k - 1])
+                    cutoff_shadow = float(
+                        provisional_assignment["by_event"]
+                        .get(cutoff_event_id, {})
+                        .get("shadow_score", 0.0)
+                    )
+                    remaining_local_upper = shadow_suffix_local_upper[queue_pos]
+                    remaining_shadow_upper = shadow_suffix_global_upper[queue_pos]
+
+                    if (
+                        remaining_local_upper < cutoff_attention
+                        and remaining_shadow_upper < cutoff_shadow
+                    ):
+                        purifier_stop_reason = "top_k_local_and_global_rank_secured"
+                        break
+                else:
+                    remaining_upper_bound = float(
+                        c.get("attention_score", 0.0) or 0.0
+                    )
+                    if remaining_upper_bound < cutoff_attention:
+                        purifier_stop_reason = "top_k_rank_secured"
+                        break
 
             original_articles = c.get("articles", [])
             sig = _cluster_sig_urls(c)
@@ -2994,6 +3996,45 @@ def main():
             related_attention = attention_metadata_from_articles(related_articles)
             published.update(related_attention)
             published["attention_score"] = attention_score(published)
+
+            if gdelt_ranking_shadow:
+                local_signal = _local_attention_percentile(
+                    float(published.get("attention_score", 0.0) or 0.0),
+                    shadow_local_reference_scores,
+                )
+                retained_evidence = _gdelt_global_attention_from_articles(
+                    related_articles,
+                    min_retained_articles=2,
+                )
+                catalog_options = _gdelt_catalog_options_for_cluster(
+                    published,
+                    gdelt_runtime_module,
+                    gdelt_catalog_matcher,
+                    threshold=GDELT_CATALOG_FINAL_MATCH_THRESHOLD,
+                    max_matches=5,
+                )
+                published["_gdelt_catalog_match_options"] = catalog_options
+                catalog_evidence = _gdelt_option_evidence(
+                    catalog_options[0] if catalog_options else None,
+                    gdelt_catalog_diag.get("file"),
+                )
+                global_evidence = _combine_gdelt_shadow_evidence(
+                    retained_evidence,
+                    catalog_evidence,
+                )
+                global_signal = (
+                    global_evidence.get("global_signal")
+                    if global_evidence.get("eligible")
+                    else None
+                )
+                published["_gdelt_shadow_local_signal"] = local_signal
+                published["_gdelt_shadow_global_signal"] = global_signal
+                published["_gdelt_shadow_score"] = _gdelt_shadow_blended_score(
+                    local_signal,
+                    global_signal,
+                )
+                published["_gdelt_shadow_evidence"] = global_evidence
+
             vetted.append(published)
 
             if purity_report:
@@ -3013,6 +4054,22 @@ def main():
                 "queue_exhausted_rank_complete"
                 if len(vetted) >= top_k
                 else "queue_exhausted_before_target"
+            )
+
+        if gdelt_ranking_shadow and vetted:
+            resolved = _resolve_all_approved_gdelt_matches(
+                vetted,
+                gdelt_runtime_module,
+                gdelt_catalog_matcher,
+                shadow_local_reference_scores,
+                apply=True,
+            )
+            gdelt_assignment_stats = resolved.get("stats") or {}
+            print(
+                "🌐 Full-audit GDELT assignments: "
+                f"{gdelt_assignment_stats.get('matched_approved_event_count', 0)} "
+                f"of {len(vetted)} approved events matched; "
+                f"{gdelt_assignment_stats.get('unmatched_approved_event_count', 0)} unmatched"
             )
 
         ranked = sorted(
@@ -3039,6 +4096,104 @@ def main():
             f"stop={purifier_stop_reason}, cap={EVENT_MAX_CALLS}"
         )
 
+    if gdelt_ranking_shadow:
+        if vetted:
+            _write_gdelt_ranking_shadow(
+                path=gdelt_ranking_shadow_file,
+                date_str=date_str,
+                input_file=input_file,
+                output_file=output_file,
+                approved_events=vetted,
+                top_k=top_k,
+                review_queue_size=len(review_queue),
+                reviewed_candidates=reviewed_candidates,
+                event_calls=event_calls,
+                event_cache_hits=event_cache_hits,
+                purifier_stop_reason=purifier_stop_reason,
+                gdelt_catalog_diag=gdelt_catalog_diag,
+                gdelt_assignment_stats=gdelt_assignment_stats,
+                global_output_file=gdelt_global_output_file,
+            )
+
+            shadow_top = sorted(
+                vetted,
+                key=lambda item: (
+                    float(item.get("_gdelt_shadow_score", 0.0) or 0.0),
+                    float(item.get("attention_score", 0.0) or 0.0),
+                    importance_score(item),
+                ),
+                reverse=True,
+            )[: max(1, top_k)]
+            local_top_ids = {
+                _shadow_event_id(item)
+                for item in ranked[: max(1, top_k)]
+            }
+
+            # Materialize the purifier-approved global top-K as an isolated
+            # shadow file. This never changes the production final JSON.
+            local_rank_by_id = {
+                _shadow_event_id(item): pos
+                for pos, item in enumerate(ranked, start=1)
+            }
+            global_output = _clusters_for_output(shadow_top)
+            for pos, (original, exported) in enumerate(
+                zip(shadow_top, global_output),
+                start=1,
+            ):
+                event_id = _shadow_event_id(original)
+                exported["global_attention_rank"] = pos
+                exported["local_attention_rank"] = local_rank_by_id.get(event_id)
+                exported["global_attention_score"] = round(
+                    float(original.get("_gdelt_shadow_score", 0.0) or 0.0),
+                    4,
+                )
+                exported["ranking_mode"] = "GLOBAL_COVERAGE_SHADOW"
+
+            Path(gdelt_global_output_file).write_text(
+                json.dumps(global_output, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            promoted_titles = [
+                _shadow_event_title(item)
+                for item in shadow_top
+                if _shadow_event_id(item) not in local_top_ids
+            ]
+            print(
+                f"🌐 Wrote GDELT global-ranking shadow → "
+                f"{gdelt_ranking_shadow_file}"
+            )
+            print(
+                f"🌍 Wrote purifier-approved global top-{max(1, top_k)} → "
+                f"{gdelt_global_output_file}"
+            )
+            if promoted_titles:
+                print(
+                    "   Shadow top-K promotions: "
+                    + " | ".join(promoted_titles[:5])
+                )
+            else:
+                print("   Shadow top-K promotions: none")
+        else:
+            payload = {
+                "schema_version": "1.0",
+                "date": date_str,
+                "status": "PURIFIER_NOT_RUN_OR_NO_APPROVED_EVENTS",
+                "shadow_only": True,
+                "live_page_order_changed_by_shadow_score": False,
+                "local_ranking_formula_unchanged": True,
+                "input_file": input_file,
+                "local_output_file": output_file,
+            }
+            Path(gdelt_ranking_shadow_file).write_text(
+                json.dumps(payload, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            print(
+                f"⚠️ GDELT ranking shadow had no purifier-approved events → "
+                f"{gdelt_ranking_shadow_file}"
+            )
+
     # Save cache if we made any calls
     if event_calls > 0:
         _save_event_cache(event_cache)
@@ -3047,18 +4202,7 @@ def main():
     capped = ranked[: max(1, top_k)]
 
     # Remove run-only diagnostic keys before writing JSON.
-    for c in capped:
-        for k in [
-            "_purity_report_enabled",
-            "_math_pure",
-            "_tight_event_math",
-            "_broad_event_math",
-            "_gpt_label",
-            "_gpt_source",
-            "_attention_urls",
-            "_attention_domains",
-        ]:
-            c.pop(k, None)
+    capped = _clusters_for_output(capped)
 
     # Save
     with open(output_file, "w", encoding="utf-8") as f:

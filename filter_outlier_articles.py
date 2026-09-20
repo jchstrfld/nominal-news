@@ -1,7 +1,8 @@
 # filter_outlier_articles.py — Math-only cluster refinement (NO GPT)
-# - Reads grouped_articles_{date}.json
+# - Reads grouped_articles_{date}.json by default
+# - Supports optional --input-file / --output-file overrides for isolated shadow tests
 # - Optionally trims low-cohesion tail articles from large, tail-contaminated clusters
-# - Writes grouped_articles_filtered_{date}.json
+# - Writes grouped_articles_filtered_{date}.json by default
 #
 # Goal: Preserve coverage while improving cluster purity.
 # No OpenAI usage. No keyword lists. All math-based (local embeddings + centroid similarity).
@@ -25,21 +26,31 @@ except Exception:
 
 
 # ----------------------------
-# CLI date handling
+# CLI handling
 # ----------------------------
-args = sys.argv
-if "--date" in args:
-    date_idx = args.index("--date") + 1
-    if date_idx < len(args):
-        date_str = args[date_idx]
-    else:
-        print("❌ No date provided after --date")
-        sys.exit(1)
-else:
-    date_str = datetime.today().strftime("%Y-%m-%d")
+args = sys.argv[1:]
 
-INPUT_FILE = f"grouped_articles_{date_str}.json"
-OUTPUT_FILE = f"grouped_articles_filtered_{date_str}.json"
+
+def _arg_value(flag: str) -> str | None:
+    if flag not in args:
+        return None
+    idx = args.index(flag) + 1
+    if idx >= len(args) or args[idx].startswith("--"):
+        print(f"❌ No value provided after {flag}")
+        sys.exit(1)
+    return args[idx]
+
+
+date_str = _arg_value("--date") or datetime.today().strftime("%Y-%m-%d")
+
+INPUT_FILE = (
+    _arg_value("--input-file")
+    or f"grouped_articles_{date_str}.json"
+)
+OUTPUT_FILE = (
+    _arg_value("--output-file")
+    or f"grouped_articles_filtered_{date_str}.json"
+)
 
 
 # ----------------------------

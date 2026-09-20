@@ -49,8 +49,20 @@ def latest_summary_date() -> Optional[str]:
 
 
 def load_summaries(date: str) -> List[Dict[str, Any]]:
-    """Load summaries for a given YYYY-MM-DD date, or [] if not found."""
+    """Load production summaries for a given YYYY-MM-DD date, or [] if not found."""
     path = BASE_DIR / f"topic_summaries_{date}.json"
+    if not path.exists():
+        return []
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_global_shadow_summaries(date: str) -> List[Dict[str, Any]]:
+    """
+    Load the isolated GDELT/global shadow summaries for a given date.
+    This never replaces or falls back to the production summary file.
+    """
+    path = BASE_DIR / f"topic_summaries_global_receipts_shadow_{date}.json"
     if not path.exists():
         return []
     with path.open("r", encoding="utf-8") as f:
@@ -61,16 +73,26 @@ def load_summaries(date: str) -> List[Dict[str, Any]]:
 async def homepage(
     request: Request,
     date: Optional[str] = Query(default=None, description="YYYY-MM-DD"),
+    preview: Optional[str] = Query(
+        default=None,
+        description="Use 'global' to preview the isolated GDELT/global shadow summaries.",
+    ),
 ):
     """
     Shows the newsletter page.
     - If ?date=YYYY-MM-DD is provided, we use that day.
-    - If not, we auto-pick the latest available topic_summaries_*.json.
+    - If ?preview=global is also provided, we load only
+      topic_summaries_global_receipts_shadow_YYYY-MM-DD.json.
+    - Otherwise, production behavior is unchanged.
+    - If no date is provided in production mode, we auto-pick the latest
+      available topic_summaries_*.json.
     - We DO NOT auto-run the pipeline by default (saves tokens).
-      To allow auto-run if missing, set env var AUTO_RUN_PIPELINE=1.
+      To allow production auto-run if missing, set env var AUTO_RUN_PIPELINE=1.
+    - Shadow preview mode never auto-runs the production pipeline.
     """
     status_msg = ""
     requested_date = date
+    global_shadow_preview = (preview or "").strip().lower() == "global"
 
     if not requested_date:
         # No date provided — pick the newest file on disk if available
@@ -79,28 +101,40 @@ async def homepage(
         if latest:
             status_msg = f"Loaded latest available summaries for {requested_date}."
 
-    summaries = load_summaries(requested_date)
-
-    if not summaries:
-        # Optional: auto-run full pipeline (costs tokens!)
-        if os.getenv("AUTO_RUN_PIPELINE", "0") == "1":
-            try:
-                subprocess.run(
-                    ["python", str(BASE_DIR / "run_pipeline_by_date.py"), "--date", requested_date],
-                    check=True,
-                )
-                summaries = load_summaries(requested_date)
-                status_msg = status_msg or f"Generated summaries for {requested_date}."
-            except Exception as e:
-                status_msg = f"No summaries found for {requested_date}. Pipeline errored: {e}"
+    if global_shadow_preview:
+        summaries = load_global_shadow_summaries(requested_date)
+        if summaries:
+            status_msg = (
+                f"Loaded isolated GDELT/global shadow summaries for {requested_date}."
+            )
         else:
             status_msg = (
-                f"No summaries found for {requested_date}. "
-                f"Either pass ?date=YYYY-MM-DD with a day you already ran, "
-                f"or set AUTO_RUN_PIPELINE=1 to generate on demand."
+                f"No global shadow summaries found for {requested_date}. "
+                f"Expected topic_summaries_global_receipts_shadow_{requested_date}.json."
             )
+    else:
+        summaries = load_summaries(requested_date)
 
-    
+        if not summaries:
+            # Optional production auto-run. Shadow preview intentionally never uses this.
+            if os.getenv("AUTO_RUN_PIPELINE", "0") == "1":
+                try:
+                    subprocess.run(
+                        ["python", str(BASE_DIR / "run_pipeline_by_date.py"), "--date", requested_date],
+                        check=True,
+                    )
+                    summaries = load_summaries(requested_date)
+                    status_msg = status_msg or f"Generated summaries for {requested_date}."
+                except Exception as e:
+                    status_msg = f"No summaries found for {requested_date}. Pipeline errored: {e}"
+            else:
+                status_msg = (
+                    f"No summaries found for {requested_date}. "
+                    f"Either pass ?date=YYYY-MM-DD with a day you already ran, "
+                    f"or set AUTO_RUN_PIPELINE=1 to generate on demand."
+                )
+
+
     market_overview = load_market_overview(requested_date) if requested_date else None
     
     return templates.TemplateResponse(
@@ -111,5 +145,6 @@ async def homepage(
                 "requested_date": requested_date,
                 "status_msg": status_msg,
                 "market_overview": market_overview,
+                "preview_mode": "global" if global_shadow_preview else None,
             },
         )

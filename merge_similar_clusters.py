@@ -27,8 +27,20 @@ if "--date" in args:
 else:
     date_str = datetime.today().strftime("%Y-%m-%d")
 
-INPUT_FILE = f"clustered_articles_{date_str}.json"
-OUTPUT_FILE = f"grouped_articles_{date_str}.json"
+BASE_INPUT_FILE = f"clustered_articles_{date_str}.json"
+
+def _arg_value(flag):
+    if flag not in args:
+        return None
+    idx = args.index(flag) + 1
+    if idx >= len(args):
+        print(f"❌ No value provided after {flag}")
+        sys.exit(1)
+    return args[idx]
+
+REQUESTED_INPUT_FILE = _arg_value("--input-file")
+INPUT_FILE = REQUESTED_INPUT_FILE or BASE_INPUT_FILE
+OUTPUT_FILE = _arg_value("--output-file") or f"grouped_articles_{date_str}.json"
 EMBED_MODEL = "text-embedding-3-small"
 SIM_THRESHOLD = 0.85
 
@@ -68,6 +80,73 @@ def get_cluster_embedding(cluster):
     truncated = truncate_to_token_limit(combined, MAX_TOKENS)  # ✅ now token-safe
     return get_embedding_with_retry(truncated)  # ✅ now retry-safe
 
+def collect_gdelt_discovery_metadata(clusters, indexes):
+    """
+    Preserve audit/injection provenance for diagnostics only.
+
+    This metadata is never used by the merge threshold or final ranking.
+    Article-level origin fields are also preserved automatically.
+    """
+    by_id = {}
+    gdelt_article_count = 0
+
+    for idx in indexes:
+        cluster = clusters[idx]
+        for article in cluster.get("articles", []):
+            if article.get("origin") == "gdelt_discovery":
+                gdelt_article_count += 1
+
+        candidate_id = cluster.get("gdelt_candidate_id")
+        if not candidate_id:
+            candidate_ids = {
+                a.get("gdelt_candidate_id")
+                for a in cluster.get("articles", [])
+                if a.get("gdelt_candidate_id")
+            }
+        else:
+            candidate_ids = {candidate_id}
+
+        for cid in candidate_ids:
+            if not cid:
+                continue
+            entry = by_id.setdefault(cid, {
+                "candidate_id": cid,
+                "canonical_title": cluster.get("gdelt_canonical_title"),
+                "preview_type": cluster.get("gdelt_preview_type"),
+                "discovery_score": cluster.get("gdelt_discovery_score"),
+                "global_attention_shadow": cluster.get(
+                    "gdelt_global_attention_shadow"
+                ),
+            })
+            if not entry.get("canonical_title"):
+                for article in cluster.get("articles", []):
+                    if article.get("gdelt_candidate_id") == cid:
+                        entry["canonical_title"] = article.get(
+                            "gdelt_canonical_title"
+                        )
+                        entry["preview_type"] = article.get(
+                            "gdelt_preview_type"
+                        )
+                        entry["discovery_score"] = article.get(
+                            "gdelt_discovery_score"
+                        )
+                        entry["global_attention_shadow"] = article.get(
+                            "gdelt_global_attention"
+                        )
+                        break
+
+    if not by_id:
+        return None
+
+    return {
+        "shadow_only": True,
+        "affects_merge_only_through_injected_article_text": True,
+        "candidate_count": len(by_id),
+        "injected_article_count": gdelt_article_count,
+        "candidates": list(by_id.values()),
+    }
+
+
 def merge_clusters(clusters, embeddings):
     num = len(embeddings)
     used = set()
@@ -78,6 +157,7 @@ def merge_clusters(clusters, embeddings):
             continue
 
         group = clusters[i]["articles"][:]
+        merged_indexes = [i]
 
         for j in range(i + 1, num):
             if j in used:
@@ -85,6 +165,7 @@ def merge_clusters(clusters, embeddings):
             sim = cosine_similarity([embeddings[i]], [embeddings[j]])[0][0]
             if sim >= SIM_THRESHOLD:
                 group.extend(clusters[j]["articles"])
+                merged_indexes.append(j)
                 used.add(j)
 
         # Compute bias distribution
@@ -102,20 +183,61 @@ def merge_clusters(clusters, embeddings):
             for k, v in bias_counts.items():
                 bias_distribution[k] = round((v / total) * 100)
 
-        merged.append({
+        merged_cluster = {
             "topic": f"Topic {i}",
             "articles": group,
             "bias_distribution": bias_distribution
-        })
+        }
+
+        discovery_meta = collect_gdelt_discovery_metadata(
+            clusters, merged_indexes
+        )
+        if discovery_meta:
+            merged_cluster["gdelt_discovery"] = discovery_meta
+
+        merged.append(merged_cluster)
 
     print(f"✅ Merged {num} clusters into {len(merged)} topic groups")
     return merged
 
-def main():
-    with open(INPUT_FILE, "r", encoding="utf-8") as f:
+def _load_clusters(path):
+    with open(path, "r", encoding="utf-8") as f:
         raw = json.load(f)
+    if not isinstance(raw, list):
+        raise ValueError("cluster input must be a JSON list")
+    if not all(
+        isinstance(c, dict) and isinstance(c.get("articles"), list)
+        for c in raw
+    ):
+        raise ValueError("every cluster must contain an articles list")
+    return raw
 
-    print(f"🔍 Loaded {len(raw)} topic clusters")
+
+def main():
+    input_file = INPUT_FILE
+    try:
+        raw = _load_clusters(input_file)
+    except Exception as exc:
+        if REQUESTED_INPUT_FILE and input_file != BASE_INPUT_FILE:
+            print(
+                f"⚠️ Optional cluster input could not be used: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            print(f"↪ Falling back before embedding to {BASE_INPUT_FILE}")
+            input_file = BASE_INPUT_FILE
+            raw = _load_clusters(input_file)
+        else:
+            raise
+
+    discovery_seed_count = sum(
+        1 for c in raw if c.get("cluster_origin") == "gdelt_discovery"
+    )
+    print(f"🔍 Loaded {len(raw)} topic clusters from {input_file}")
+    if discovery_seed_count:
+        print(
+            f"🌍 Optional GDELT discovery active: "
+            f"{discovery_seed_count} pre-grouped seed clusters appended"
+        )
     embeddings = []
 
     for i, cluster in enumerate(raw):

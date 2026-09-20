@@ -63,3 +63,17 @@ Archive/*.json
 
 # Frontend (if added later)
 node_modules/
+
+# GDELT discovery caches and generated audit/shadow artifacts
+.gdelt_gsg_cache/
+gdelt_doc_cache.json
+gdelt_discovery_metadata_cache.json
+gdelt_discovery_candidates_*.json
+gdelt_discovery_candidates_*.csv
+gdelt_discovery_injection_*.json
+gdelt_global_discovery_audit_*.json
+gdelt_global_discovery_audit_*.csv
+gdelt_global_ranking_shadow_*.json
+gdelt_shadow_run_*.txt
+Archive/*.csv
+Archive/*.txt

@@ -128,6 +128,24 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--date", type=str, help="Date in YYYY-MM-DD format")
     p.add_argument(
+        "--input-file",
+        type=str,
+        default="",
+        help=(
+            "Optional verified-cluster input path. Defaults to "
+            "grouped_articles_final_{date}.json."
+        ),
+    )
+    p.add_argument(
+        "--output-file",
+        type=str,
+        default="",
+        help=(
+            "Optional expanded-cluster output path. Defaults to "
+            "grouped_articles_final_expanded_{date}.json."
+        ),
+    )
+    p.add_argument(
         "--skip-gdelt",
         action="store_true",
         help="Run only local corpus recovery; useful for diagnostics.",
@@ -1640,12 +1658,21 @@ def main():
     args = parse_args()
     date_str = args.date or datetime.today().strftime("%Y-%m-%d")
 
-    input_file = f"grouped_articles_final_{date_str}.json"
+    input_file = (
+        args.input_file
+        or f"grouped_articles_final_{date_str}.json"
+    )
     local_corpus_file = f"{LOCAL_CORPUS_PREFIX}{date_str}.json"
-    output_file = f"grouped_articles_final_expanded_{date_str}.json"
+    output_file = (
+        args.output_file
+        or f"grouped_articles_final_expanded_{date_str}.json"
+    )
 
     if not os.path.exists(input_file):
-        print(f"❌ Missing {input_file}. Run final_cohesion_check.py first.")
+        print(
+            f"❌ Missing {input_file}. Run final_cohesion_check.py first "
+            "or verify --input-file."
+        )
         return
 
     if args.refresh_bias_only:
