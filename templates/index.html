@@ -5,12 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nominal News</title>
   <link rel="stylesheet" href="/static/style.css">
-
-  <style>
-    .articles-start {
-      margin-top: 16px;
-    }
-  </style>
 </head>
 
 <body>
@@ -152,7 +146,7 @@
                 alt="{{ topic.image_alt }}"
                 width="{{ topic.image_width or 600 }}"
                 loading="lazy"
-                style="max-width:{{ topic.image_max_width or 600 }}px;width:100%;height:auto;display:block;border-radius:8px;"
+                style="max-width:{{ topic.image_max_width or 600 }}px;"
               />
               {% if topic.image_credit %}
                 <figcaption class="image-caption">
@@ -166,15 +160,6 @@
             <p class="topic-summary">{{ topic.summary }}</p>
           {% endif %}
 
-          {% if topic.takeaways and topic.takeaways|length > 0 %}
-            <p><strong>Why It Matters</strong></p>
-            <ul>
-              {% for takeaway in topic.takeaways %}
-                <li>{{ takeaway }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-
           {% if topic.bias_distribution and topic.bias_distribution|length > 0 %}
             {% set dist = topic.bias_distribution %}
 
@@ -186,8 +171,9 @@
           {# Only show Uncategorized if the data explicitly contains it #}
           {% set pct_uncat = (dist.get('Unknown', 0) or 0) + (dist.get('Uncategorized', 0) or 0) %}
 
-            <p class="chart-title"><strong>How This Was Covered</strong></p>
-            <p class="balance-note">Percent of outlets covering this topic.</p>
+            {% set bias_base_count = topic.bias_outlet_count or topic.linked_source_count or topic.coverage_outlet_count or topic.num_sources or 0 %}
+            <p class="chart-title"><strong>How This Was Reported</strong></p>
+            <p class="balance-label-title">Political Lean by Outlet:</p>
             <div class="balance-wrap"
               role="img"
               aria-label="Coverage balance bar. Left {{ pct_left }} percent, center {{ pct_center }} percent, right {{ pct_right }} percent{% if pct_uncat %}, uncategorized {{ pct_uncat }} percent{% endif %}.">
@@ -227,7 +213,7 @@
                 {% endif %}
 
                 {% if pct_uncat > 0 %}
-                  <span class="balance-label seg-unknown" style="width: {{ pct_uncat }}%; background:#6b7280;">
+                  <span class="balance-label seg-unknown" style="width: {{ pct_uncat }}%">
                     {% if pct_uncat >= min_full_label_pct %}
                       Uncategorized {{ pct_uncat }}%
                     {% elif pct_uncat >= min_percent_only_pct %}
@@ -246,12 +232,16 @@
             </div>
           {% endif %}
 
-          {% if topic.html_chips %}
-            {% set n_outlets = topic.coverage_outlet_count or topic.num_sources or 0 %}
-            {% set n_reports = topic.distinct_report_count or topic.independent_report_count or 0 %}
+          {% if topic.coverage_writeups or topic.html_chips %}
+            {% set n_linked = topic.linked_source_count or topic.coverage_outlet_count or topic.num_sources or 0 %}
+            {% set n_writeups = topic.coverage_writeup_count or (topic.coverage_writeups|length if topic.coverage_writeups else 0) %}
+            {% set n_global_outlets = topic.global_coverage_outlet_count or 0 %}
+            {% set n_global_writeups = topic.global_unique_writeup_count or 0 %}
+            {% set has_global_coverage = topic.global_coverage_available and n_global_outlets > 0 and n_global_writeups > 0 %}
+            {% set n_outlets = n_linked %}
             {% set counts = topic.bias_counts or {} %}
 
-            {# Exact outlet counts produced by the summarizer. #}
+            {# Exact outlet counts produced by the summarizer. Bias remains outlet-based. #}
             {% if counts and counts|length > 0 %}
               {% set far_left = counts.get('Far Left', 0) or 0 %}
               {% set left = counts.get('Left', 0) or 0 %}
@@ -271,27 +261,91 @@
               {% if unknown < 0 %}{% set unknown = 0 %}{% endif %}
             {% endif %}
 
-            <details class="sources-collapsible sources-block">
-              <summary class="sources-summary">
-                <span class="sources-summary-text">
-                  Covered by {{ n_outlets }} outlet{% if n_outlets != 1 %}s{% endif %}
-                  {% if n_reports > 0 %} in {{ n_reports }} unique write-up{% if n_reports != 1 %}s{% endif %}{% endif %}
-                </span>
+            {% if topic.coverage_writeups and n_writeups > 0 %}
+              <div class="coverage-summary">
+                <p class="coverage-count-note">
+                  {% if has_global_coverage %}
+                    <span class="coverage-count-primary"><strong>{{ n_global_writeups }}</strong> distinct report{% if n_global_writeups != 1 %}s{% endif %} across <strong>{{ n_global_outlets }}</strong> outlet{% if n_global_outlets != 1 %}s{% endif %} worldwide</span>
+                  {% else %}
+                    <span class="coverage-count-primary"><strong>{{ n_writeups }}</strong> linked report{% if n_writeups != 1 %}s{% endif %} across <strong>{{ n_linked }}</strong> outlet{% if n_linked != 1 %}s{% endif %}</span>
+                  {% endif %}
+                </p>
 
-                <span class="sources-balance">
-                  {% if far_left > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#0b2e8a"></span>{{ far_left }} Far Left</span>{% endif %}
-                  {% if left > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#1d4ed8"></span>{{ left }} Left</span>{% endif %}
-                  {% if center > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#6d28d9"></span>{{ center }} Center</span>{% endif %}
-                  {% if right > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#b91c1c"></span>{{ right }} Right</span>{% endif %}
-                  {% if far_right > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#7f1d1d"></span>{{ far_right }} Far Right</span>{% endif %}
-                  {% if unknown > 0 %}<span class="lean-pill"><span class="lean-swatch" style="background:#6b7280"></span>{{ unknown }} Uncategorized</span>{% endif %}
-                </span>
-              </summary>
-
-              <div class="sources-list">
-                {{ topic.html_chips | safe }}
+                <div class="coverage-bias-counts" aria-label="Political lean counts by outlet">
+                  {% if far_left > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-far-left"></span>{{ far_left }} Far Left</span>{% endif %}
+                  {% if left > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-left"></span>{{ left }} Left</span>{% endif %}
+                  {% if center > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-center"></span>{{ center }} Center</span>{% endif %}
+                  {% if right > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-right"></span>{{ right }} Right</span>{% endif %}
+                  {% if far_right > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-far-right"></span>{{ far_right }} Far Right</span>{% endif %}
+                  {% if unknown > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-unknown"></span>{{ unknown }} Uncategorized</span>{% endif %}
+                </div>
               </div>
-            </details>
+
+              <details class="sources-collapsible sources-block writeups-block">
+                <summary class="sources-summary reports-summary">
+                  <span class="sources-summary-text">
+                    View {{ n_writeups }} Linked Report{% if n_writeups != 1 %}s{% endif %}{% if has_global_coverage and n_writeups > n_global_writeups %} <span class="reports-summary-note">(includes direct-feed coverage)</span>{% endif %}
+                  </span>
+                </summary>
+
+                <div class="writeups-list">
+                  {% for writeup in topic.coverage_writeups %}
+                    <article class="writeup-row">
+                      <a class="writeup-title" href="{{ writeup.url }}" target="_blank" rel="noopener noreferrer">
+                        {{ writeup.title }}
+                      </a>
+
+                      <div class="writeup-meta">
+                        <strong class="writeup-source">{{ writeup.source_name }}</strong>
+                        <span class="writeup-bias bias-{{ writeup.bias_slug }}">
+                          {% if writeup.bias == 'Unknown' %}Uncategorized{% else %}{{ writeup.bias }}{% endif %}
+                        </span>
+                      </div>
+
+                      {% if writeup.other_outlets and writeup.other_outlets|length > 0 %}
+                        <details class="republisher-details">
+                          <summary>
+                            Same report republished by {{ writeup.additional_outlet_count }} other outlet{% if writeup.additional_outlet_count != 1 %}s{% endif %}
+                          </summary>
+                          <ul class="republisher-list">
+                            {% for outlet in writeup.other_outlets %}
+                              <li class="republisher-row">
+                                <span class="republisher-name">{{ outlet.source_name }}</span>
+                                <span class="writeup-bias bias-{{ outlet.bias_slug }}">
+                                  {% if outlet.bias == 'Unknown' %}Uncategorized{% else %}{{ outlet.bias }}{% endif %}
+                                </span>
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        </details>
+                      {% endif %}
+                    </article>
+                  {% endfor %}
+
+                  <p class="republisher-method-note">
+                    Republisher names are shown for coverage transparency, but their links are omitted because those URLs can be temporary.
+                  </p>
+                </div>
+              </details>
+            {% elif topic.html_chips %}
+              {# Fallback for older summary JSON without structured write-up data. #}
+              <details class="sources-collapsible sources-block">
+                <summary class="sources-summary">
+                  <span class="sources-summary-text">View source outlets</span>
+                  <span class="sources-balance">
+                    {% if far_left > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-far-left"></span>{{ far_left }} Far Left</span>{% endif %}
+                    {% if left > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-left"></span>{{ left }} Left</span>{% endif %}
+                    {% if center > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-center"></span>{{ center }} Center</span>{% endif %}
+                    {% if right > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-right"></span>{{ right }} Right</span>{% endif %}
+                    {% if far_right > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-far-right"></span>{{ far_right }} Far Right</span>{% endif %}
+                    {% if unknown > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-unknown"></span>{{ unknown }} Uncategorized</span>{% endif %}
+                  </span>
+                </summary>
+                <div class="sources-list">
+                  {{ topic.html_chips | safe }}
+                </div>
+              </details>
+            {% endif %}
           {% endif %}
 
           {% if topic.fallback_summary %}
@@ -399,14 +453,14 @@
 
         const order = ["Far Left", "Left", "Center", "Right", "Far Right", "Uncategorized"];
 
-        // Group header colors (category-level swatch)
-        const leanColor = {
-          "Far Left": "#0b2e8a",
-          "Left": "#1d4ed8",
-          "Center": "#6d28d9",
-          "Right": "#b91c1c",
-          "Far Right": "#7f1d1d",
-          "Uncategorized": "#6b7280"
+        // Group header swatch classes live in style.css.
+        const leanSwatchClass = {
+          "Far Left": "swatch-far-left",
+          "Left": "swatch-left",
+          "Center": "swatch-center",
+          "Right": "swatch-right",
+          "Far Right": "swatch-far-right",
+          "Uncategorized": "swatch-unknown"
         };
 
         const buckets = new Map(order.map(k => [k, []]));
@@ -448,7 +502,7 @@
 
           const titleSwatch = document.createElement("span");
           titleSwatch.className = "lean-swatch";
-          titleSwatch.style.background = leanColor[lean] || "#6b7280";
+          titleSwatch.classList.add(leanSwatchClass[lean] || "swatch-unknown");
 
           const titleText = document.createElement("span");
           titleText.textContent = lean;

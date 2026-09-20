@@ -14,6 +14,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import pipeline
 import numpy as np
+from urllib.parse import urlparse, parse_qsl, urlencode
 
 # Summaries cache helpers (add summaries_cache.py next to this file)
 from summaries_cache import (
@@ -32,25 +33,49 @@ EMBEDDER = SentenceTransformer("all-MiniLM-L6-v2")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--date", type=str, help="Date in YYYY-MM-DD format")
+parser.add_argument(
+    "--input-file",
+    type=str,
+    default="",
+    help=(
+        "Optional cluster input path. When omitted, the existing freshness "
+        "check chooses the normal expanded or final date-based file."
+    ),
+)
+parser.add_argument(
+    "--output-file",
+    type=str,
+    default="",
+    help=(
+        "Optional summaries output path. Defaults to "
+        "topic_summaries_{date}.json."
+    ),
+)
 args = parser.parse_args()
 
 date_str = args.date or datetime.today().strftime("%Y-%m-%d")
 print(f"📅 Using input date: {date_str}")
 
-expanded = f"grouped_articles_final_expanded_{date_str}.json"
-final_file = f"grouped_articles_final_{date_str}.json"
-
-# Use expanded only if it is at least as fresh as final.
-# Prevents stale expanded files from causing 1-topic summaries.
-if os.path.exists(expanded) and (
-    not os.path.exists(final_file) or os.path.getmtime(expanded) >= os.path.getmtime(final_file)
-):
-    INPUT_FILE = expanded
+if args.input_file:
+    # Explicit shadow/custom input always wins. The default production path
+    # retains the existing freshness protection below.
+    INPUT_FILE = args.input_file
 else:
-    INPUT_FILE = final_file
+    expanded = f"grouped_articles_final_expanded_{date_str}.json"
+    final_file = f"grouped_articles_final_{date_str}.json"
+
+    # Use expanded only if it is at least as fresh as final.
+    # Prevents stale expanded files from causing 1-topic summaries.
+    if os.path.exists(expanded) and (
+        not os.path.exists(final_file)
+        or os.path.getmtime(expanded) >= os.path.getmtime(final_file)
+    ):
+        INPUT_FILE = expanded
+    else:
+        INPUT_FILE = final_file
 
 print(f"📄 Summarizer input: {INPUT_FILE}")
-OUTPUT_FILE = f"topic_summaries_{date_str}.json"
+OUTPUT_FILE = args.output_file or f"topic_summaries_{date_str}.json"
 
 MIN_ARTICLES = 4
 MAX_ARTICLES_PER_CLUSTER = 10
@@ -131,14 +156,12 @@ def select_central_articles(articles: list[dict], k: int) -> list[dict]:
         # Fail-open: preserve current behavior
         return articles[:k]
 
-def classify_topic_category(topic_title: str, summary: str, takeaways: list[str] | None, source_domains: list[str] | None = None) -> dict:
+def classify_topic_category(topic_title: str, summary: str, source_domains: list[str] | None = None) -> dict:
     """
     Token-free category classification using local zero-shot MNLI.
     Returns best + runner-up + scores; may return category=None if ambiguous.
     """
     parts = [topic_title or "", summary or ""]
-    if takeaways:
-        parts.extend([t for t in takeaways if t])
     text = " ".join([p.strip() for p in parts if p and p.strip()])
     text = text[:1200]
     if source_domains:
@@ -896,6 +919,409 @@ def build_display_sources(cluster, coverage_articles):
     return list(by_domain.values())
 
 
+
+def _coverage_domain(url):
+    try:
+        host = (urlparse(url or "").hostname or "").lower()
+        return host[4:] if host.startswith("www.") else host
+    except Exception:
+        return ""
+
+
+def _coverage_canonical_url(url):
+    try:
+        parsed = urlparse((url or "").strip())
+        host = (parsed.hostname or "").lower()
+        if host.startswith("www."):
+            host = host[4:]
+        if not host:
+            return ""
+        path = re.sub(r"/+$", "", parsed.path or "")
+        tracking = {
+            "utm_source", "utm_medium", "utm_campaign", "utm_term",
+            "utm_content", "gclid", "fbclid", "mc_cid", "mc_eid",
+            "igshid", "ref", "ref_src",
+        }
+        kept = [
+            (k, v) for k, v in parse_qsl(parsed.query, keep_blank_values=True)
+            if k.lower() not in tracking
+        ]
+        query = urlencode(sorted(kept))
+        base = f"{host}{path}"
+        return f"{base}?{query}" if query else base
+    except Exception:
+        return (url or "").strip().lower()
+
+
+def _coverage_normalize_title(title):
+    text = re.sub(r"<[^>]+>", " ", title or "")
+    text = re.sub(r"[^a-z0-9\s]", " ", text.lower())
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _coverage_title_score(left, right):
+    a = _coverage_normalize_title(left)
+    b = _coverage_normalize_title(right)
+    if not a or not b:
+        return 0.0
+    if a == b:
+        return 1.0
+    aset = set(a.split())
+    bset = set(b.split())
+    jaccard = len(aset & bset) / max(1, len(aset | bset))
+    seq = difflib.SequenceMatcher(None, a, b).ratio()
+    return max(jaccard, seq)
+
+
+def _coverage_title_match(left, right):
+    return _coverage_title_score(left, right) >= 0.94 or (
+        len(set(_coverage_normalize_title(left).split()) | set(_coverage_normalize_title(right).split())) > 0
+        and (
+            len(set(_coverage_normalize_title(left).split()) & set(_coverage_normalize_title(right).split()))
+            / max(1, len(set(_coverage_normalize_title(left).split()) | set(_coverage_normalize_title(right).split())))
+        ) >= 0.90
+    )
+
+
+def _coverage_receipt(record, default_origin="coverage"):
+    url = (record.get("url") or "").strip()
+    if not url:
+        return None
+    domain = (record.get("domain") or _coverage_domain(url)).lower().strip()
+    if not domain:
+        return None
+    source_name = record.get("source") or record.get("source_name") or domain
+    try:
+        declared = int(
+            record.get("writeup_family_outlet_count")
+            or record.get("gdelt_writeup_family_outlet_count")
+            or 0
+        )
+    except Exception:
+        declared = 0
+    return {
+        "domain": domain,
+        "url": url,
+        "canonical_url": _coverage_canonical_url(url),
+        "source_name": str(source_name).strip() or domain,
+        "title": (record.get("title") or "").strip(),
+        "bias": normalize_bias_label(record.get("bias")),
+        "origin": (record.get("origin") or default_origin).strip(),
+        "syndicated": bool(record.get("syndicated")),
+        "day_basis": (record.get("day_basis") or "").strip(),
+        "displayable_english": record.get("displayable_english", True) is not False,
+        "writeup_family_id": (
+            record.get("writeup_family_id")
+            or record.get("gdelt_writeup_family_id")
+            or ""
+        ),
+        "declared_family_outlet_count": declared,
+    }
+
+
+def _coverage_receipt_preference(receipt):
+    origin_rank = {
+        "core": 0,
+        "local": 1,
+        "gdelt_discovery": 2,
+        "coverage": 3,
+        "gdelt": 4,
+        "gdelt_gsg": 5,
+    }
+    return (
+        origin_rank.get(receipt.get("origin"), 9),
+        0 if receipt.get("day_basis") == "TARGET_EXPLICIT" else 1,
+        1 if receipt.get("syndicated") else 0,
+        1 if receipt.get("bias") == "Unknown" else 0,
+        1 if receipt.get("source_name") == receipt.get("domain") else 0,
+        -len(receipt.get("title") or ""),
+    )
+
+
+def _coverage_bias_slug(label):
+    return {
+        "Far Left": "far-left",
+        "Left": "left",
+        "Center": "center",
+        "Right": "right",
+        "Far Right": "far-right",
+        "Unknown": "unknown",
+    }.get(normalize_bias_label(label), "unknown")
+
+
+def build_coverage_writeups(cluster, coverage_articles):
+    """
+    Build one primary row per distinct article/write-up and nest every known
+    outlet copy beneath that row. Political-bias metrics remain outlet-based
+    elsewhere; this structure is for transparent article browsing only.
+    """
+    family_meta = {
+        str(row.get("family_id")): row
+        for row in (cluster.get("coverage_report_families") or [])
+        if row.get("family_id")
+    }
+    groups = {}
+    url_to_group = {}
+
+    def ensure_group(key, *, local_family_id="", global_family_id="", title=""):
+        group = groups.setdefault(key, {
+            "key": key,
+            "local_family_ids": set(),
+            "global_family_ids": set(),
+            "titles": [],
+            "origins": set(),
+            "receipts_by_domain": {},
+            "declared_outlet_count": 0,
+        })
+        if local_family_id:
+            group["local_family_ids"].add(str(local_family_id))
+        if global_family_id:
+            group["global_family_ids"].add(str(global_family_id))
+        if title and title not in group["titles"]:
+            group["titles"].append(title)
+        return group
+
+    def add_receipt(key, receipt):
+        if receipt is None or not receipt.get("displayable_english", True):
+            return
+        group = groups[key]
+        domain = receipt["domain"]
+        current = group["receipts_by_domain"].get(domain)
+        if current is None or _coverage_receipt_preference(receipt) < _coverage_receipt_preference(current):
+            group["receipts_by_domain"][domain] = receipt
+        if receipt.get("canonical_url"):
+            url_to_group[receipt["canonical_url"]] = key
+        title = receipt.get("title") or ""
+        if title and title not in group["titles"]:
+            group["titles"].append(title)
+        group["origins"].add(receipt.get("origin") or "coverage")
+        group["declared_outlet_count"] = max(
+            group["declared_outlet_count"],
+            int(receipt.get("declared_family_outlet_count") or 0),
+        )
+
+    # Local/cross-origin families already computed by the expansion stage.
+    for idx, article in enumerate(coverage_articles or []):
+        receipt = _coverage_receipt(article, "coverage")
+        if receipt is None:
+            continue
+        local_id = (
+            article.get("content_family_id")
+            or article.get("report_family_id")
+            or f"url-{receipt['canonical_url'] or idx}"
+        )
+        key = f"local:{local_id}"
+        meta = family_meta.get(str(local_id)) or {}
+        group = ensure_group(
+            key,
+            local_family_id=str(local_id),
+            title=(meta.get("representative_title") or receipt.get("title") or ""),
+        )
+        for origin in meta.get("origins") or []:
+            group["origins"].add(origin)
+        add_receipt(key, receipt)
+
+    def best_local_title_group(title):
+        best_key = None
+        best_score = 0.0
+        for key, group in groups.items():
+            # Never collapse one GSG family into another merely because their
+            # headlines resemble each other. Title matching is only a bridge
+            # from a GSG family to an already-computed local family.
+            if not group.get("local_family_ids"):
+                continue
+            for existing in group.get("titles") or []:
+                score = _coverage_title_score(title, existing)
+                if _coverage_title_match(title, existing) and score > best_score:
+                    best_key = key
+                    best_score = score
+        return best_key
+
+    attached_global_families = list(
+        cluster.get("gdelt_global_writeup_families") or []
+    )
+
+    if attached_global_families:
+        for family in attached_global_families:
+            family_id = str(family.get("family_id") or "").strip()
+            if not family_id:
+                continue
+            receipts = [
+                _coverage_receipt(row, "gdelt_gsg")
+                for row in (family.get("receipts") or [])
+            ]
+            receipts = [row for row in receipts if row is not None]
+
+            rep_url = (family.get("representative_url") or "").strip()
+            rep_title = (family.get("representative_title") or "").strip()
+            if rep_url and not any(
+                row.get("canonical_url") == _coverage_canonical_url(rep_url)
+                for row in receipts
+            ):
+                synthetic = _coverage_receipt({
+                    "url": rep_url,
+                    "title": rep_title,
+                    "source": _coverage_domain(rep_url),
+                    "bias": "Unknown",
+                    "origin": "gdelt_gsg",
+                    "writeup_family_id": family_id,
+                    "writeup_family_outlet_count": family.get("outlet_count"),
+                    "displayable_english": family.get("displayable_english", True),
+                }, "gdelt_gsg")
+                if synthetic:
+                    receipts.append(synthetic)
+
+            key = None
+            for receipt in receipts:
+                key = url_to_group.get(receipt.get("canonical_url"))
+                if key:
+                    break
+            if key is None and rep_title:
+                key = best_local_title_group(rep_title)
+            if key is None:
+                key = f"gsg:{family_id}"
+                ensure_group(
+                    key,
+                    global_family_id=family_id,
+                    title=rep_title,
+                )
+            else:
+                groups[key]["global_family_ids"].add(family_id)
+                if rep_title and rep_title not in groups[key]["titles"]:
+                    groups[key]["titles"].append(rep_title)
+
+            groups[key]["declared_outlet_count"] = max(
+                groups[key]["declared_outlet_count"],
+                int(family.get("outlet_count", 0) or 0),
+            )
+            for receipt in receipts:
+                add_receipt(key, receipt)
+    else:
+        # Backward-compatible fallback for receipt files created before the
+        # family-level catalog was attached.
+        rows_by_family = {}
+        for raw in cluster.get("gdelt_global_source_receipts") or []:
+            receipt = _coverage_receipt(raw, "gdelt_gsg")
+            if receipt is None or not receipt.get("writeup_family_id"):
+                continue
+            rows_by_family.setdefault(
+                str(receipt["writeup_family_id"]), []
+            ).append(receipt)
+
+        for family_id, receipts in rows_by_family.items():
+            key = None
+            for receipt in receipts:
+                key = url_to_group.get(receipt.get("canonical_url"))
+                if key:
+                    break
+            if key is None:
+                key = best_local_title_group(receipts[0].get("title") or "")
+            if key is None:
+                key = f"gsg:{family_id}"
+                ensure_group(
+                    key,
+                    global_family_id=family_id,
+                    title=receipts[0].get("title") or "",
+                )
+            else:
+                groups[key]["global_family_ids"].add(family_id)
+            for receipt in receipts:
+                add_receipt(key, receipt)
+
+    # Add local/DOC outlet receipts. Global GSG receipts were handled above.
+    for raw in cluster.get("coverage_sources") or []:
+        if raw.get("gdelt_gsg_receipt") and attached_global_families:
+            continue
+        receipt = _coverage_receipt(raw, "coverage")
+        if receipt is None:
+            continue
+        key = url_to_group.get(receipt.get("canonical_url"))
+        if key is None:
+            # Map syndicated copies to a known family conservatively by title.
+            best_key = None
+            best_score = 0.0
+            for candidate_key, group in groups.items():
+                for existing in group.get("titles") or []:
+                    score = _coverage_title_score(receipt.get("title") or "", existing)
+                    if _coverage_title_match(receipt.get("title") or "", existing) and score > best_score:
+                        best_key = candidate_key
+                        best_score = score
+            key = best_key
+        if key is None:
+            key = f"source:{receipt.get('canonical_url') or len(groups)}"
+            ensure_group(key, title=receipt.get("title") or "")
+        add_receipt(key, receipt)
+
+    writeups = []
+    for key, group in groups.items():
+        receipts = list(group["receipts_by_domain"].values())
+        if not receipts:
+            continue
+        receipts.sort(key=lambda row: (
+            _coverage_receipt_preference(row),
+            (row.get("source_name") or "").lower(),
+            row.get("domain") or "",
+        ))
+        representative = receipts[0]
+        other_outlets = sorted(
+            receipts[1:],
+            key=lambda row: (
+                BIAS_LABELS.index(normalize_bias_label(row.get("bias"))),
+                (row.get("source_name") or "").lower(),
+                row.get("domain") or "",
+            ),
+        )
+        title = (
+            representative.get("title")
+            or next((t for t in group.get("titles") or [] if t), "")
+            or representative.get("source_name")
+        )
+        origins = sorted(origin for origin in group["origins"] if origin)
+        global_ids = sorted(group["global_family_ids"])
+        local_ids = sorted(group["local_family_ids"])
+        family_id = global_ids[0] if global_ids else (
+            local_ids[0] if local_ids else key
+        )
+        bias = normalize_bias_label(representative.get("bias"))
+        writeups.append({
+            "family_id": family_id,
+            "local_family_ids": local_ids,
+            "global_family_ids": global_ids,
+            "title": title,
+            "url": representative.get("url"),
+            "source_name": representative.get("source_name"),
+            "domain": representative.get("domain"),
+            "bias": bias,
+            "bias_slug": _coverage_bias_slug(bias),
+            "origin": representative.get("origin"),
+            "origins": origins,
+            "global_family": bool(global_ids),
+            "republisher_count": len(receipts),
+            "additional_outlet_count": max(0, len(receipts) - 1),
+            "declared_outlet_count": max(
+                len(receipts), int(group.get("declared_outlet_count") or 0)
+            ),
+            "other_outlets": [
+                {
+                    "source_name": row.get("source_name"),
+                    "domain": row.get("domain"),
+                    "url": row.get("url"),
+                    "bias": normalize_bias_label(row.get("bias")),
+                    "bias_slug": _coverage_bias_slug(row.get("bias")),
+                }
+                for row in other_outlets
+            ],
+        })
+
+    writeups.sort(key=lambda row: (
+        -int(row.get("republisher_count") or 0),
+        0 if "core" in (row.get("origins") or []) else 1,
+        0 if "local" in (row.get("origins") or []) else 1,
+        (row.get("title") or "").lower(),
+    ))
+    return writeups
+
+
 def make_html_chips(articles):
     color_map = {
         "Far Left": "#0B36B8",
@@ -940,10 +1366,6 @@ says so. If the articles disagree or remain uncertain, state that uncertainty.
 All output must describe the single event shared by these articles. Provide:
 1. A short, factual headline
 2. A factual summary in 3-4 sentences
-3. Three concise takeaways grounded directly in the supplied reporting
-
-If there are fewer than three distinct supported implications, use supported
-factual context rather than speculation.
 
 Articles:
 {text_block}
@@ -951,10 +1373,6 @@ Articles:
 Respond in this exact format:
 Headline: <headline>
 Summary: <summary>
-Takeaways:
-- <point 1>
-- <point 2>
-- <point 3>
 """
     prompt = truncate_prompt(prompt.strip(), MAX_TOKENS)
 
@@ -986,16 +1404,32 @@ def extract_headline(summary_text):
     return "Untitled"
 
 
-def extract_body_and_takeaways(summary_text):
-    parts = (summary_text or "").split("Takeaways:")
-    summary = ""
-    takeaways = []
-    if len(parts) == 2:
-        summary = parts[0].split("Summary:")[-1].strip().rstrip("Key")
-        takeaways = [line.strip("- ").strip() for line in parts[1].strip().splitlines() if line.strip()]
-    else:
-        summary = summary_text or ""
-    return summary.strip(), takeaways
+def extract_body(summary_text):
+    text = (summary_text or "").strip()
+    if not text:
+        return ""
+
+    lines = text.splitlines()
+    body_lines = []
+    capturing = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.lower().startswith("summary:"):
+            capturing = True
+            remainder = stripped.split(":", 1)[1].strip()
+            if remainder:
+                body_lines.append(remainder)
+            continue
+        if capturing:
+            body_lines.append(stripped)
+
+    if body_lines:
+        return " ".join(line for line in body_lines if line).strip()
+
+    # Fail-open for an unexpected model format: remove a leading headline label
+    # but keep the remaining evidence-bound copy.
+    return re.sub(r"(?is)^\s*headline\s*:\s*[^\n]+\n?", "", text).strip()
 
 
 # --- Safety valve: collapse near-duplicate topics after summarization (no tokens) ---
@@ -1103,6 +1537,7 @@ for idx, cluster in enumerate(top_clusters):
     # Expanded content stays separate from the complete outlet receipt list.
     coverage_articles = cluster.get("coverage_articles") or core_articles
     display_sources = build_display_sources(cluster, coverage_articles)
+    coverage_writeups = build_coverage_writeups(cluster, coverage_articles)
 
     selected_articles = select_central_articles(
         core_articles,
@@ -1115,17 +1550,18 @@ for idx, cluster in enumerate(top_clusters):
 
     cached = get_cached_summary(summ_cache, cache_key)
     if cached:
-        print(f"💾 Cache hit for topic {idx + 1} — reused summary")
+        print(f"💾 Cache hit for topic {idx + 1} — reused headline/summary")
         headline = cached["headline"]
         body = cached["summary"]
-        takeaways = cached["takeaways"]
     else:
         summary_text = summarize_cluster(selected_articles)
         if not summary_text:
             continue
         headline = extract_headline(summary_text)
-        body, takeaways = extract_body_and_takeaways(summary_text)
-        put_cached_summary(summ_cache, cache_key, headline, body, takeaways)
+        body = extract_body(summary_text)
+        # summaries_cache.py keeps a legacy takeaways slot for compatibility.
+        # Store an empty list; no takeaways are generated or consumed.
+        put_cached_summary(summ_cache, cache_key, headline, body, [])
         summ_cache_dirty = True
 
     all_articles = core_articles
@@ -1192,9 +1628,12 @@ for idx, cluster in enumerate(top_clusters):
         if s.get("domain")
     })
 
-    cat = classify_topic_category(headline, body, takeaways, source_domains)
+    cat = classify_topic_category(headline, body, source_domains)
 
-    # Unique outlets and distinct report/content families are separate measures.
+    # Local report families and GDELT's global coverage measurements are
+    # intentionally separate. The source list may include both local receipts
+    # and GSG receipts, so its linked-source count can exceed the bounded GSG
+    # global-outlet count.
     try:
         independent_report_count = int(
             cluster.get("distinct_report_count")
@@ -1204,20 +1643,78 @@ for idx, cluster in enumerate(top_clusters):
     except Exception:
         independent_report_count = len(coverage_articles)
 
+    linked_source_count = len(display_sources)
+    coverage_writeup_count = len(coverage_writeups)
+    coverage_writeup_link_count = sum(
+        int(row.get("republisher_count") or 0)
+        for row in coverage_writeups
+    )
+    global_linked_writeup_count = sum(
+        1 for row in coverage_writeups if row.get("global_family")
+    )
+    global_coverage = cluster.get("gdelt_global_coverage") or {}
+    bridge = cluster.get("gdelt_receipt_bridge") or {}
+
+    def _nonnegative_int(value):
+        try:
+            return max(0, int(value or 0))
+        except Exception:
+            return 0
+
+    global_outlet_count = _nonnegative_int(
+        global_coverage.get("global_outlet_count")
+        or cluster.get("global_coverage_outlet_count")
+    )
+    global_unique_writeup_count = _nonnegative_int(
+        global_coverage.get("global_unique_writeup_count")
+        or cluster.get("global_unique_writeup_count")
+    )
+    global_english_source_count = _nonnegative_int(
+        global_coverage.get("english_source_receipt_count")
+        or cluster.get("global_english_source_count")
+    )
+    global_non_english_source_count = _nonnegative_int(
+        global_coverage.get("non_english_source_receipt_count")
+        or cluster.get("global_non_english_source_count")
+    )
+    global_coverage_available = bool(
+        bridge.get("status") == "ATTACHED"
+        and global_coverage.get("receipt_catalog_complete") is True
+        and global_outlet_count > 0
+        and global_unique_writeup_count > 0
+    )
+
     summaries.append({
         "topic_title": headline,
         "summary": body,
-        "takeaways": takeaways,
         "bias_distribution": bias_dist,
         "bias_counts": bias_counts,
         # Keep article URLs for the existing topic-dedupe safety valve, but
         # display/count the complete unique outlet set from coverage_sources.
         "sources": [a.get("url") for a in coverage_articles if a.get("url")],
-        "num_sources": len(display_sources),
+        "num_sources": linked_source_count,
         "html_chips": make_html_chips(display_sources),
-        "coverage_outlet_count": len(display_sources),
+        "coverage_outlet_count": linked_source_count,
+        "linked_source_count": linked_source_count,
+        "bias_outlet_count": linked_source_count,
+        # Structured article-level transparency: one row per distinct write-up,
+        # with syndicated outlet copies nested beneath it. Bias remains counted
+        # once per outlet domain through display_sources above.
+        "coverage_writeups": coverage_writeups,
+        "coverage_writeup_count": coverage_writeup_count,
+        "coverage_writeup_link_count": coverage_writeup_link_count,
+        "global_linked_writeup_count": global_linked_writeup_count,
         "independent_report_count": independent_report_count,
         "distinct_report_count": independent_report_count,
+        "global_coverage_available": global_coverage_available,
+        "global_coverage_outlet_count": global_outlet_count,
+        "global_unique_writeup_count": global_unique_writeup_count,
+        "global_english_source_count": global_english_source_count,
+        "global_non_english_source_count": global_non_english_source_count,
+        "global_coverage_candidate_id": global_coverage.get("candidate_id", ""),
+        "coverage_count_scope": (
+            "GDELT_GLOBAL_SAMPLE" if global_coverage_available else "COLLECTED_SOURCES"
+        ),
 
         "image_query": image_query,
 
