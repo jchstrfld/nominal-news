@@ -1,4 +1,4 @@
-# run_pipeline_by_date.py — full pipeline runner with optional GDELT discovery
+# run_pipeline_by_date.py — full pipeline runner with GDELT global coverage enabled by default
 
 from __future__ import annotations
 
@@ -19,10 +19,12 @@ PRE_MERGE_STAGES = [
     "cluster_articles_by_embedding.py",
 ]
 
-POST_MERGE_STAGES = [
+POST_MERGE_PRE_FINAL_STAGES = [
     "filter_outlier_articles.py",
     "report_cluster_cohesion.py",
-    "final_cohesion_check.py",
+]
+
+BASELINE_POST_FINAL_STAGES = [
     "expand_cluster_coverage_gdelt.py",
     "summarize_grouped_topics.py",
 ]
@@ -31,20 +33,32 @@ POST_MERGE_STAGES = [
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--date", type=str, help="Date in YYYY-MM-DD format")
-    parser.add_argument(
+    gdelt_group = parser.add_mutually_exclusive_group()
+    gdelt_group.add_argument(
         "--with-gdelt-discovery",
+        dest="with_gdelt_discovery",
         action="store_true",
         help=(
-            "Opt in to bounded, fail-open GDELT candidate discovery after "
-            "baseline article clustering and before cluster merging."
+            "Use the full bounded GDELT global path. This is now the default; "
+            "the flag is retained for backward compatibility."
         ),
     )
+    gdelt_group.add_argument(
+        "--no-gdelt-discovery",
+        dest="with_gdelt_discovery",
+        action="store_false",
+        help=(
+            "Opt out of GDELT global discovery/ranking/receipts and run the "
+            "baseline NewsAPI/RSS path only."
+        ),
+    )
+    parser.set_defaults(with_gdelt_discovery=True)
     parser.add_argument(
         "--gdelt-discovery-cached-only",
         action="store_true",
         help=(
-            "With --with-gdelt-discovery, use cached GSG files only and make "
-            "no new GDELT download requests."
+            "Use cached GSG files only and make no new GDELT discovery download "
+            "requests. GDELT is enabled by default."
         ),
     )
     parser.add_argument(
@@ -114,7 +128,7 @@ def run_optional(
     script_path = base_dir / script
     if not script_path.exists():
         print(f"⚠️ Optional GDELT stage missing: {script}")
-        print("↪ Continuing with the unchanged NewsAPI/RSS path.")
+        print("↪ Falling back to the unchanged baseline path.")
         return False
 
     command = [
@@ -124,7 +138,7 @@ def run_optional(
         date_str,
         *map(str, extra_args),
     ]
-    print(f"➡️ Running optional stage: {script}")
+    print(f"➡️ Running optional GDELT stage: {script}")
     if dry_run:
         print(f"   DRY RUN: {_display_command(command, base_dir)}")
         return True
@@ -132,10 +146,10 @@ def run_optional(
     result = subprocess.run(command, cwd=str(base_dir))
     if result.returncode != 0:
         print(
-            f"⚠️ Optional stage failed: {script} "
+            f"⚠️ Optional GDELT stage failed: {script} "
             f"(exit code {result.returncode})"
         )
-        print("↪ Continuing with the unchanged NewsAPI/RSS path.")
+        print("↪ Falling back to the unchanged baseline path.")
         return False
     return True
 
@@ -155,6 +169,41 @@ def manifest_is_usable(path: Path, augmented_path: Path) -> bool:
         return False
 
 
+def outputs_exist(*paths: Path) -> bool:
+    return all(path.exists() and path.stat().st_size > 0 for path in paths)
+
+
+def run_baseline_post_final(
+    *,
+    base_dir: Path,
+    date_str: str,
+    local_final: Path,
+    local_final_ready: bool,
+    dry_run: bool,
+) -> int:
+    """Run the original final -> expansion -> summary path."""
+    if not local_final_ready:
+        code = run_required(
+            base_dir=base_dir,
+            script="final_cohesion_check.py",
+            date_str=date_str,
+            dry_run=dry_run,
+        )
+        if code:
+            return code
+
+    for script in BASELINE_POST_FINAL_STAGES:
+        code = run_required(
+            base_dir=base_dir,
+            script=script,
+            date_str=date_str,
+            dry_run=dry_run,
+        )
+        if code:
+            return code
+    return 0
+
+
 def run() -> int:
     args = parse_args()
 
@@ -167,17 +216,17 @@ def run() -> int:
 
     if args.gdelt_discovery_cached_only and not args.with_gdelt_discovery:
         print(
-            "❌ --gdelt-discovery-cached-only requires "
-            "--with-gdelt-discovery"
+            "❌ --gdelt-discovery-cached-only cannot be combined with "
+            "--no-gdelt-discovery"
         )
         return 1
 
     base_dir = Path(__file__).resolve().parent
     print(f"🚀 Running full pipeline for {date_str}...")
     if args.with_gdelt_discovery:
-        print("🌍 Optional pre-merge GDELT discovery: ENABLED")
+        print("🌍 End-to-end GDELT global path: ENABLED")
     else:
-        print("🌍 Optional pre-merge GDELT discovery: disabled")
+        print("🌍 End-to-end GDELT global path: disabled")
 
     for script in PRE_MERGE_STAGES:
         code = run_required(
@@ -192,18 +241,14 @@ def run() -> int:
     merge_extra: list[str] = []
     discovery_used = False
 
-    if args.with_gdelt_discovery:
-        candidate_json = base_dir / f"gdelt_discovery_candidates_{date_str}.json"
-        candidate_csv = base_dir / f"gdelt_discovery_candidates_{date_str}.csv"
-        augmented_json = (
-            base_dir / f"clustered_articles_with_gdelt_{date_str}.json"
-        )
-        manifest_json = (
-            base_dir / f"gdelt_discovery_injection_{date_str}.json"
-        )
+    candidate_json = base_dir / f"gdelt_discovery_candidates_{date_str}.json"
+    candidate_csv = base_dir / f"gdelt_discovery_candidates_{date_str}.csv"
+    augmented_json = base_dir / f"clustered_articles_with_gdelt_{date_str}.json"
+    manifest_json = base_dir / f"gdelt_discovery_injection_{date_str}.json"
 
+    if args.with_gdelt_discovery:
         if not args.dry_run:
-            # Never permit stale optional data to enter a fresh run.
+            # Never permit stale optional discovery data to enter a fresh run.
             for stale in (
                 candidate_json,
                 candidate_csv,
@@ -256,7 +301,8 @@ def run() -> int:
         if args.dry_run:
             print(
                 "   DRY RUN: merge would use the augmented input only if "
-                "both optional stages succeeded and the manifest validated."
+                "both optional discovery stages succeeded and the manifest "
+                "validated."
             )
         elif inject_ok and manifest_is_usable(manifest_json, augmented_json):
             merge_extra = ["--input-file", augmented_json.name]
@@ -281,11 +327,154 @@ def run() -> int:
     if code:
         return code
 
-    for script in POST_MERGE_STAGES:
+    for script in POST_MERGE_PRE_FINAL_STAGES:
         code = run_required(
             base_dir=base_dir,
             script=script,
             date_str=date_str,
+            dry_run=args.dry_run,
+        )
+        if code:
+            return code
+
+    local_final = base_dir / f"grouped_articles_final_{date_str}.json"
+    global_pipeline_used = False
+    local_final_ready = False
+
+    if discovery_used or (args.dry_run and args.with_gdelt_discovery):
+        global_ranking = base_dir / f"gdelt_global_ranking_{date_str}.json"
+        global_final = base_dir / f"grouped_articles_final_global_{date_str}.json"
+        global_enriched = (
+            base_dir / f"grouped_articles_final_global_enriched_{date_str}.json"
+        )
+        global_expanded = (
+            base_dir / f"grouped_articles_final_global_expanded_{date_str}.json"
+        )
+        global_receipts = (
+            base_dir / f"grouped_articles_final_global_receipts_{date_str}.json"
+        )
+        production_summary = base_dir / f"topic_summaries_{date_str}.json"
+
+        if not args.dry_run:
+            # Remove only optional/intermediate global artifacts. Do not remove
+            # the existing production summary until a replacement is written.
+            for stale in (
+                global_ranking,
+                global_final,
+                global_enriched,
+                global_expanded,
+                global_receipts,
+            ):
+                stale.unlink(missing_ok=True)
+
+        print("🌐 Running post-purity global ranking and receipt path...")
+        global_ok = run_optional(
+            base_dir=base_dir,
+            script="final_cohesion_check.py",
+            date_str=date_str,
+            extra_args=[
+                "--output-file",
+                local_final.name,
+                "--gdelt-ranking-shadow",
+                "--gdelt-ranking-shadow-file",
+                global_ranking.name,
+                "--gdelt-audit-file",
+                candidate_json.name,
+                "--gdelt-global-output-file",
+                global_final.name,
+            ],
+            dry_run=args.dry_run,
+        )
+
+        if global_ok:
+            local_final_ready = args.dry_run or outputs_exist(local_final)
+            global_ok = args.dry_run or outputs_exist(global_ranking, global_final)
+            if not global_ok:
+                print("⚠️ Global ranking stage did not produce all expected outputs.")
+
+        if global_ok:
+            global_ok = run_optional(
+                base_dir=base_dir,
+                script="enrich_gdelt_discovery_articles.py",
+                date_str=date_str,
+                extra_args=[
+                    "--input-file",
+                    global_final.name,
+                    "--output-file",
+                    global_enriched.name,
+                ],
+                dry_run=args.dry_run,
+            )
+            if global_ok and not args.dry_run:
+                global_ok = outputs_exist(global_enriched)
+
+        if global_ok:
+            global_ok = run_optional(
+                base_dir=base_dir,
+                script="expand_cluster_coverage_gdelt.py",
+                date_str=date_str,
+                extra_args=[
+                    "--input-file",
+                    global_enriched.name,
+                    "--output-file",
+                    global_expanded.name,
+                ],
+                dry_run=args.dry_run,
+            )
+            if global_ok and not args.dry_run:
+                global_ok = outputs_exist(global_expanded)
+
+        if global_ok:
+            global_ok = run_optional(
+                base_dir=base_dir,
+                script="attach_gdelt_global_receipts.py",
+                date_str=date_str,
+                extra_args=[
+                    "--input-file",
+                    global_expanded.name,
+                    "--candidate-file",
+                    candidate_json.name,
+                    "--ranking-file",
+                    global_ranking.name,
+                    "--output-file",
+                    global_receipts.name,
+                ],
+                dry_run=args.dry_run,
+            )
+            if global_ok and not args.dry_run:
+                global_ok = outputs_exist(global_receipts)
+
+        if global_ok:
+            global_ok = run_optional(
+                base_dir=base_dir,
+                script="summarize_grouped_topics.py",
+                date_str=date_str,
+                extra_args=[
+                    "--input-file",
+                    global_receipts.name,
+                    "--output-file",
+                    production_summary.name,
+                ],
+                dry_run=args.dry_run,
+            )
+            if global_ok and not args.dry_run:
+                global_ok = outputs_exist(production_summary)
+
+        if global_ok:
+            global_pipeline_used = True
+            print(
+                f"✅ Global path complete; production summary written to "
+                f"{production_summary.name}"
+            )
+        else:
+            print("⚠️ Global path incomplete; activating baseline fallback.")
+
+    if not global_pipeline_used:
+        code = run_baseline_post_final(
+            base_dir=base_dir,
+            date_str=date_str,
+            local_final=local_final,
+            local_final_ready=local_final_ready,
             dry_run=args.dry_run,
         )
         if code:
@@ -296,10 +485,13 @@ def run() -> int:
     else:
         print(f"✅ Finished pipeline for {date_str}")
         if args.with_gdelt_discovery:
-            print(
-                "🌍 Pre-merge GDELT discovery result: "
-                + ("ACTIVE" if discovery_used else "BASELINE FALLBACK")
-            )
+            if global_pipeline_used:
+                result = "GLOBAL PATH ACTIVE"
+            elif discovery_used:
+                result = "BASELINE FALLBACK AFTER GDELT DISCOVERY"
+            else:
+                result = "BASELINE FALLBACK"
+            print(f"🌍 GDELT pipeline result: {result}")
     return 0
 
 

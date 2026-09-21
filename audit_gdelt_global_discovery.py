@@ -2011,11 +2011,16 @@ def runtime_event_match_options(
                 metrics.get("shared_action_groups") or []
             )[:8],
         }
+        # When two catalog candidates have equally strong retained discovery
+        # support inside the approved event, prefer the candidate representing
+        # the broader GDELT event before using semantic-match detail as a
+        # tie-breaker. This prevents a small duplicate candidate from masking
+        # the dominant global candidate for the same discrete development.
         option["_priority"] = (
             int(direct_match),
             direct_count,
-            *audit_key,
             global_signal,
+            *audit_key,
         )
         options.append(option)
 
