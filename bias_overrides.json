@@ -4553,5 +4553,348 @@
       "gdelt-auto-seen"
     ],
     "notes": "Investment research; no partisan editorial focus."
+  },
+  "acecomments.mu.nu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "activistpost.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "cockrell.utexas.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "digitaljournal.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "foxsports.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "friendsschoolboulder.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "herfootballhub.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "kitploit.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "princeton.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "researchbuzz.me": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "thebiglead.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "usmagazine.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "1049thewolf.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "brentwoodlive.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "calcuttanews.net": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "gazetteandherald.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "gazetteseries.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "katu.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "klif.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "lancashiretelegraph.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "medicinehatnews.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "politico.eu": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "recorder.ca": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "rhyljournal.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "thedailystar.net": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "thewestmorlandgazette.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "wisn.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "wokv.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "wtov9.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "wuky.org": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "rediff.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "fox9.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "kitv.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "ksl.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "rappler.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "businesstimes.com.sg": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "nbcpalmsprings.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "ktbb.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "freepressjournal.in": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "santafenewmexican.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "rnz.co.nz": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "aninews.in": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "jcpost.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "santamariatimes.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "greatbendpost.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "theintelligencer.net": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "wxow.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "kenyastar.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "batonrougepost.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
   }
 }
