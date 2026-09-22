@@ -133,24 +133,51 @@
       {% for topic in summaries %}
         <div class="card" id="topic-{{ loop.index }}">
           <h2>{{ topic.topic_title }}</h2>
-          {% if topic.category %}
-            <div class="topic-category cat-{{ topic.category_slug }}">
-              {{ topic.category }}
-            </div>
-          {% endif %}
-
           {% if topic.image_url %}
             <figure class="topic-image">
               <img
                 src="{{ topic.image_url }}"
                 alt="{{ topic.image_alt }}"
-                width="{{ topic.image_width or 600 }}"
+                width="600"
+                height="338"
                 loading="lazy"
-                style="max-width:{{ topic.image_max_width or 600 }}px;"
               />
               {% if topic.image_credit %}
                 <figcaption class="image-caption">
-                  <span class="image-credit">{{ topic.image_credit }}</span>
+                  <span class="image-credit">
+                    {% if topic.image_source == 'unsplash' and topic.image_photographer_url %}
+                      Photo:
+                      <a href="{{ topic.image_photographer_url }}" target="_blank" rel="noopener noreferrer">
+                        {{ topic.image_credit | replace('Photo: ', '') | replace(' / Unsplash', '') }}
+                      </a>
+                      {% if topic.image_provider_url %}
+                        / <a href="{{ topic.image_provider_url }}" target="_blank" rel="noopener noreferrer">Unsplash</a>
+                      {% else %}
+                        / Unsplash
+                      {% endif %}
+                    {% elif topic.image_source_url %}
+                      Photo:
+                      <a href="{{ topic.image_source_url }}" target="_blank" rel="noopener noreferrer">
+                        {{ topic.image_credit | replace('Photo: ', '') }}
+                      </a>
+                    {% else %}
+                      {{ topic.image_credit }}
+                    {% endif %}
+
+                    {% if topic.image_license %}
+                      · {% if topic.image_license_url %}
+                          <a href="{{ topic.image_license_url }}" target="_blank" rel="noopener noreferrer">
+                            {% if topic.image_license == 'Public domain' %}Public Domain{% else %}{{ topic.image_license }}{% endif %}
+                          </a>
+                        {% else %}
+                          {% if topic.image_license == 'Public domain' %}Public Domain{% else %}{{ topic.image_license }}{% endif %}
+                        {% endif %}
+                    {% endif %}
+
+                    {% if topic.image_license and 'CC BY' in topic.image_license %}
+                      · Cropped
+                    {% endif %}
+                  </span>
                 </figcaption>
               {% endif %}
             </figure>
