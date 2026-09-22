@@ -65,18 +65,21 @@ a:hover {
 /* --- Topic image block (moved from index.html inline styles) --- */
 .topic-image {
   margin: 8px 0 12px 0;
+  max-width: 600px;
 }
 
 .topic-image img {
   display: block;
   width: 100%;
-  max-width: 100%;
-  height: auto;
+  max-width: 600px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: center;
   border-radius: 8px;
 }
 
 .image-caption {
-  font-size: 0.85rem;
+  font-size: 0.725rem;
   color: #555;
   margin-top: 4px; /* half-step from 8px grid, rare but OK */
   display: flex;
@@ -115,21 +118,6 @@ a:hover {
 .card ul {
   margin-top: 0;
   margin-bottom: 16px;
-}
-
-/* --- Topic category tag --- */
-.topic-category {
-  display: inline-block;
-  margin: 0 0 8px 0;
-  padding: 6px 12px;
-  border-radius: 6px;
-
-  font-size: 0.85rem;
-  line-height: 1.2;
-  font-weight: 600;
-
-  color: #000000;            /* high-contrast text */
-  background-color: #6b7280; /* fallback */
 }
 
 /* Fallback note */
@@ -706,16 +694,6 @@ a:hover {
   line-height: 1.5;
   color: #333;
 }
-
-/* --- Topic category tag colors --- */
-.cat-politics-government { background-color: #fa9e9e; }
-.cat-global-affairs      { background-color: #99c0ff; }
-.cat-economy-markets     { background-color: #fcd29c; }
-.cat-business            { background-color: #99e5ff; }
-.cat-technology          { background-color: #9999ff; }
-.cat-science-health      { background-color: #b0e8ca; }
-.cat-climate-environment { background-color: #bdebad; }
-.cat-culture-society     { background-color: #d3a8f0; }
 
 /* --- Market & Economy Overview card --- */
 .market-card {

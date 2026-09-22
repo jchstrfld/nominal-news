@@ -4896,5 +4896,271 @@
       "gdelt-auto-seen"
     ],
     "notes": ""
+  },
+  "borderlandbeat.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "cointelegraph.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "futurism.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "gcaptain.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "innovativegenomics.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "managingmadrid.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "post.rlsbb.cc": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "pr.euractiv.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "project-syndicate.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "psychologytoday.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "theconversation.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "thediplomat.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "theecologist.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "brandonsun.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "cecildaily.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "centralwesterndaily.com.au": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "darlingtonandstocktontimes.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "gdnonline.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "hindustantimes.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "iowapublicradio.org": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "kedm.org": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "ketr.org": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "kxl.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "mynewsla.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "navytimes.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "nbcdfw.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "nbcmontana.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "newindianexpress.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "omanobserver.om": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "stratford-herald.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "timesleader.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "wabi.tv": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "wgauradio.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "wkzo.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "wsbradio.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "lbc.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "foxsanantonio.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
+  },
+  "wvtm13.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": ""
   }
 }
