@@ -28,103 +28,75 @@
       </p>
     </div>
 
-    {% set front_page = summaries[:3] %}
-    {% if front_page and front_page|length > 0 %}
-      <div class="brief-card">
-        <h3 class="brief-title">If You Read Nothing Else…</h3>
-        <p class="brief-subtitle">These are the most widely covered stories today.</p>
-
-        <ul class="brief-list">
-          {% for fp in front_page %}
-            <li class="brief-item">
-              <a class="brief-link" href="#topic-{{ loop.index }}">{{ fp.topic_title }}</a>
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-
   {% if market_overview %}
-      {% set indices = market_overview.get('indexes', {}) %}
-      {% set sp = indices.get('sp500', {}) %}
-      {% set nd = indices.get('nasdaq', {}) %}
-      {% set dj = indices.get('dow', {}) %}
+      {% set signals = market_overview.get('signals', {}) %}
+      {% set next_signal = market_overview.get('next_signal') %}
 
-      {% set sp_pct = sp.get('pct_change') or 0 %}
-      {% set nd_pct = nd.get('pct_change') or 0 %}
-      {% set dj_pct = dj.get('pct_change') or 0 %}
-
-      {% set portfolio_signal = (sp_pct * 0.5) + (nd_pct * 0.3) + (dj_pct * 0.2) %}
-
-      {% if portfolio_signal > 0.15 %}
-        {% set portfolio_dir = 'up' %}
-        {% set portfolio_symbol = '▲' %}
-        {% set portfolio_label = 'Up' %}
-      {% elif portfolio_signal < -0.15 %}
-        {% set portfolio_dir = 'down' %}
-        {% set portfolio_symbol = '▼' %}
-        {% set portfolio_label = 'Down' %}
-      {% else %}
-        {% set portfolio_dir = 'flat' %}
-        {% set portfolio_symbol = '■' %}
-        {% set portfolio_label = 'Flat' %}
-      {% endif %}
-
-      {% macro ticker(label, obj) -%}
-        {% set pct = obj.get('pct_change') %}
-        {% set dir = obj.get('direction', 'flat') %}
-        <div class="market-ticker">
-          <div class="market-ticker-label">{{ label }}</div>
-          {% if pct is not none %}
-            <div class="market-ticker-move">
-              <span class="market-arrow market-{{ dir }}" aria-hidden="true">
-                {% if dir == "up" %}▲{% elif dir == "down" %}▼{% else %}■{% endif %}
-              </span>
-              <span class="sr-only">
-                {% if dir == "up" %}Up{% elif dir == "down" %}Down{% else %}Flat{% endif %}
-              </span>
-              <span class="market-pct market-{{ dir }}">{{ "%0.2f"|format(pct) }}%</span>
-            </div>
-          {% else %}
-            <div class="market-ticker-move">
-              <span class="market-pct market-unknown">n/a</span>
-            </div>
+      {% macro economy_signal(key, fallback_label) -%}
+        {% set obj = signals.get(key, {}) %}
+        {% set label = obj.get('label', fallback_label) %}
+        {% set descriptor = obj.get('descriptor', '') %}
+        {% set value = obj.get('display_value') or obj.get('short_value') or obj.get('formatted') or obj.get('value') %}
+        {% set detail = obj.get('detail', '') %}
+        {% set trend_direction = obj.get('trend_direction', 'flat') %}
+        {% set trend_tone = obj.get('trend_tone', 'neutral') %}
+        {% set trend_label = obj.get('trend_label', 'Trend unavailable') %}
+        <div class="economy-signal">
+          <div class="economy-signal-topline">
+            <span class="economy-signal-label">{{ label }}</span>
+            <span class="economy-signal-trend trend-{{ trend_tone }}" title="{{ trend_label }}" aria-label="{{ trend_label }}">
+              {% if trend_direction == 'up' %}↗{% elif trend_direction == 'down' %}↘{% elif trend_direction == 'mixed' %}↔{% else %}→{% endif %}
+            </span>
+          </div>
+          {% if descriptor %}
+            <span class="economy-signal-descriptor">{{ descriptor }}</span>
+          {% endif %}
+          <span class="economy-signal-value">
+            {% if value is not none and value != '' %}{{ value }}{% else %}Unavailable{% endif %}
+          </span>
+          {% if detail %}
+            <span class="economy-signal-detail">{{ detail }}</span>
           {% endif %}
         </div>
       {%- endmacro %}
 
-      <div class="card market-card" role="region" aria-label="Market and Economy Overview">
-        <h2 class="market-title">What's Happening in the Markets</h2>
-
-        <div class="market-section">
-          <div class="market-tickers" aria-label="Major index performance">
-            {{ ticker("S&P", sp) }}
-            {{ ticker("Nasdaq", nd) }}
-            {{ ticker("Dow", dj) }}
-          </div>
-
-          <div class="market-summary">
-            <span class="market-summary-icon market-{{ portfolio_dir }}" aria-hidden="true">
-              {{ portfolio_symbol }}
-            </span>
-            <span class="sr-only">{{ portfolio_label }}</span>
-
-            <p class="market-sentence market-sentence-primary">
-              {{ market_overview.get('markets_because', 'Markets were mixed today.') }}
-            </p>
-          </div>
+      <div class="card market-card" role="region" aria-label="U.S. Market and Economy">
+        <div class="market-heading-row">
+          <h2 class="market-title">U.S. Market &amp; Economy</h2>
         </div>
 
-        <div class="market-divider"></div>
+        <div class="economy-signals" aria-label="Current economic signals">
+          {{ economy_signal('markets', 'Markets') }}
+          {{ economy_signal('inflation', 'Inflation') }}
+          {{ economy_signal('jobs', 'Jobs') }}
+          {{ economy_signal('rates', 'Interest Rates') }}
+        </div>
 
-        <div class="market-section market-money">
-          <div class="money-signal money-{{ portfolio_dir }}">
-            <span class="money-signal-icon" aria-hidden="true">{{ portfolio_symbol }}</span>
-            <span class="sr-only">{{ portfolio_label }}</span>
-            <span class="money-signal-text">
-              {{ market_overview.get('investments_doing', 'If you have any investments, they likely moved with the broader market today.') }}
-            </span>
-          </div>
+        <div class="market-copy">
+          <section class="market-insight-block market-insight-block-primary">
+            <h3 class="market-insight-label">What Happened</h3>
+            <p>{{ market_overview.get('what_happened') or market_overview.get('what_matters') or market_overview.get('markets_because', 'No clear economic shift was identified.') }}</p>
+          </section>
+
+          <section class="market-insight-block">
+            <h3 class="market-insight-label">What It Means</h3>
+            <p>{{ market_overview.get('what_it_means') or market_overview.get('investments_doing', 'The available data do not support a clear household-level takeaway today.') }}</p>
+          </section>
+
+          {% if next_signal %}
+            {% set upcoming_label = next_signal.get('label', '') %}
+            {% if 'Fed Rate Decision' in upcoming_label %}
+              {% set upcoming_heading = 'Next Fed Rate Decision' %}
+            {% elif '+' in upcoming_label %}
+              {% set upcoming_heading = 'Next Major Economic Reports' %}
+            {% else %}
+              {% set upcoming_heading = 'Next Major Economic Report' %}
+            {% endif %}
+            <div class="market-next-update">
+              <span class="market-next-label">{{ upcoming_heading }}</span>
+              <span class="market-next-value">{% if next_signal.get('date_label') %}{{ next_signal.get('date_label') }} · {% endif %}{{ upcoming_label }}</span>
+            </div>
+          {% endif %}
         </div>
       </div>
     {% endif %}
