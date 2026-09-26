@@ -159,6 +159,13 @@
             <p class="topic-summary">{{ topic.summary }}</p>
           {% endif %}
 
+          {% if topic.next_signal %}
+            <div class="topic-next-signal" aria-label="When to check back for this story">
+              <span class="topic-next-label">When to Check Back</span>
+              <span class="topic-next-value">{{ topic.next_signal }}</span>
+            </div>
+          {% endif %}
+
           {% if topic.bias_distribution and topic.bias_distribution|length > 0 %}
             {% set dist = topic.bias_distribution %}
 
