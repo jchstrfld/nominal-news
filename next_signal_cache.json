@@ -1,0 +1,506 @@
+{
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:0dc3a7c226e9db99ee32b82d8c6e2c75e520e84627d3769269c4c2a2b9008221": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or date provided for the investigation or related events."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:55a261653148fe125660e8e22f7df4e68c459767e29fba84c12c941b8e5b0715": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:824f0a58fa2c519c4b8d7eb45732e671ba78cf7402eb40ea14c51c7318a5acf8": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or time window identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:9acf6bb74cf90bfd1810b838e8e997a77519e034f03e5b634a3b26e6ece56497": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or date provided that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:5fd98cce2443ba384173f472d3d572b4fb5a3322fc18daf01bdd7e0238a1e346": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or date provided that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:e2d4039b642d4f426697130e952d1d90736e788d5539679f88218245b71f53fc": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or date provided in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:3dd298d816d9122b3e5bd605e6da6913dda60df74f6008998fd03510b7dfff7b": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:4e3487c62c1c301df692e2b190c504aae678c7288c6220017ce57c3bfe5706c9": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or event explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:495f4b1a24bfc3349f1851e10fcdf5501beb8703e503ced3fc660d2e140c7150": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or date provided that directly advances this story."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:81b868b61dd86bfe9d7bb292d2e7f5e0f2125d2320614967904b8421ac8a748a": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or time window explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:ebbb9fc5b428457850513b1193d4ea56df1dec34cef7c8c606a0115c1e337093": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v2-strict-2026-09-24:f93d0430a88faab868ca5f8d3e0549b4a8d56c47be6f8f694edac4589a556222": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or time window explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:5a0bbaa1f9427f686058c14b4dec8d005a5b44470637d1ac3996a4a0a6ecd9d6": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:80495cee3695ab3a2650f07d0f5426c8645eec5153e247f59af3d65229851111": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or time window identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:fed05d7e410e3ceb651419e1b382af811958248aeaeb46aa92a903be40f4259a": {
+    "eligible": true,
+    "signal": "October 7 · Hearing scheduled regarding the temporary restraining order against Bryan Seaver",
+    "source_index": 6,
+    "reason": "Scheduled hearing directly advances the legal dispute in the story."
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:3855bdbecf927326f7489e74bfe9c6c735da7cb1d9ee2ebf6e0efc146894259b": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:3a4e32c123fb3070de41db9cc716463c61d0751afd0a9126b065204d70decd59": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or time window explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:ebbb9fc5b428457850513b1193d4ea56df1dec34cef7c8c606a0115c1e337093": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:99b549125e1da7f9f7d0cd32d0f54d7bce46bfdfed2ab3cadd319a60dd196329": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:736a2a39b7516e4f2f30057090f6843fd529124c5dc8aa3d00315647c9b9a5d9": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:0865542a0c27871c653badee6e2a1fcdced9a6936a5566377b01931fcafdb301": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "no future milestone explicitly identified"
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:f93d0430a88faab868ca5f8d3e0549b4a8d56c47be6f8f694edac4589a556222": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No explicit future milestone or time window provided in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v3-sidecar-2026-09-25:697b702f8c4726164743528a5111b58f7eea0a809ce08e0bfb24cf876d43efce": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No explicit future milestone or time window identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:5a0bbaa1f9427f686058c14b4dec8d005a5b44470637d1ac3996a4a0a6ecd9d6": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:d584031b5d1dc5a63b27393682db08c00f9366f25dc4d54f27d5c703c952b3a1": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestones or events explicitly mentioned in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:fed05d7e410e3ceb651419e1b382af811958248aeaeb46aa92a903be40f4259a": {
+    "eligible": true,
+    "signal": "October 7 · Hearing scheduled regarding the temporary restraining order",
+    "source_index": 6,
+    "reason": "Scheduled hearing directly advances the legal dispute over the restraining order."
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:030dfc742c07bea51f2feab5924114d7dbf996f648d87c6f4474b85d52fa2a53": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or date explicitly mentioned that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:3a4e32c123fb3070de41db9cc716463c61d0751afd0a9126b065204d70decd59": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or time window explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:ebbb9fc5b428457850513b1193d4ea56df1dec34cef7c8c606a0115c1e337093": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:99b549125e1da7f9f7d0cd32d0f54d7bce46bfdfed2ab3cadd319a60dd196329": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:736a2a39b7516e4f2f30057090f6843fd529124c5dc8aa3d00315647c9b9a5d9": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:0865542a0c27871c653badee6e2a1fcdced9a6936a5566377b01931fcafdb301": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "no future milestone explicitly identified"
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:f93d0430a88faab868ca5f8d3e0549b4a8d56c47be6f8f694edac4589a556222": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No explicit future milestone or timing provided in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v4-authoritative-weather-2026-09-25:f26d020f138043b678ac50f9c6cda4cd120a9813e9b7cfeee375160edf0088ae": {
+    "eligible": true,
+    "signal": "Thursday · Heavy rainfall expected to impact coastal portions of southwest Mexico",
+    "source_index": 9,
+    "reason": "Forecast of heavy rainfall directly related to Hurricane Polo's impact on Mexico."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:ba76934f9407f3b5c9fa796ef0f09604b9d28c7f208126f3c29a0f859cc33e0b": {
+    "eligible": true,
+    "signal": "Friday · Trump and Xi to tour the National Archives and review U.S.-China relationship documents",
+    "source_index": 15,
+    "reason": "Explicit future milestone related to the summit's activities."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:2eb18da830c52ba6b00c29ccb82d8ef2aff4f0d4362d34d7b10e249bd8e07430": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestones or events explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:fed05d7e410e3ceb651419e1b382af811958248aeaeb46aa92a903be40f4259a": {
+    "eligible": true,
+    "signal": "October 7 · Hearing scheduled regarding the temporary restraining order against Bryan Seaver",
+    "source_index": 6,
+    "reason": "Scheduled hearing directly advances the legal dispute in the story."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:0db0a48d24e619b9996e930b5e36b368a74d8303d819c5bb1331faac191c160f": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No specific future milestone or date provided that directly advances the story."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:3a4e32c123fb3070de41db9cc716463c61d0751afd0a9126b065204d70decd59": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or time window explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:ebbb9fc5b428457850513b1193d4ea56df1dec34cef7c8c606a0115c1e337093": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances this exact story."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:8249e7d089ba373698aa8391d29ff5170eff847c296986e2d973ae3ab0b4d170": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:736a2a39b7516e4f2f30057090f6843fd529124c5dc8aa3d00315647c9b9a5d9": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:0865542a0c27871c653badee6e2a1fcdced9a6936a5566377b01931fcafdb301": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:f93d0430a88faab868ca5f8d3e0549b4a8d56c47be6f8f694edac4589a556222": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No explicit future milestone or timing provided in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v5-generic-enrichment-2026-09-25:697b702f8c4726164743528a5111b58f7eea0a809ce08e0bfb24cf876d43efce": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No explicit future milestone or timing identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:08eb8f0ead460c1593b5440cb09474bf0019e0f5136f20f4ca9f33f7f1415e9b": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:21d1d1bc367e391a8e24a90fb4d2106f187d5f4cef08bc34d3895a18a7b5951e": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances this exact story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:1dbde0df82fd6a173769a7adffc84039529be627916f06f98ddff25324776def": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or event explicitly identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:a02639f248688040fc75fad0f99269e44acf59c2cf6b575d821c069c41960105": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances this exact story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:69b3402ab8a59fb326a732d2e5b0a2bc9ba3229086642d029b4fafe7787e4abd": {
+    "eligible": true,
+    "signal": "October 7 · Hearing scheduled regarding the temporary restraining order against Bryan Seaver",
+    "source_index": 6,
+    "reason": "Future hearing date directly advances the legal dispute in the story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:3df2b6f9ce2b8f6c2a76412112a9f5d71322812343c69d2059905c2117df8805": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:63b7cb8cc7c18533a2807a6698b93b7c9084480e20efa424e2dcb2d245c09ce1": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances this exact story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:75770e545fd4a60cc6d20761b11b4243f503fed60fdf025b3fdec34b314fb302": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or time window explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:daa17dc80bbcb08659cc2f22edf765bd027056a93887e31d591bd45e55ed3662": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No explicit future milestone or time window identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:ebbb9fc5b428457850513b1193d4ea56df1dec34cef7c8c606a0115c1e337093": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:b67cfe7d9fcbdc171d044de655de7f9ebeb6ac955732d3887905c277a2bfba72": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:11b1a8382da64208e2c5226e4493f5bff24e5caf1512314486082ecb96011cf9": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:b8212874d135376e8edbe8850b475862db9fcd6b85bc3bf02bfe9b1ebb76b722": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone or time window explicitly identified that advances this exact story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:0865542a0c27871c653badee6e2a1fcdced9a6936a5566377b01931fcafdb301": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No future milestone explicitly identified that advances the story."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:119c27588be6f547cd811569e68989e55a06203c5dbbd7c957e99b0923622eba": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No specific future milestone or date provided in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:f93d0430a88faab868ca5f8d3e0549b4a8d56c47be6f8f694edac4589a556222": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No explicit future milestone or timing provided in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:bb76c775c0b5500c11ecbd0da4d6c2f53fb3f284308adeb8c08d9431420f6d24": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No specific future milestone or timing directly advancing the story is provided."
+  },
+  "gpt-4o-mini:next-signal-v6-resilient-enrichment-2026-09-25:e0db7749d40476f1c60e5b089940281bb238eac24968833b521e0ea5257d94f5": {
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No explicit future milestone or time window identified in the evidence."
+  },
+  "gpt-4o-mini:next-signal-v8-gap-guided-2026-09-25:triage:5538a68cf13bc5c0fca546554ba7adccaf346a4a54777070f64dc5a0e495aa0d": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "Announcement of U.S.-China 'Board of Trade' expected soon after summit.",
+    "source_index": 1,
+    "reason": "The evidence indicates a specific upcoming announcement related to trade following the summit.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v8-gap-guided-2026-09-25:triage:0539a7f6625be4af3c25b7e83b75f51db2a582ca35f64a87aa3e3d86b61225c5": {
+    "status": "NO_SIGNAL",
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No concrete future milestone or timing is provided in the evidence.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v8-gap-guided-2026-09-25:triage:2cae4164e1a5698bae2dcb4b47a75a1045ec2e6d6a086d76a88009306ee1644a": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "A hearing is scheduled for October 7 regarding the restraining order.",
+    "source_index": 1,
+    "reason": "The evidence specifies a concrete upcoming hearing date that advances the story.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v8-gap-guided-2026-09-25:triage:9504f23d36878d68bb9e032ccda16e06db6796427f5034bcdc3bcb733ee7898b": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "Expected construction of U.S. military bases in Greenland to begin immediately.",
+    "source_index": 1,
+    "reason": "The evidence indicates a concrete action following the agreement.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v8-gap-guided-2026-09-25:triage:bf180c8e7ceb5b576f40d9ee53ff9b719d82fad5520b4529f19ce4970dde6f4f": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "Trump's 'big decision' on Iran expected soon after UN speech.",
+    "source_index": 1,
+    "reason": "Trump indicated a forthcoming decision regarding Iran following his UN speech.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v8-gap-guided-2026-09-25:triage:2bb5b96cc91192f2c3d3505ce3c59d9d33d5a0752c7df22497082f01c819926f": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "As early as 2026-11, further votes on war powers may occur before midterm elections.",
+    "source_index": 1,
+    "reason": "The evidence indicates upcoming votes related to war powers ahead of the midterm elections.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v8-gap-guided-2026-09-25:triage:f081fed1de81644d4534241b762784eb28175510804050003c1f560714f5c75d": {
+    "status": "NO_SIGNAL",
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No concrete future milestone or timing is provided in the evidence.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v8-gap-guided-2026-09-25:triage:9121e9a47c77e99fad4d84094c496cd56aa170036127878c6f3dcdef70e96a31": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "Netanyahu's return to Israel for Sukkot on Friday evening could impact future statements.",
+    "source_index": 2,
+    "reason": "Upcoming Jewish holiday may influence Netanyahu's actions or statements following the speech.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v8-gap-guided-2026-09-25:triage:e7c80db10990ee447a8c982ee6741368086f33d45deb7ca010959bcfc72bc8b1": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "Inquiry results expected as early as October 2026 regarding the breach response.",
+    "source_index": 1,
+    "reason": "The inquiry into the breach response is a concrete upcoming milestone with a timeframe.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v8-gap-guided-2026-09-25:triage:28827adf7712e9f4f68473a5d802a822f4e4d36ad620fe65d83f2d8949224a10": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "Heavy rain expected through Thursday as Hurricane Polo approaches southwestern Mexico.",
+    "source_index": 2,
+    "reason": "The forecast indicates a specific timeframe for heavy rain related to Hurricane Polo.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v9-grounded-gate-2026-09-25:triage:46c1771085a3503a7a4c52d9dd2dea7b1d51b54e7d798dd7f6cb750086c66f9f": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "A hearing is scheduled for October 7.",
+    "source_index": 1,
+    "reason": "The upcoming hearing date is a concrete milestone in the ongoing legal dispute.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v9-grounded-gate-2026-09-25:triage:02a25e9bdaa275f8012bf7249aafbf9c75a9f6c4ec6eba9b81e19b59296eb2eb": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "4 to 6 inches of rain expected through Thursday",
+    "source_index": 1,
+    "reason": "The evidence specifies a concrete forecast for rainfall through a specific day.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v9-grounded-gate-2026-09-25:triage:b205eaf75e97af7968f8cec8d67295f2ab87f0491ceb349838bc9590f5713db4": {
+    "status": "SIGNAL",
+    "eligible": true,
+    "signal": "A hearing on the lawsuit is scheduled for Wednesday afternoon.",
+    "source_index": 1,
+    "reason": "The evidence provides a specific upcoming hearing date related to the lawsuit.",
+    "research_gap": "",
+    "search_queries": []
+  },
+  "gpt-4o-mini:next-signal-v9-grounded-gate-2026-09-25:triage:6174d4cb0325fd1b9d6c7b7f7bbc838e54efee1391a162c641822ceeb44d2b2b": {
+    "status": "NO_SIGNAL",
+    "eligible": false,
+    "signal": "",
+    "source_index": null,
+    "reason": "No concrete future milestone or timing provided in the evidence.",
+    "research_gap": "",
+    "search_queries": []
+  }
+}

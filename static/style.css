@@ -164,6 +164,35 @@ a:hover {
   margin-top: 16px;
 }
 
+/* --- Topic Next Signal: next concrete point worth checking again --- */
+.topic-next-signal {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  margin: 16px 0 0 0;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.topic-next-label {
+  color: #667085;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.topic-next-value {
+  color: #4b5563;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.topic-next-signal + .chart-title {
+  margin-top: 24px;
+}
+
 /* --- Coverage balance stacked bar --- */
 .balance-wrap {
   margin-bottom: 16px;
@@ -828,7 +857,8 @@ a:hover {
 }
 
 @media (max-width: 400px) {
-  .market-next-update {
+  .market-next-update,
+  .topic-next-signal {
     grid-template-columns: 1fr;
     gap: 3px;
   }
