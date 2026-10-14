@@ -81,3 +81,14 @@ Archive/*.txt
 all_outlets_*.json
 market_overview_*.json
 gdelt_global_ranking_*.json
+
+# Mutable state and dated run artifacts; fixed fixtures live under tests/.
+/next_signal_cache.json
+/next_signal_sidecar_cache.json
+/next_signal_report_*.json
+/worth_knowing_cache.json
+/worth_knowing_*.json
+/*_????-??-??.json
+/.pytest_cache/
+/.coverage
+/*.json.tmp
