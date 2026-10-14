@@ -416,6 +416,17 @@ def _clean_html(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _commons_credit_text(text: str) -> str:
+    """Render provider credit markup without guessing damaged attribution."""
+    from html import unescape
+    text = unescape(_clean_html(text))
+    # Commons may return external wikilinks containing an HTML anchor.
+    text = re.sub(r"\[https?://[^\s\]]+\s+([^\]]+)\]", r"\1", text)
+    if "\ufffd" in text or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", text):
+        raise ValueError("Unreadable source attribution; creator text requires verification")
+    return text.strip()
+
+
 def _tokenize(text: str) -> set:
     text = (text or "").lower()
     text = re.sub(r"[^a-z0-9\s]+", " ", text)
@@ -826,6 +837,9 @@ def _candidate_context_metrics(anchor: str, topic_text: str, title: str, desc: s
     title_focus = _title_anchor_focus(anchor, title)
     anchor_type = classify_context_anchor(anchor)
     scene_type = classify_candidate_scene(title, desc)
+    # A filename/location can overwhelm the activity described in a caption.
+    # Evaluate that evidence independently; it may veto, never relax a gate.
+    caption_scene_type = classify_candidate_scene("", desc) if desc.strip() else "other"
     title_anchor_match = anchor_match_score(anchor, title) > 0
 
     title_total, title_foreign, title_extensions = _proper_context_counts(
@@ -847,6 +861,7 @@ def _candidate_context_metrics(anchor: str, topic_text: str, title: str, desc: s
         "title_focus": title_focus,
         "anchor_type": anchor_type,
         "scene_type": scene_type,
+        "caption_scene_type": caption_scene_type,
         "title_anchor_match": title_anchor_match,
         "title_foreign": title_foreign,
         "title_extensions": title_extensions,
@@ -880,6 +895,9 @@ def _context_candidate_is_safe(metrics: dict) -> bool:
     # the complete search subject in the caption or scored provider metadata.
     # This also applies to named events, where homonyms can look event-like.
     if anchor_score <= 0:
+        return False
+
+    if metrics.get("caption_scene_type") == "event" and scene_type in {"geographic", "institution"}:
         return False
 
     # Unsplash full-photo metadata can provide an exact event-name match even
@@ -2009,7 +2027,7 @@ def final_image_rights_check(candidate: dict | None) -> tuple[dict | None, dict]
             if not identity or identity != _commons_asset_identity(info.get("url", "")):
                 raise ValueError("Displayed image differs from source record")
             ext = info.get("extmetadata") or {}
-            value = lambda field: _clean_html((ext.get(field) or {}).get("value") or "").strip()
+            value = lambda field: _commons_credit_text((ext.get(field) or {}).get("value") or "")
             short, license_url = value("LicenseShortName"), value("LicenseUrl")
             if not _commons_license_is_approved(short, license_url, ext):
                 raise ValueError("License or restrictions fail existing policy")

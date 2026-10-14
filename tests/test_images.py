@@ -23,6 +23,32 @@ class ImageIdentityChecks(unittest.TestCase):
         self.images = load_image_code()
         self.enterContext(patch("socket.socket.connect", side_effect=AssertionError("Network forbidden")))
 
+    def test_activity_caption_vetoes_location_classification(self):
+        metrics = {"anchor_score": 4, "anchor_type": "institution",
+                   "scene_type": "institution", "topic_semantic": .8,
+                   "anchor_semantic": .8, "title_focus": 1,
+                   "title_anchor_match": True, "caption_scene_type": "event"}
+        self.assertFalse(self.images._context_candidate_is_safe(metrics))
+        metrics["caption_scene_type"] = "institution"
+        self.assertTrue(self.images._context_candidate_is_safe(metrics))
+        metrics.update(anchor_type="event", scene_type="event", caption_scene_type="event")
+        self.assertTrue(self.images._context_candidate_is_safe(metrics))
+        metrics.update(anchor_type="person", scene_type="person")
+        self.assertTrue(self.images._context_candidate_is_safe(metrics))
+
+    def test_commons_credit_markup_keeps_names_and_notices(self):
+        raw = '[<a href="https://example.org/author">https://example.org/author</a> Renée &amp; Jo] / Courtesy Archive'
+        self.assertEqual('Renée & Jo / Courtesy Archive', self.images._commons_credit_text(raw))
+
+    def test_final_rights_withholds_unreadable_attribution(self):
+        candidate, record = self.rights_fixture()
+        record['imageinfo'][0]['extmetadata']['Artist']['value'] = 'Ren\ufffde'
+        with patch.object(self.images, '_image_rights_record', return_value=record):
+            result, review = self.images.final_image_rights_check(candidate)
+        self.assertIsNone(result)
+        self.assertEqual('withheld', review['status'])
+        self.assertIn('Unreadable', review['reason'])
+
     def test_observed_commons_license_metadata(self):
         # Metadata sampled from Commons on 2026-10-13. These exercise the
         # existing policy, including restrictions independent of copyright.
