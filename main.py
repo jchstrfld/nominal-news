@@ -37,6 +37,24 @@ def load_market_overview(date_str: str) -> Optional[Dict[str, Any]]:
     except Exception:
         return None
 
+
+def load_worth_knowing(date_str: str) -> Optional[Dict[str, Any]]:
+    """Load the additive Worth Knowing section for a given date, if present."""
+    path = BASE_DIR / f"worth_knowing_{date_str}.json"
+    if not path.exists():
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        if not isinstance(payload, dict):
+            return None
+        items = payload.get("items")
+        if not isinstance(items, list) or not items:
+            return None
+        return payload
+    except Exception:
+        return None
+
 def latest_summary_date() -> Optional[str]:
     """Find the newest date that we have a topic_summaries_*.json file for."""
     dates: List[str] = []
@@ -100,6 +118,7 @@ async def homepage(
             )
 
     market_overview = load_market_overview(requested_date) if requested_date else None
+    worth_knowing = load_worth_knowing(requested_date) if requested_date else None
     
     return templates.TemplateResponse(
         "index.html",
@@ -109,5 +128,6 @@ async def homepage(
             "requested_date": requested_date,
             "status_msg": status_msg,
             "market_overview": market_overview,
+            "worth_knowing": worth_knowing,
         },
     )

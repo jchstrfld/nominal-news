@@ -127,13 +127,19 @@
                       {% else %}
                         / Unsplash
                       {% endif %}
-                    {% elif topic.image_source_url %}
-                      Photo:
-                      <a href="{{ topic.image_source_url }}" target="_blank" rel="noopener noreferrer">
-                        {{ topic.image_credit | replace('Photo: ', '') }}
-                      </a>
                     {% else %}
-                      {{ topic.image_credit }}
+                      Photo:
+                      {% for credit_part in (topic.image_credit | replace('Photo: ', '')).split(' / ') %}
+                        {% set credit_part = credit_part | trim %}
+                        {% if not loop.first %} / {% endif %}
+                        {% if credit_part.startswith('https://') or credit_part.startswith('http://') %}
+                          <a href="{{ credit_part }}" target="_blank" rel="noopener noreferrer">Source</a>
+                        {% elif topic.image_source_url %}
+                          <a href="{{ topic.image_source_url }}" target="_blank" rel="noopener noreferrer">{{ credit_part }}</a>
+                        {% else %}
+                          {{ credit_part }}
+                        {% endif %}
+                      {% endfor %}
                     {% endif %}
 
                     {% if topic.image_license %}
@@ -148,6 +154,10 @@
 
                     {% if topic.image_license and 'CC BY' in topic.image_license %}
                       · Cropped
+                    {% endif %}
+                    {% if topic.image_discovery_source == 'openverse' %}
+                      · Image search powered by <a href="https://openverse.org/" target="_blank" rel="noopener noreferrer">Openverse</a>.
+                      Not endorsed or certified by Openverse.
                     {% endif %}
                   </span>
                 </figcaption>
@@ -359,6 +369,29 @@
           {% endif %}
         </div>
       {% endfor %}
+
+      {% if worth_knowing and worth_knowing.get('items') %}
+        <section class="worth-knowing-card" aria-labelledby="worth-knowing-title">
+          <div class="worth-knowing-heading">
+            <h2 id="worth-knowing-title" class="worth-knowing-title">Worth Knowing</h2>
+            <p class="worth-knowing-description">Smaller stories worth keeping on your radar.</p>
+          </div>
+
+          <div class="worth-knowing-list">
+            {% for item in worth_knowing.get('items', []) %}
+              <article class="worth-knowing-item">
+                <h3 class="worth-knowing-headline">{{ item.headline }}</h3>
+                <p class="worth-knowing-summary">{{ item.summary }}</p>
+                {% if item.source_url %}
+                  <a class="worth-knowing-source" href="{{ item.source_url }}" target="_blank" rel="noopener noreferrer">
+                    Source{% if item.source_name %}: {{ item.source_name }}{% endif %}
+                  </a>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
 
       {% if topics_count > 0 %}
         {% set total_source_mentions = summaries | map(attribute='num_sources') | map('default', 0) | sum %}

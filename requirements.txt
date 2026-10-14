@@ -1,7 +1,14 @@
-python-dotenv
-# git+https://github.com/openai/swarm.git 
-streamlit 
-duckduckgo-search
+# Direct runtime dependencies from the working Python 3.13 environment.
+# Install en_core_web_sm separately; see README.
+python-dotenv==1.1.1
 openai==0.28.1
-feedparser
-scikit-learn
+feedparser==6.0.11
+scikit-learn==1.7.1
+numpy==2.3.1
+requests==2.32.4
+fastapi==0.116.1
+uvicorn==0.35.0
+jinja2==3.1.6
+sentence-transformers==5.0.0
+spacy==3.8.7
+tiktoken==0.10.0

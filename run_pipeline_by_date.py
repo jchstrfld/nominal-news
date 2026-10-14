@@ -480,6 +480,31 @@ def run() -> int:
         if code:
             return code
 
+    # Use the same evidence input as the summarizer on the path that succeeded.
+    # Do not let leftover global artifacts leak into a baseline fallback.
+    if global_pipeline_used:
+        signal_clusters = global_receipts
+    else:
+        expanded = base_dir / f"grouped_articles_final_expanded_{date_str}.json"
+        signal_clusters = (
+            expanded if expanded.exists() and (
+                not local_final.exists()
+                or expanded.stat().st_mtime >= local_final.stat().st_mtime
+            ) else local_final
+        )
+    code = run_required(
+        base_dir=base_dir,
+        script="generate_next_signals.py",
+        date_str=date_str,
+        extra_args=[
+            "--summary-file", f"topic_summaries_{date_str}.json",
+            "--cluster-file", signal_clusters.name,
+        ],
+        dry_run=args.dry_run,
+    )
+    if code:
+        return code
+
     if args.dry_run:
         print(f"✅ Dry run complete for {date_str}; no stages were executed.")
     else:

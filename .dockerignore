@@ -1,0 +1,9 @@
+# Include only application files; never bake credentials or run data in.
+*
+!*.py
+!requirements.txt
+!templates/
+!templates/**
+!static/
+!static/**
+!bias_overrides.json

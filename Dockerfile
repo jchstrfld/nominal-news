@@ -1,21 +1,8 @@
-# Use the official Python image
-FROM python:3.10-slim
-
-# Set the working directory
+FROM python:3.13-slim
 WORKDIR /app
-
-# Install git and other dependencies
-RUN apt-get update && apt-get install -y git
-
-# Copy files into the container
+ENV PYTHONDONTWRITEBYTECODE=1
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-
-# Install Python packages
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
-
-# Run the app
-ENTRYPOINT ["python"]
-CMD ["generate_daily_news_email.py"]
-
-
+EXPOSE 8000
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

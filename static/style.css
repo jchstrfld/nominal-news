@@ -532,6 +532,88 @@ a:hover {
 }
 
 
+/* --- Worth Knowing: compact secondary awareness section --- */
+.worth-knowing-card {
+  background: #ffffff;
+  margin: 32px 0 0 0;
+  padding: 18px 20px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.worth-knowing-heading {
+  margin-bottom: 14px;
+}
+
+.worth-knowing-title {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+  font-weight: 700;
+  color: #1e272e;
+}
+
+.worth-knowing-description {
+  margin: 4px 0 0 0;
+  color: #7a838d;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.worth-knowing-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+
+.worth-knowing-item {
+  min-width: 0;
+  margin: 0;
+  padding: 12px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-radius: 12px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+}
+
+.worth-knowing-headline {
+  margin: 0 0 5px 0;
+  color: #27313a;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.worth-knowing-summary {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.worth-knowing-source {
+  display: inline-block;
+  margin-top: auto;
+  padding-top: 8px;
+  color: #667085;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.worth-knowing-source:hover {
+  color: #005fcc;
+}
+
+.worth-knowing-source:focus-visible {
+  outline: 2px solid #005fcc;
+  outline-offset: 2px;
+}
+
+
 /* --- Closure --- */
 .closure-signal {
   margin: 32px 0 16px 0;
@@ -693,7 +775,7 @@ a:hover {
 
 .economy-signals {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
   gap: 8px;
   margin-bottom: 22px;
 }
