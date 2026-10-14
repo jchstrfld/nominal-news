@@ -1336,6 +1336,58 @@ def _get_sem_embedder():
         _SEM_EMBEDDER = SentenceTransformer("all-MiniLM-L6-v2")
     return _SEM_EMBEDDER
 
+def suppress_repeated_approved_events(clusters: list[dict]) -> list[dict]:
+    """Keep one approved event when its core repeats verified event coverage.
+
+    This runs after purification, when RELATED has an event-specific meaning.
+    It does not combine cores, change scores, or infer identity from entities.
+    Require at least 75% of a core's headlines to be present in another event's
+    verified coverage. Long exact headline prefixes allow syndication suffixes.
+    """
+    from html import unescape
+
+    def words(article):
+        title = unescape(re.sub(r"<[^>]+>", "", article.get("title") or ""))
+        return re.findall(r"\w+(?:\.\d+)?", title.casefold().replace("%", " percent "))
+
+    def same_report(a, b):
+        left, right = words(a), words(b)
+        if min(len(left), len(right)) < 10:
+            return False
+        size = min(len(left), len(right))
+        if left[:size] != right[:size]:
+            return False
+        # Identical recurring headlines from different days are not evidence
+        # of the same event. Missing dates cannot establish report identity.
+        da = str(a.get("published_date") or a.get("published_at") or "")[:10]
+        db = str(b.get("published_date") or b.get("published_at") or "")[:10]
+        try:
+            return abs((datetime.fromisoformat(da) - datetime.fromisoformat(db)).days) <= 1
+        except ValueError:
+            return False
+
+    def covered(core, coverage):
+        return len(core) >= 2 and sum(any(same_report(a, b) for b in coverage) for a in core) / len(core) >= .75
+
+    def coverage(c):
+        return c.get("related_articles", []) + c.get("articles", [])
+
+    # Prefer the event with the richer verified coverage, without reordering it.
+    order = sorted(range(len(clusters)), key=lambda i: (
+        len(clusters[i].get("articles", [])), len(coverage(clusters[i])), -i), reverse=True)
+    kept = []
+    for i in order:
+        c = clusters[i]
+        if not c.get("publication_purification"):
+            kept.append(i)
+            continue
+        if any(clusters[j].get("publication_purification") and
+               covered(c.get("articles", []), coverage(clusters[j])) for j in kept):
+            continue
+        kept.append(i)
+    return [clusters[i] for i in sorted(kept)]
+
+
 def dedupe_topics(
     clusters: list[dict],
     url_overlap: float = 0.50,
@@ -4036,6 +4088,13 @@ def main():
                 published["_gdelt_shadow_evidence"] = global_evidence
 
             vetted.append(published)
+            # Count unique approved events before evaluating the top-K stopping
+            # condition and before assigning global coverage/ranking receipts.
+            unique_vetted = suppress_repeated_approved_events(vetted)
+            for repeated in vetted:
+                if not any(repeated is retained for retained in unique_vetted):
+                    print(f"↪ Withheld repeated approved event: {repeated.get('canonical_event', '')}")
+            vetted = unique_vetted
 
             if purity_report:
                 local_removed = len(related_filter_diag.get("removed", []))
