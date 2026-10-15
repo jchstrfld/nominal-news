@@ -55,6 +55,13 @@ image check runs before images are saved. Unresolved image checks withhold the
 image and retain a review reason. These metadata checks do not guarantee ownership
 or legal clearance.
 
+After that check, the bundled OpenCV YuNet detector positions the existing 16:9
+crop around a clear primary face. Detection runs locally, with no paid API calls.
+Selected photos and credits stay unchanged. No clear face, ambiguous faces, or
+download/detection failure keeps the centered crop. Position metadata is cached
+under `data/image_framing/`; no photos are retained by this step. The small model
+and its MIT license are included under `models/face_detection/`.
+
 Review the exit status, dated outputs, and rendered issue. Do not import pipeline
 scripts just to inspect them: some execute work at import time. Worth Knowing has
 a separate generator and is not part of the daily runner.
