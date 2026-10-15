@@ -10,6 +10,7 @@ import tiktoken
 import difflib
 import re
 import requests
+from image_framing import frame_image
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
@@ -3013,6 +3014,7 @@ for idx, cluster in enumerate(top_clusters):
         img = choose_best_context_candidate(openverse_candidates, source="openverse")
 
     img, image_rights_review = final_image_rights_check(img)
+    image_framing = frame_image((img or {}).get("url", ""))
     print("IMAGE_SELECTION_AUDIT " + json.dumps({"topic": idx + 1, "queries": query_candidates, "rejections": _IMAGE_AUDIT}, ensure_ascii=True))
 
     if img and img.get("url"):
@@ -3140,6 +3142,7 @@ for idx, cluster in enumerate(top_clusters):
         "image_photographer_url": image_photographer_url,
         "image_provider_url": image_provider_url,
         "image_width": 600,
+        "image_framing": image_framing,
         "image_max_width": 600,
 
     })

@@ -112,6 +112,9 @@
                 alt="{{ topic.image_alt }}"
                 width="600"
                 height="338"
+                {% if topic.image_framing is defined %}
+                style="object-position: {{ topic.image_framing.x | float }}% {{ topic.image_framing.y | float }}%;"
+                {% endif %}
                 loading="lazy"
               />
               {% if topic.image_credit %}
