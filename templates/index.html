@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nominal News</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=20261014-header-6">
 </head>
 
 <body>
@@ -16,17 +16,34 @@
     {% if estimated_minutes < 3 %}{% set estimated_minutes = 3 %}{% endif %}
     {% if estimated_minutes > 12 %}{% set estimated_minutes = 12 %}{% endif %}
 
+    <header class="newsletter-header">
+      <div class="edition-bar">
+        {% if requested_date %}
+          {% set date_parts = requested_date.split('-') %}
+          {% set months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] %}
+          <time datetime="{{ requested_date }}">{% if date_parts|length == 3 and 1 <= date_parts[1]|int <= 12 %}{{ months[(date_parts[1]|int) - 1] }} {{ date_parts[2]|int }}, {{ date_parts[0] }}{% else %}{{ requested_date }}{% endif %}</time>
+        {% else %}
+          <span>Your daily edition</span>
+        {% endif %}
+        <nav class="edition-links" aria-label="Newsletter links">
+          <a href="{% if requested_date %}/?date={{ requested_date | urlencode }}{% else %}/{% endif %}">View Online</a>
+          <span aria-hidden="true">|</span>
+          <a role="link" aria-disabled="true" title="Sign up coming soon">Sign up</a>
+        </nav>
+      </div>
+      <div class="newsletter-masthead" aria-label="Nominal News">
+        <h1 class="masthead-name">nominal<span class="masthead-dot">.</span></h1>
+        <p class="masthead-descriptor">NEWS, AT A HUMAN PACE</p>
+      </div>
     <div class="done-signal">
-      <h1 class="done-title">Take a breath. Let&#39;s start today&#39;s news.</h1>
-
       <p class="done-body">
-        Like your emotional availability, today&#39;s edition is finite. Skim the topics, then you&#39;re done. If you're not in the headspace today, come back tomorrow.
+        {{ edition_intro }}
       </p>
-
       <p class="done-meta">
-        {{ topics_count }} topics • {{ estimated_minutes }} minutes to read • Topics ordered from most to least discussed, followed by verified sources
+        {{ topics_count }} topics <span aria-hidden="true">·</span> {{ estimated_minutes }} min read <span aria-hidden="true">·</span> Most-covered stories first
       </p>
     </div>
+    </header>
 
   {% if market_overview %}
       {% set signals = market_overview.get('signals', {}) %}
