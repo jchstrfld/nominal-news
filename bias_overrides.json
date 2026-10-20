@@ -8856,5 +8856,198 @@
       "https://mediabiasfactcheck.com/yellowstone-public-radio-bias-and-credibility/"
     ],
     "notes": "Directory review 2026-10-17: Verified exact domain in MBFC directory and linked primary profile. Provider political rating: LEFT-CENTER; stored as Left under the existing mapping. Profile source: https://www.ypradio.org/. Profile updated February 1, 2025. Single-provider evidence, not independently corroborated consensus; political lean is separate from factual reliability. This completed check supersedes earlier missing-profile notes where present."
+  },
+  "fox35orlando.com": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-discovery-auto-seen",
+      "https://mediabiasfactcheck.com/wofl-fox-35-orlando/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "globalnews.ca": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen",
+      "https://www.allsides.com/news-source/global-news-media-bias",
+      "https://adfontesmedia.com/global-news-bias-and-reliability/",
+      "https://mediabiasfactcheck.com/global-news/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. AllSides rates Lean Left with low/initial confidence; MBFC indexed profile reports Left-Center, but direct retrieval failed. Ad Fontes outlet-specific profile rates Middle (-3.80). Retained Unknown conservatively because the available categories disagree; revisit before choosing Center or Left."
+  },
+  "northwalespioneer.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen",
+      "https://www.biasly.com/sources/north-wales-pioneer-media-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. Biasly reports Medium Left (-62%), but corroborating outlet-specific evidence and a sufficiently clear representative sample were not established in this review. Retained Unknown; not assigned the rating of another North Wales title."
+  },
+  "santacruzsentinel.com": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-discovery-auto-seen",
+      "https://mediabiasfactcheck.com/santa-cruz-sentinel-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "wbaa.org": {
+    "bias": "Left",
+    "sources": [
+      "gdelt-discovery-auto-seen",
+      "https://mediabiasfactcheck.com/wbaa-npr-west-lafayette-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC outlet-specific WBAA profile rates Left-Center / High factual reporting, mapped to Left (UI: Left Lean). Profile discusses WBAA website story selection and cites its own content; rating is not inherited solely from NPR affiliation."
+  },
+  "thetelegraphandargus.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/bradford-telegraph-and-argus-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "dailyecho.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/southern-daily-echo-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "thewestonmercury.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/weston-mercury-bias-and-credibility/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "midweekherald.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://www.biasly.com/sources/midweek-herald-media-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. Biasly reports Center (2%), but the exposed sample/identity evidence was insufficient to confidently adopt that rating. Retained Unknown pending corroboration; local coverage alone does not establish Center."
+  },
+  "bracknellnews.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/bracknell-news-bias/",
+      "https://www.biasly.com/sources/bracknell-news-media-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates Least Biased, while Biasly reports Somewhat Left (-26%). Retained Unknown pending resolution of this disagreement rather than selecting the preferred category."
+  },
+  "harwichandmanningtreestandard.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/harwich-and-manningtree-standard-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "newsshopper.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://www.perspectify.com/publications/5405/news-shopper"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. Perspectify labels News Shopper Neutral, but its description includes ownership/funding/affiliation factors and this review did not establish sufficient outlet-content evidence or corroboration. Retained Unknown."
+  },
+  "bicesteradvertiser.net": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/bicester-advertiser-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "denbighshirefreepress.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/denbighshire-free-press-bias-and-credibility/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "timesandstar.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. No sufficiently supported outlet-specific political rating located in the name/domain searches. A syndicated Perspectify list labels Times & Star Neutral, but that is insufficient to establish its assessment basis or exact domain identity. Retained Unknown."
+  },
+  "northwaleschronicle.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/north-wales-chronicle-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "redditchadvertiser.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/redditch-advertiser-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "islingtongazette.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. No verified outlet-specific political rating located. Ground News story-level percentages cannot establish this outlet rating; do not confuse with Islington Tribune. Retained Unknown."
+  },
+  "irvinetimes.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://www.biasly.com/sources/irvine-times-media-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. Biasly reports Somewhat Left (-22%); corroborating outlet-specific evidence and a representative sample were not established. Retained Unknown pending further verification."
+  },
+  "dunfermlinepress.com": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/dunfermline-press-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "wirralglobe.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/wirral-globe-bias-and-credibility/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "bridgwatermercury.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/center/",
+      "https://mediabiasfactcheck.com/category/bias-and-credibility/page/526/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Exact domain listed in MBFC Least Biased directory; corroborated by its outlet-named archive entry. Full individual profile could not be retrieved."
+  },
+  "northsomersettimes.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-auto-seen"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. No verified outlet-specific political rating located. Ground News article listings do not provide an outlet rating; do not inherit the Weston Mercury rating despite shared ownership. Retained Unknown."
+  },
+  "dumbartonreporter.co.uk": {
+    "bias": "Center",
+    "sources": [
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/dumbarton-reporter-bias/"
+    ],
+    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
   }
 }
