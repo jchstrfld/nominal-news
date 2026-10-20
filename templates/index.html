@@ -2,14 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nominal News</title>
-  <link rel="stylesheet" href="/static/style.css?v=20261019-footer-separators">
+  <link rel="stylesheet" href="/static/style.css?v=20261019-theme-preview">
 </head>
 
 <body>
   <div class="container">
     <a id="top"></a>
+    <div class="theme-preview" hidden>
+      <label for="theme-preview">Preview</label>
+      <select id="theme-preview">
+        <option value="system" selected>System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
 
     {% set topics_count = summaries|length %}
     {% set estimated_minutes = ((topics_count * 0.75) + 2) | round(0, 'common') | int %}
@@ -386,6 +395,16 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      const themePreview = document.getElementById("theme-preview");
+      themePreview.value = "system";
+      themePreview.parentElement.hidden = false;
+      themePreview.addEventListener("change", () => {
+        if (themePreview.value === "system") {
+          delete document.documentElement.dataset.theme;
+        } else {
+          document.documentElement.dataset.theme = themePreview.value;
+        }
+      });
       const yearEl = document.getElementById("footerYear");
       if (yearEl) yearEl.textContent = new Date().getFullYear();
 
