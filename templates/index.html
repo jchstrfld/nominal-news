@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nominal News</title>
-  <link rel="stylesheet" href="/static/style.css?v=20261017-coverage-9">
+  <link rel="stylesheet" href="/static/style.css?v=20261019-footer-separators">
 </head>
 
 <body>
@@ -216,7 +216,7 @@
                 ('Right Lean', 'seg-right', ['Right', 'Far Right']),
                 ('Not Rated', 'seg-unknown', ['Unknown', 'Uncategorized'])
               ] %}
-              <span class="coverage-action-heading"><span class="coverage-lean-heading">Political Lean of Sources</span>{% if interactive %}<span class="coverage-action-label">See All Sources <span aria-hidden="true">↗</span></span>{% endif %}</span>
+              <span class="coverage-action-heading"><span class="coverage-lean-heading">Political Lean of Sources</span>{% if interactive %}<span class="coverage-action-label"><span class="coverage-label-closed">See All Sources</span><span class="coverage-label-open">Hide Sources</span> <span class="coverage-chevron" aria-hidden="true"></span></span>{% endif %}</span>
               {% if bias_base_count != linked_outlets or report_count == 0 %}<p class="coverage-scope">Ratings cover {{ bias_base_count }} news outlets.</p>{% endif %}
               <div class="coverage-meter" aria-hidden="true">
                 {% for label, color, keys in groups %}
@@ -236,7 +236,7 @@
                 {% endfor %}
               </ul>
               <p class="coverage-explanation">“Not rated” means we don’t have an outlet rating. Political ratings describe the outlets, not our summary.</p>
-            {% elif interactive %}<span class="coverage-action-label">See All Sources <span aria-hidden="true">↗</span></span>
+            {% elif interactive %}<span class="coverage-action-label"><span class="coverage-label-closed">See All Sources</span><span class="coverage-label-open">Hide Sources</span> <span class="coverage-chevron" aria-hidden="true"></span></span>
             {% endif %}
 
             {% endmacro %}
@@ -276,7 +276,7 @@
                 <summary class="coverage-toggle">{{ coverage_chart(true) }}</summary>
 
                 <div class="writeups-list">
-                  <p class="source-list-intro">We show one article from each group of matching coverage. The linked outlet isn’t necessarily the original publisher.</p>
+                  <p class="source-list-intro">Each link represents a distinct article about this story, prioritizing sources used in our summary. “Similar Versions” groups other outlets carrying the same or closely matching reporting. The linked outlet may not be the original publisher.</p>
                   {% for writeup in topic.coverage_writeups %}
                     <article class="writeup-row">
                       <a class="writeup-title" href="{{ writeup.url }}" target="_blank" rel="noopener noreferrer">
@@ -360,11 +360,8 @@
       {% if topics_count > 0 %}
         {% set total_source_mentions = summaries | map(attribute='num_sources') | map('default', 0) | sum %}
         <div class="closure-signal">
-          <h2 class="closure-title">Phew, that’s enough news for today.</h2>
-
           <p class="closure-body">
-            You covered <strong>{{ topics_count }}</strong> topics{% if total_source_mentions > 0 %} across <strong>{{ total_source_mentions }}</strong> sources{% endif %}.
-            Great work getting through it all. Come back tomorrow for more.
+            You’ve viewed <strong>{{ topics_count }}</strong> topics across <strong>{{ total_source_mentions }}</strong> source mentions today. {{ edition_sign_off }}
           </p>
 
           <a class="back-to-top" href="#top">Back to top ↑</a>
@@ -372,16 +369,18 @@
       {% endif %}
     </div>
 
-    <hr class="footer-divider" />
     <footer class="site-footer">
-      <section class="editorial-note" aria-labelledby="editorial-note-title">
-        <h2 id="editorial-note-title">Our Editorial Approach</h2>
-        <p>We aim for neutral, factual summaries of selected reporting. We group related articles, select representative headlines and descriptions, and instruct an AI model to use only supplied facts, avoid unsupported interpretations, and acknowledge uncertainty. Linked sources show broader coverage, with repeat articles grouped together. Political ratings describe the outlets, not our summaries, and do not determine what we write.</p>
-        <p><a class="coverage-method-link" role="link" aria-disabled="true" title="Methodology page coming soon">How We Measure Coverage</a></p>
-      </section>
-      <hr class="footer-divider" />
-      <p class="footer-line">Made in Chicago. Written for normalcy. Designed against outrage.</p>
-      <p class="footer-line">Copyright © <span id="footerYear"></span> Nominal News. All rights reserved.</p>
+      <div class="footer-banner">
+        <p class="footer-line">Made in Chicago. Written for normalcy. Designed against outrage.</p>
+        <nav class="footer-links" aria-label="Website Information">
+          <a role="link" aria-disabled="true" title="Website coming soon">Website</a>
+          <span aria-hidden="true">|</span>
+          <a role="link" aria-disabled="true" title="Coverage methodology page coming soon">How We Measure Coverage</a>
+          <span aria-hidden="true">|</span>
+          <a role="link" aria-disabled="true" title="Editorial approach page coming soon">Editorial Approach</a>
+        </nav>
+        <p class="footer-line">Copyright © <span id="footerYear"></span> Nominal News. All rights reserved.</p>
+      </div>
     </footer>
   </div>
 
