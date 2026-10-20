@@ -38,6 +38,50 @@ PHRASES = (
 )
 
 
+SIGN_OFFS = (
+    "That’s enough news for now. Take a little time for yourself.",
+    "A little more context, a little less reason to keep scrolling.",
+    "That’s the short version. The rest of your day is yours.",
+    "You can close this tab. Caring doesn’t require constant updates.",
+    "The news keeps moving. You’re allowed to pause.",
+    "That’s our update. No refresh needed.",
+    "Now there’s room for something other than headlines.",
+    "Enough headlines for a while. Take some breathing room.",
+    "You don’t have to follow every development to care.",
+    "The scroll stops here. Thanks for spending a little time with us.",
+    "Whether you read every word or skimmed, that’s enough for now.",
+    "You’ve given the news some attention. It doesn’t need all of it.",
+    "Staying informed can include knowing when to stop.",
+    "End of edition. No endless feed attached.",
+    "Some news is a lot to take in. Give yourself a little space.",
+    "That’s what we have for today. Come back when you have room.",
+    "You’ve checked in with the world. Now back to yours.",
+    "No need to keep a tab open on everything.",
+    "The headlines can wait while you do something else.",
+    "You can step away and still care about what happens next.",
+    "That’s the roundup. Your attention is yours again.",
+    "A few minutes of news can be enough.",
+    "We promised a stopping point. Here it is.",
+    "Close the tab whenever you’re ready. We’ll be here another day.",
+    "That’s enough checking in for now.",
+    "There’s always more news. There doesn’t have to be more scrolling.",
+    "Take what was useful. Give yourself time with the rest.",
+    "The world is worth understanding. Your day is worth returning to.",
+    "A little distance from the news is welcome, too.",
+    "Thanks for reading. No need to stay connected all day.",
+    "That’s all from us. Leave a little bandwidth for yourself.",
+)
+
+
+def sign_off_for_date(edition_date: str) -> str:
+    """Keep the approved sign-off fixed per edition in a continuous 31-day cycle."""
+    try:
+        day = date.fromisoformat(edition_date)
+    except (ValueError, TypeError):
+        return SIGN_OFFS[0]
+    return SIGN_OFFS[(day - ANCHOR).days % len(SIGN_OFFS)]
+
+
 def introduction_for_date(edition_date: str) -> str:
     """Use edition date, never the current clock or page refresh count.
 

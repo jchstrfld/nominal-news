@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, Request, Query
-from edition_intro import introduction_for_date
+from edition_intro import introduction_for_date, sign_off_for_date
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -128,6 +128,7 @@ async def homepage(
             "summaries": summaries,
             "requested_date": requested_date,
             "edition_intro": introduction_for_date(requested_date),
+            "edition_sign_off": sign_off_for_date(requested_date),
             "status_msg": status_msg,
             "market_overview": market_overview,
             "worth_knowing": worth_knowing,

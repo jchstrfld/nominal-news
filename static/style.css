@@ -250,6 +250,8 @@ a:hover {
   border-top: 1px solid #f0f0f0;
 }
 
+.topic-next-signal + .coverage-overview { margin-top: 12px; }
+
 .topic-next-label {
   color: #667085;
   font-size: 0.76rem;
@@ -707,9 +709,11 @@ a:hover {
 
 .closure-body {
   margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.45;
-  color: #555;
+  font-size: .9rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: #4c5752;
+  text-align: left;
 }
 
 /* Back to top (accessible link style) */
@@ -751,6 +755,40 @@ a:hover {
 
 .footer-line + .footer-line {
   margin-top: 8px;
+}
+
+.footer-banner {
+  padding: 26px 20px;
+  border-radius: 8px;
+  background: #203f36;
+  text-align: center;
+}
+
+.footer-banner .footer-line {
+  color: #fffdf4;
+  line-height: 1.6;
+}
+
+.footer-banner .footer-line:last-child {
+  color: #e8c989;
+  font-size: .75rem;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
+  color: #fffdf4;
+  margin: 14px 0;
+  font-size: .75rem;
+}
+
+.footer-links a {
+  color: #fffdf4;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: default;
 }
 
 /* Mobile/narrow: show caption, hide in-bar text */
@@ -1039,7 +1077,7 @@ a:hover {
 
 /* Top-level coverage summary only; linked report styling is unchanged. */
 .coverage-overview { margin-top: 20px; padding-top: 14px; border-top: 1px solid #e2e5df; }
-.coverage-overview .coverage-heading { margin: 0 0 6px; font-size: .83rem; font-weight: 600; color: #526058; }
+.coverage-overview .coverage-heading { margin: 0 0 6px; font-size: .83rem; font-weight: 600; color: #333; }
 .coverage-overview .coverage-totals { margin: 0 0 6px; font-size: .8rem; line-height: 1.5; color: #526058; }
 .coverage-totals > span { margin: 0 5px; color: #69756e; }
 .coverage-overview .coverage-explanation { margin: 0; font-size: .75rem; line-height: 1.5; color: #626c66; }
@@ -1060,6 +1098,11 @@ a:hover {
 .coverage-action-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 5px; }
 .coverage-action-heading .coverage-lean-heading { margin: 0; }
 .coverage-action-label { font-size: .75rem; color: #244b40; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.coverage-label-open { display: none; }
+details[open] > .coverage-toggle .coverage-label-closed { display: none; }
+details[open] > .coverage-toggle .coverage-label-open { display: inline; }
+.coverage-chevron { display: inline-block; width: 6px; height: 6px; margin-left: 5px; vertical-align: 2px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
+details[open] > .coverage-toggle .coverage-chevron { transform: rotate(225deg); vertical-align: -1px; }
 .coverage-method-link { color: #34433c; text-decoration: underline; text-underline-offset: 3px; cursor: default; }
 .editorial-note { margin: 0 0 24px; text-align: left; color: #626c66; font-size: .8rem; line-height: 1.6; }
 .editorial-note h2 { margin: 0 0 10px; font-size: .9rem; font-weight: 600; color: #526058; }
