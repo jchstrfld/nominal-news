@@ -748,15 +748,15 @@ def _fetch_fed_events(date_str: str) -> List[Dict[str, Any]]:
     target = _target_date(date_str)
     events: List[Dict[str, Any]] = []
     # Example page text: "Oct. 27-28 FOMC Meeting"
-    for mon, first_day, _last_day in re.findall(r"\b([A-Z][a-z]{2})\.\s+(\d{1,2})(?:\s*-\s*(\d{1,2}))?\s+FOMC Meeting\b", text):
+    for mon, first_day, last_day in re.findall(r"\b([A-Z][a-z]{2})\.\s+(\d{1,2})(?:\s*-\s*(\d{1,2}))?\s+FOMC Meeting\b", text):
         month = month_map.get(mon)
         if not month:
             continue
         year = target.year
         try:
-            event_date = date(year, month, int(first_day))
+            event_date = date(year, month, int(last_day or first_day))
             if event_date < target - timedelta(days=30):
-                event_date = date(year + 1, month, int(first_day))
+                event_date = date(year + 1, month, int(last_day or first_day))
             events.append({"date": event_date, "title": "Federal Reserve rate decision", "source": "Federal Reserve"})
         except Exception:
             continue
