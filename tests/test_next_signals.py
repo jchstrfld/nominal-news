@@ -262,6 +262,47 @@ class FixedProposalReviewChecks(unittest.TestCase):
                 self.assertIn("uncertainty", result["reason"])
         self.api.assert_not_called()
 
+    def test_negative_triage_discards_stray_sentence(self):
+        for status in ("NO_SIGNAL", "RESEARCH_NEEDED"):
+            self.api.side_effect = None
+            self.api.return_value = response({"status": status, "signal": "Stray draft",
+                "source_index": 1, "reason": "No supported event", "search_queries": []})
+            result = review_signals.evaluate_signal_triage(self.day, self.topic, [self.row])
+            self.assertFalse(result["eligible"])
+            self.assertEqual(result["signal"], "")
+            self.assertIsNone(result["source_index"])
+
+    def test_expired_source_day_is_not_next_week(self):
+        sentence = "The panel will release its findings Friday night."
+        row = {"description": sentence, "published_at": "2026-10-16"}
+        self.assertFalse(review_signals.validate_generated_signal_grounding("2026-10-17", sentence, row)[0])
+        self.assertTrue(review_signals.validate_generated_signal_grounding("2026-10-16", sentence, row)[0])
+        future = "The panel will release its findings Sunday."
+        self.assertTrue(review_signals.validate_generated_signal_grounding("2026-10-17", future,
+            {"description": future, "published_at": "2026-10-16"})[0])
+
+    def test_past_plan_cannot_be_rewritten_as_future(self):
+        for past in ("The panel members were to meet Friday night.",
+                     "The panel was to meet Friday night."):
+            row = {"grounded_sentence": past, "published_at": "2026-10-17"}
+            ok, reason = review_signals.validate_generated_signal_grounding(
+                "2026-10-17", "The panel will meet Friday night.", row)
+            self.assertFalse(ok)
+            self.assertIn("past plan", reason)
+        future = "The panel will meet Sunday."
+        row = {"grounded_sentence": future, "description": "They were to meet Friday. " + future,
+               "published_at": "2026-10-17"}
+        self.assertTrue(review_signals.validate_generated_signal_grounding("2026-10-17", future, row)[0])
+
+    def test_countdown_cannot_invent_start_date_from_publication(self):
+        row = {"published_at": "2026-10-17", "description":
+               "The defence team indicated its intention to appeal against the sentence and have to do so within 10 days."}
+        for start in ("October 17, 2026", "2026-10-17", "October 16, 2026"):
+            ok, reason = review_signals.validate_generated_signal_grounding("2026-10-17",
+                "The defence team will appeal within 10 days of " + start + ".", row)
+            self.assertFalse(ok)
+            self.assertIn("calendar date", reason)
+
     def test_saved_storm_reply_reaches_review_without_bypassing_its_verdict(self):
         path = "focused_review.json"
         saved = load_fixture(path)["required_comparison_storm_review"]
@@ -692,8 +733,14 @@ class FixedProposalReviewChecks(unittest.TestCase):
             self.assertNotIn("comparisons", result)
             for changed in ({"source_index": 1}, {"signal": self.proposal["signal"]}):
                 self.api.return_value = response({**payload, **changed})
-                with self.assertRaises(RuntimeError):
-                    function(self.day, self.topic, [self.row])
+                if function == review_signals.evaluate_signal_triage:
+                    result = function(self.day, self.topic, [self.row])
+                    self.assertFalse(result["eligible"])
+                    self.assertEqual(result["signal"], "")
+                    self.assertIsNone(result["source_index"])
+                else:
+                    with self.assertRaises(RuntimeError):
+                        function(self.day, self.topic, [self.row])
 
     def test_writer_refusal_truncation_and_invalid_source_are_errors(self):
         self.api.side_effect = None

@@ -2249,6 +2249,10 @@ def _evidence_lines(evidence: list[dict]) -> list[str]:
 
 
 def _grounding_reference_date(date_str: str, row: dict) -> date:
+    # Publication dates anchor relative prose; never move old copy to edition day.
+    published = _parse_reference_date(row.get("published_at") or "", date.min)
+    if published != date.min:
+        return published
     raw = str(row.get("grounded_reference_date") or "").strip()
     if raw:
         try:
@@ -2292,6 +2296,8 @@ def _checkpoint_timing_comparison(date_str: str, evidence: list[dict]) -> str:
                         and not re.search(r"\b(?:last|past|previous)\s*$", prefix, re.I)):
                     weekday = _WEEKDAY_NAMES[anchor["text"].lower()]
                     resolved = reference + timedelta(days=(weekday - reference.weekday()) % 7)
+            if resolved is not None and resolved < date.fromisoformat(date_str):
+                resolved = None
             label = json.dumps(anchor["text"], ensure_ascii=False)
             if resolved is not None:
                 calendar_dates.append(resolved)
@@ -2404,11 +2410,45 @@ def validate_generated_signal_grounding(date_str: str, signal: str, supporting_r
     if not signal or not source_sentence:
         return False, "Generated signal or supporting sentence was empty."
 
+    # A past plan ("were to meet") does not establish that the event is still
+    # upcoming. Do not let a rewritten "will meet" turn it into a new schedule.
+    # Use the selected sentence, not surrounding article context.
+    if re.search(r"\b(?:was|were)\s+to\s+[a-z]+\b", source_sentence, re.I):
+        return False, "Supporting sentence describes a past plan, not a confirmed upcoming checkpoint."
+
     reference_date = _grounding_reference_date(date_str, supporting_row)
+    # Validate calendar dates even when they are today/past: those are omitted
+    # by the future-anchor extractor but can invent a countdown's starting date.
+    def calendar_dates(text):
+        dates = set()
+        for match in _MONTH_RE.finditer(text):
+            if match.group("day"):
+                dates.add((int(match.group("year") or reference_date.year),
+                           _MONTH_NAMES[match.group("month").lower()[:3]],
+                           int(match.group("day"))))
+        for match in _NUMERIC_DATE_RE.finditer(text):
+            if match.group("ymd_year"):
+                dates.add(tuple(int(match.group(k)) for k in ("ymd_year", "ymd_month", "ymd_day")))
+            else:
+                dates.add((int(match.group("md_year") or reference_date.year),
+                           int(match.group("md_month")), int(match.group("md_day"))))
+        return dates
     published_date = _parse_reference_date(supporting_row.get("published_at") or "", date.min)
     source_anchors = [a for a in _future_anchor_records(source_sentence, reference_date)
                       if a["kind"] != "same_day" or published_date in {date.min, reference_date}]
     signal_anchors = _future_anchor_records(signal, reference_date)
+    briefing_date = date.fromisoformat(date_str)
+    for anchor in signal_anchors:
+        resolved = None
+        if anchor["kind"] == "same_day":
+            resolved = reference_date
+        elif anchor["kind"] == "date":
+            resolved = date.fromisoformat(anchor["key"].split(":", 1)[1])
+        elif anchor["kind"] == "weekday":
+            resolved = reference_date + timedelta(
+                days=(_WEEKDAY_NAMES[anchor["text"].lower()] - reference_date.weekday()) % 7)
+        if resolved is not None and resolved < briefing_date:
+            return False, "The proposed checkpoint has already passed before this edition."
     deadline_language = any(_is_explicit_deadline(signal, anchor) for anchor in signal_anchors)
     # Test the proposed prose itself. A future cue elsewhere in its source must
     # not turn a completed action in the draft into a future checkpoint. Modal
@@ -2430,6 +2470,8 @@ def validate_generated_signal_grounding(date_str: str, signal: str, supporting_r
         return False, "Generated signal did not preserve an explicit future time anchor."
     if not signal_keys.issubset(source_keys):
         return False, "A proposed future time reference was not present in the cited evidence."
+    if not calendar_dates(signal).issubset(calendar_dates(source_sentence)):
+        return False, "Generated signal introduced a calendar date absent from the supporting sentence."
     # Inspect the source, not the paraphrase: dropping or changing the condition
     # must not turn a proposed duration into a running countdown. An unrelated
     # calendar date in the passage does not establish the duration's start.
@@ -2702,8 +2744,10 @@ Return JSON matching the supplied schema: status, signal, source_index, reason, 
     if status == "SIGNAL":
         if type(source_index) is not int or not 1 <= source_index <= len(evidence) or not signal:
             raise RuntimeError("Next Signal triage lacks a valid selected source and sentence.")
-    elif source_index is not None or signal:
-        raise RuntimeError("Next Signal triage selected a sentence without SIGNAL status.")
+    else:
+        # A negative decision cannot publish a stray draft or source index.
+        signal = ""
+        source_index = None
 
     raw_queries = parsed.get("search_queries")
     if isinstance(raw_queries, str):
@@ -3098,6 +3142,9 @@ def main() -> None:
             if cache_dirty:
                 _save_json_atomic(args.cache_file, cache)
                 cache_dirty = False
+            # Keep the evidence needed to audit/replay completed decisions.
+            if sidecar_cache_dirty:
+                _save_json_atomic(args.sidecar_cache_file, sidecar_cache)
             raise RuntimeError(f"Next Signal {stage} failed; newsletter outputs were not replaced.") from exc
         cache[key] = decision
         cache_dirty = True
@@ -3352,6 +3399,15 @@ def main() -> None:
                     final_decision["reason"] = "Targeted research did not find qualifying timed evidence for the identified gap."
 
         signal = _clean_text(final_decision.get("signal") or "") if final_decision.get("eligible") else ""
+        # Recheck cached approvals against current local grounding rules too.
+        selected = final_decision.get("source_index")
+        if signal:
+            valid, problem = validate_generated_signal_grounding(
+                date_str, signal, final_evidence[selected - 1]
+            ) if type(selected) is int and 1 <= selected <= len(final_evidence) else (False, "Missing supporting source.")
+            if not valid:
+                signal = ""
+                final_decision.update(eligible=False, signal="", reason=problem)
         topic["next_signal"] = signal
 
         source_index = final_decision.get("source_index")

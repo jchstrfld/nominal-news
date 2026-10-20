@@ -67,6 +67,12 @@ class FramingTests(unittest.TestCase):
             self.assertEqual(framing.frame_image('test', content=b'bad', cache_dir=directory)['reason'],
                              'analysis_unavailable')
 
+    def test_wikimedia_thumbnail_host_reaches_download(self):
+        with patch.object(framing.requests, 'get', side_effect=requests.Timeout) as get:
+            with self.assertRaises(requests.Timeout):
+                framing.download_image('https://thumb.wikimedia.org/wikipedia/commons/thumb/a/photo.jpg')
+            get.assert_called_once()
+
     def test_disallowed_host_never_requested(self):
         with patch.object(framing.requests, 'get') as get:
             with self.assertRaises(ValueError):

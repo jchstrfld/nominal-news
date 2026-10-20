@@ -18,7 +18,7 @@ MODEL = ROOT / "models/face_detection/yunet.onnx"
 CACHE = ROOT / "data/image_framing"
 VERSION = "yunet-2023mar-v1"
 MODEL_SHA256 = "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
-ALLOWED_HOSTS = {"upload.wikimedia.org", "images.unsplash.com"}
+ALLOWED_HOSTS = {"upload.wikimedia.org", "thumb.wikimedia.org", "images.unsplash.com"}
 MAX_BYTES = 12 * 1024 * 1024
 
 
