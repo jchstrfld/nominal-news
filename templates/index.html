@@ -2,31 +2,57 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nominal News</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=20261019-theme-preview">
 </head>
 
 <body>
   <div class="container">
     <a id="top"></a>
+    <div class="theme-preview" hidden>
+      <label for="theme-preview">Preview</label>
+      <select id="theme-preview">
+        <option value="system" selected>System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
 
     {% set topics_count = summaries|length %}
     {% set estimated_minutes = ((topics_count * 0.75) + 2) | round(0, 'common') | int %}
     {% if estimated_minutes < 3 %}{% set estimated_minutes = 3 %}{% endif %}
     {% if estimated_minutes > 12 %}{% set estimated_minutes = 12 %}{% endif %}
 
+    <header class="newsletter-header">
+      <div class="edition-bar">
+        {% if requested_date %}
+          {% set date_parts = requested_date.split('-') %}
+          {% set months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] %}
+          <time datetime="{{ requested_date }}">{% if date_parts|length == 3 and 1 <= date_parts[1]|int <= 12 %}{{ months[(date_parts[1]|int) - 1] }} {{ date_parts[2]|int }}, {{ date_parts[0] }}{% else %}{{ requested_date }}{% endif %}</time>
+        {% else %}
+          <span>Your daily edition</span>
+        {% endif %}
+        <nav class="edition-links" aria-label="Newsletter links">
+          <a href="{% if requested_date %}/?date={{ requested_date | urlencode }}{% else %}/{% endif %}">View Online</a>
+          <span aria-hidden="true">|</span>
+          <a role="link" aria-disabled="true" title="Sign up coming soon">Sign up</a>
+        </nav>
+      </div>
+      <div class="newsletter-masthead" aria-label="Nominal News">
+        <h1 class="masthead-name">nominal<span class="masthead-dot">.</span></h1>
+        <p class="masthead-descriptor">NEWS, AT A HUMAN PACE</p>
+      </div>
     <div class="done-signal">
-      <h1 class="done-title">Take a breath. Let&#39;s start today&#39;s news.</h1>
-
       <p class="done-body">
-        Like your emotional availability, today&#39;s edition is finite. Skim the topics, then you&#39;re done. If you're not in the headspace today, come back tomorrow.
+        {{ edition_intro }}
       </p>
-
       <p class="done-meta">
-        {{ topics_count }} topics • {{ estimated_minutes }} minutes to read • Topics ordered from most to least discussed, followed by verified sources
+        {{ topics_count }} topics <span aria-hidden="true">·</span> {{ estimated_minutes }} min read <span aria-hidden="true">·</span> Most-covered stories first
       </p>
     </div>
+    </header>
 
   {% if market_overview %}
       {% set signals = market_overview.get('signals', {}) %}
@@ -112,6 +138,9 @@
                 alt="{{ topic.image_alt }}"
                 width="600"
                 height="338"
+                {% if topic.image_framing is defined %}
+                style="object-position: {{ topic.image_framing.x | float }}% {{ topic.image_framing.y | float }}%;"
+                {% endif %}
                 loading="lazy"
               />
               {% if topic.image_credit %}
@@ -127,13 +156,19 @@
                       {% else %}
                         / Unsplash
                       {% endif %}
-                    {% elif topic.image_source_url %}
-                      Photo:
-                      <a href="{{ topic.image_source_url }}" target="_blank" rel="noopener noreferrer">
-                        {{ topic.image_credit | replace('Photo: ', '') }}
-                      </a>
                     {% else %}
-                      {{ topic.image_credit }}
+                      Photo:
+                      {% for credit_part in (topic.image_credit | replace('Photo: ', '')).split(' / ') %}
+                        {% set credit_part = credit_part | trim %}
+                        {% if not loop.first %} / {% endif %}
+                        {% if credit_part.startswith('https://') or credit_part.startswith('http://') %}
+                          <a href="{{ credit_part }}" target="_blank" rel="noopener noreferrer">Source</a>
+                        {% elif topic.image_source_url %}
+                          <a href="{{ topic.image_source_url }}" target="_blank" rel="noopener noreferrer">{{ credit_part }}</a>
+                        {% else %}
+                          {{ credit_part }}
+                        {% endif %}
+                      {% endfor %}
                     {% endif %}
 
                     {% if topic.image_license %}
@@ -149,6 +184,10 @@
                     {% if topic.image_license and 'CC BY' in topic.image_license %}
                       · Cropped
                     {% endif %}
+                    {% if topic.image_discovery_source == 'openverse' %}
+                      · Image search powered by <a href="https://openverse.org/" target="_blank" rel="noopener noreferrer">Openverse</a>.
+                      Not endorsed or certified by Openverse.
+                    {% endif %}
                   </span>
                 </figcaption>
               {% endif %}
@@ -160,83 +199,57 @@
           {% endif %}
 
           {% if topic.next_signal %}
-            <div class="topic-next-signal" aria-label="When to check back for this story">
-              <span class="topic-next-label">When to Check Back</span>
+            <div class="topic-next-signal" aria-label="What's Next?">
+              <span class="topic-next-label">What's Next?</span>
               <span class="topic-next-value">{{ topic.next_signal }}</span>
             </div>
           {% endif %}
 
-          {% if topic.bias_distribution and topic.bias_distribution|length > 0 %}
-            {% set dist = topic.bias_distribution %}
-
-            {# Roll up extremes for display #}
-            {% set pct_left = (dist.get('Far Left', 0) or 0) + (dist.get('Left', 0) or 0) %}
-            {% set pct_center = (dist.get('Center', 0) or 0) %}
-            {% set pct_right = (dist.get('Right', 0) or 0) + (dist.get('Far Right', 0) or 0) %}
-
-          {# Only show Uncategorized if the data explicitly contains it #}
-          {% set pct_uncat = (dist.get('Unknown', 0) or 0) + (dist.get('Uncategorized', 0) or 0) %}
-
-            {% set bias_base_count = topic.bias_outlet_count or topic.linked_source_count or topic.coverage_outlet_count or topic.num_sources or 0 %}
-            <p class="chart-title"><strong>How This Was Reported</strong></p>
-            <p class="balance-label-title">Political Lean by Outlet:</p>
-            <div class="balance-wrap"
-              role="img"
-              aria-label="Coverage balance bar. Left {{ pct_left }} percent, center {{ pct_center }} percent, right {{ pct_right }} percent{% if pct_uncat %}, uncategorized {{ pct_uncat }} percent{% endif %}.">
-
-              {% set min_full_label_pct = 14 %}
-              {% set min_percent_only_pct = 9 %}
-
-              <div class="balance-labels" aria-hidden="true">
-                {% if pct_left > 0 %}
-                  <span class="balance-label seg-left" style="width: {{ pct_left }}%">
-                    {% if pct_left >= min_full_label_pct %}
-                      Left {{ pct_left }}%
-                    {% elif pct_left >= min_percent_only_pct %}
-                      {{ pct_left }}%
-                    {% endif %}
-                  </span>
-                {% endif %}
-
-                {% if pct_center > 0 %}
-                  <span class="balance-label seg-center" style="width: {{ pct_center }}%">
-                    {% if pct_center >= min_full_label_pct %}
-                      Center {{ pct_center }}%
-                    {% elif pct_center >= min_percent_only_pct %}
-                      {{ pct_center }}%
-                    {% endif %}
-                  </span>
-                {% endif %}
-
-                {% if pct_right > 0 %}
-                  <span class="balance-label seg-right" style="width: {{ pct_right }}%">
-                    {% if pct_right >= min_full_label_pct %}
-                      Right {{ pct_right }}%
-                    {% elif pct_right >= min_percent_only_pct %}
-                      {{ pct_right }}%
-                    {% endif %}
-                  </span>
-                {% endif %}
-
-                {% if pct_uncat > 0 %}
-                  <span class="balance-label seg-unknown" style="width: {{ pct_uncat }}%">
-                    {% if pct_uncat >= min_full_label_pct %}
-                      Uncategorized {{ pct_uncat }}%
-                    {% elif pct_uncat >= min_percent_only_pct %}
-                      {{ pct_uncat }}%
-                    {% endif %}
-                  </span>
-                {% endif %}
-
+          <section class="coverage-overview" aria-label="About the Coverage">
+            <h3 class="coverage-heading">About the Coverage</h3>
+            {% set global_outlets = topic.global_coverage_outlet_count or 0 %}
+            {% set global_reports = topic.global_unique_writeup_count or 0 %}
+            {% set linked_outlets = topic.linked_source_count or topic.coverage_outlet_count or topic.num_sources or 0 %}
+            {% set report_count = topic.coverage_writeup_count or (topic.coverage_writeups|length if topic.coverage_writeups else 0) %}
+            {% if report_count > 0 %}
+              <p class="coverage-totals"><b>{{ report_count }}</b> distinct articles <span aria-hidden="true">·</span> <b>{{ linked_outlets }}</b> news outlets worldwide</p>
+            {% endif %}
+            {% macro coverage_chart(interactive=false) %}
+            {% if topic.bias_distribution and topic.bias_distribution|length > 0 %}
+              {% set dist = topic.bias_distribution %}
+              {% set counts = topic.bias_counts or {} %}
+              {% set bias_base_count = topic.bias_outlet_count or linked_outlets %}
+              {% set groups = [
+                ('Left Lean', 'seg-left', ['Far Left', 'Left']),
+                ('Center', 'seg-center', ['Center']),
+                ('Right Lean', 'seg-right', ['Right', 'Far Right']),
+                ('Not Rated', 'seg-unknown', ['Unknown', 'Uncategorized'])
+              ] %}
+              <span class="coverage-action-heading"><span class="coverage-lean-heading">Political Lean of Sources</span>{% if interactive %}<span class="coverage-action-label"><span class="coverage-label-closed">See All Sources</span><span class="coverage-label-open">Hide Sources</span> <span class="coverage-chevron" aria-hidden="true"></span></span>{% endif %}</span>
+              {% if bias_base_count != linked_outlets or report_count == 0 %}<p class="coverage-scope">Ratings cover {{ bias_base_count }} news outlets.</p>{% endif %}
+              <div class="coverage-meter" aria-hidden="true">
+                {% for label, color, keys in groups %}
+                  {% set values = namespace(percent=0) %}
+                  {% for key in keys %}{% set values.percent = values.percent + (dist.get(key, 0) or 0) %}{% endfor %}
+                  <span class="{{ color }}" style="width: {{ values.percent }}%"></span>
+                {% endfor %}
               </div>
+              <ul class="coverage-legend" aria-label="Political lean by outlet">
+                {% for label, color, keys in groups %}
+                  {% set values = namespace(percent=0, count=0) %}
+                  {% for key in keys %}
+                    {% set values.percent = values.percent + (dist.get(key, 0) or 0) %}
+                    {% set values.count = values.count + (counts.get(key, 0) or 0) %}
+                  {% endfor %}
+                  <li><span class="coverage-dot {{ color }}" aria-hidden="true"></span><span>{{ label }} <b>{% if counts %}{{ values.count }} ({{ values.percent }}%){% else %}{{ values.percent }}%{% endif %}</b></span></li>
+                {% endfor %}
+              </ul>
+              <p class="coverage-explanation">“Not rated” means we don’t have an outlet rating. Political ratings describe the outlets, not our summary.</p>
+            {% elif interactive %}<span class="coverage-action-label"><span class="coverage-label-closed">See All Sources</span><span class="coverage-label-open">Hide Sources</span> <span class="coverage-chevron" aria-hidden="true"></span></span>
+            {% endif %}
 
-              <!-- Mobile fallback: only shown on small widths via CSS -->
-              <p class="balance-caption">
-                Left {{ pct_left }}% · Center {{ pct_center }}% · Right {{ pct_right }}%{% if pct_uncat > 0 %} · Uncategorized {{ pct_uncat }}%{% endif %}
-              </p>
-
-            </div>
-          {% endif %}
+            {% endmacro %}
+            {% if not topic.coverage_writeups and not topic.html_chips %}{{ coverage_chart() }}{% endif %}
 
           {% if topic.coverage_writeups or topic.html_chips %}
             {% set n_linked = topic.linked_source_count or topic.coverage_outlet_count or topic.num_sources or 0 %}
@@ -268,33 +281,11 @@
             {% endif %}
 
             {% if topic.coverage_writeups and n_writeups > 0 %}
-              <div class="coverage-summary">
-                <p class="coverage-count-note">
-                  {% if has_global_coverage %}
-                    <span class="coverage-count-primary"><strong>{{ n_global_writeups }}</strong> distinct report{% if n_global_writeups != 1 %}s{% endif %} across <strong>{{ n_global_outlets }}</strong> outlet{% if n_global_outlets != 1 %}s{% endif %} worldwide</span>
-                  {% else %}
-                    <span class="coverage-count-primary"><strong>{{ n_writeups }}</strong> linked report{% if n_writeups != 1 %}s{% endif %} across <strong>{{ n_linked }}</strong> outlet{% if n_linked != 1 %}s{% endif %}</span>
-                  {% endif %}
-                </p>
-
-                <div class="coverage-bias-counts" aria-label="Political lean counts by outlet">
-                  {% if far_left > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-far-left"></span>{{ far_left }} Far Left</span>{% endif %}
-                  {% if left > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-left"></span>{{ left }} Left</span>{% endif %}
-                  {% if center > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-center"></span>{{ center }} Center</span>{% endif %}
-                  {% if right > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-right"></span>{{ right }} Right</span>{% endif %}
-                  {% if far_right > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-far-right"></span>{{ far_right }} Far Right</span>{% endif %}
-                  {% if unknown > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-unknown"></span>{{ unknown }} Uncategorized</span>{% endif %}
-                </div>
-              </div>
-
               <details class="sources-collapsible sources-block writeups-block">
-                <summary class="sources-summary reports-summary">
-                  <span class="sources-summary-text">
-                    View {{ n_writeups }} Linked Report{% if n_writeups != 1 %}s{% endif %}{% if has_global_coverage and n_writeups > n_global_writeups %} <span class="reports-summary-note">(includes direct-feed coverage)</span>{% endif %}
-                  </span>
-                </summary>
+                <summary class="coverage-toggle">{{ coverage_chart(true) }}</summary>
 
                 <div class="writeups-list">
+                  <p class="source-list-intro">Each link represents a distinct article about this story, prioritizing sources used in our summary. “Similar Versions” groups other outlets carrying the same or closely matching reporting. The linked outlet may not be the original publisher.</p>
                   {% for writeup in topic.coverage_writeups %}
                     <article class="writeup-row">
                       <a class="writeup-title" href="{{ writeup.url }}" target="_blank" rel="noopener noreferrer">
@@ -302,23 +293,23 @@
                       </a>
 
                       <div class="writeup-meta">
-                        <strong class="writeup-source">{{ writeup.source_name }}</strong>
+                        <span class="writeup-source">{{ writeup.source_name }}</span>
                         <span class="writeup-bias bias-{{ writeup.bias_slug }}">
-                          {% if writeup.bias == 'Unknown' %}Uncategorized{% else %}{{ writeup.bias }}{% endif %}
+                          {% if writeup.bias == 'Unknown' %}Uncategorized{% elif writeup.bias == 'Left' %}Left Lean{% elif writeup.bias == 'Right' %}Right Lean{% else %}{{ writeup.bias }}{% endif %}
                         </span>
                       </div>
 
                       {% if writeup.other_outlets and writeup.other_outlets|length > 0 %}
                         <details class="republisher-details">
                           <summary>
-                            Same report republished by {{ writeup.additional_outlet_count }} other outlet{% if writeup.additional_outlet_count != 1 %}s{% endif %}
+                            Similar Versions at {{ writeup.additional_outlet_count }} Other Outlet{% if writeup.additional_outlet_count != 1 %}s{% endif %}
                           </summary>
                           <ul class="republisher-list">
                             {% for outlet in writeup.other_outlets %}
                               <li class="republisher-row">
                                 <span class="republisher-name">{{ outlet.source_name }}</span>
                                 <span class="writeup-bias bias-{{ outlet.bias_slug }}">
-                                  {% if outlet.bias == 'Unknown' %}Uncategorized{% else %}{{ outlet.bias }}{% endif %}
+                                  {% if outlet.bias == 'Unknown' %}Uncategorized{% elif outlet.bias == 'Left' %}Left Lean{% elif outlet.bias == 'Right' %}Right Lean{% else %}{{ outlet.bias }}{% endif %}
                                 </span>
                               </li>
                             {% endfor %}
@@ -329,24 +320,14 @@
                   {% endfor %}
 
                   <p class="republisher-method-note">
-                    Republisher names are shown for coverage transparency, but their links are omitted because those URLs can be temporary.
+                    Other outlet names are shown for transparency. Their links are omitted because those URLs can be temporary.
                   </p>
                 </div>
               </details>
             {% elif topic.html_chips %}
               {# Fallback for older summary JSON without structured write-up data. #}
               <details class="sources-collapsible sources-block">
-                <summary class="sources-summary">
-                  <span class="sources-summary-text">View source outlets</span>
-                  <span class="sources-balance">
-                    {% if far_left > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-far-left"></span>{{ far_left }} Far Left</span>{% endif %}
-                    {% if left > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-left"></span>{{ left }} Left</span>{% endif %}
-                    {% if center > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-center"></span>{{ center }} Center</span>{% endif %}
-                    {% if right > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-right"></span>{{ right }} Right</span>{% endif %}
-                    {% if far_right > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-far-right"></span>{{ far_right }} Far Right</span>{% endif %}
-                    {% if unknown > 0 %}<span class="lean-pill"><span class="lean-swatch swatch-unknown"></span>{{ unknown }} Uncategorized</span>{% endif %}
-                  </span>
-                </summary>
+                <summary class="coverage-toggle">{{ coverage_chart(true) }}</summary>
                 <div class="sources-list">
                   {{ topic.html_chips | safe }}
                 </div>
@@ -354,20 +335,42 @@
             {% endif %}
           {% endif %}
 
+          </section>
+
           {% if topic.fallback_summary %}
             <p class="fallback">⚠️ This summary was generated from fallback content due to weak article cohesion.</p>
           {% endif %}
         </div>
       {% endfor %}
 
+      {% if worth_knowing and worth_knowing.get('items') %}
+        <section class="worth-knowing-card" aria-labelledby="worth-knowing-title">
+          <div class="worth-knowing-heading">
+            <h2 id="worth-knowing-title" class="worth-knowing-title">Worth Knowing</h2>
+            <p class="worth-knowing-description">Smaller stories worth keeping on your radar.</p>
+          </div>
+
+          <div class="worth-knowing-list">
+            {% for item in worth_knowing.get('items', []) %}
+              <article class="worth-knowing-item">
+                <h3 class="worth-knowing-headline">{{ item.headline }}</h3>
+                <p class="worth-knowing-summary">{{ item.summary }}</p>
+                {% if item.source_url %}
+                  <a class="worth-knowing-source" href="{{ item.source_url }}" target="_blank" rel="noopener noreferrer">
+                    Source{% if item.source_name %}: {{ item.source_name }}{% endif %}
+                  </a>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
       {% if topics_count > 0 %}
         {% set total_source_mentions = summaries | map(attribute='num_sources') | map('default', 0) | sum %}
         <div class="closure-signal">
-          <h2 class="closure-title">Phew, that’s enough news for today.</h2>
-
           <p class="closure-body">
-            You covered <strong>{{ topics_count }}</strong> topics{% if total_source_mentions > 0 %} across <strong>{{ total_source_mentions }}</strong> sources{% endif %}.
-            Great work getting through it all. Come back tomorrow for more.
+            You’ve viewed <strong>{{ topics_count }}</strong> topics across <strong>{{ total_source_mentions }}</strong> source mentions today. {{ edition_sign_off }}
           </p>
 
           <a class="back-to-top" href="#top">Back to top ↑</a>
@@ -375,15 +378,33 @@
       {% endif %}
     </div>
 
-    <hr class="footer-divider" />
     <footer class="site-footer">
-      <p class="footer-line">Made in Chicago. Written for normalcy. Designed against outrage.</p>
-      <p class="footer-line">Copyright © <span id="footerYear"></span> Nominal News. All rights reserved.</p>
+      <div class="footer-banner">
+        <p class="footer-line">Made in Chicago. Written for normalcy. Designed against outrage.</p>
+        <nav class="footer-links" aria-label="Website Information">
+          <a role="link" aria-disabled="true" title="Website coming soon">Website</a>
+          <span aria-hidden="true">|</span>
+          <a role="link" aria-disabled="true" title="Coverage methodology page coming soon">How We Measure Coverage</a>
+          <span aria-hidden="true">|</span>
+          <a role="link" aria-disabled="true" title="Editorial approach page coming soon">Editorial Approach</a>
+        </nav>
+        <p class="footer-line">Copyright © <span id="footerYear"></span> Nominal News. All rights reserved.</p>
+      </div>
     </footer>
   </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+      const themePreview = document.getElementById("theme-preview");
+      themePreview.value = "system";
+      themePreview.parentElement.hidden = false;
+      themePreview.addEventListener("change", () => {
+        if (themePreview.value === "system") {
+          delete document.documentElement.dataset.theme;
+        } else {
+          document.documentElement.dataset.theme = themePreview.value;
+        }
+      });
       const yearEl = document.getElementById("footerYear");
       if (yearEl) yearEl.textContent = new Date().getFullYear();
 

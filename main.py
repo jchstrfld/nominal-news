@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, Request, Query
+from edition_intro import introduction_for_date, sign_off_for_date
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -34,6 +35,24 @@ def load_market_overview(date_str: str) -> Optional[Dict[str, Any]]:
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
+    except Exception:
+        return None
+
+
+def load_worth_knowing(date_str: str) -> Optional[Dict[str, Any]]:
+    """Load the additive Worth Knowing section for a given date, if present."""
+    path = BASE_DIR / f"worth_knowing_{date_str}.json"
+    if not path.exists():
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        if not isinstance(payload, dict):
+            return None
+        items = payload.get("items")
+        if not isinstance(items, list) or not items:
+            return None
+        return payload
     except Exception:
         return None
 
@@ -100,6 +119,7 @@ async def homepage(
             )
 
     market_overview = load_market_overview(requested_date) if requested_date else None
+    worth_knowing = load_worth_knowing(requested_date) if requested_date else None
     
     return templates.TemplateResponse(
         "index.html",
@@ -107,7 +127,10 @@ async def homepage(
             "request": request,
             "summaries": summaries,
             "requested_date": requested_date,
+            "edition_intro": introduction_for_date(requested_date),
+            "edition_sign_off": sign_off_for_date(requested_date),
             "status_msg": status_msg,
             "market_overview": market_overview,
+            "worth_knowing": worth_knowing,
         },
     )

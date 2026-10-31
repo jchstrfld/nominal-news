@@ -185,7 +185,7 @@ def canonicalize_url(u: str) -> str:
 # Cluster-level GPT validation (eventness) — capped + cached
 
 EVENT_MODEL = os.getenv("NN_EVENT_MODEL", "gpt-4o-mini")
-EVENT_MAX_CALLS = int(os.getenv("NN_EVENT_MAX_CALLS", "48"))  # hard ceiling; rank-safe stopping usually ends earlier
+EVENT_MAX_CALLS = int(os.getenv("NN_EVENT_MAX_CALLS", "56"))  # hard ceiling, not a guarantee that ranking is complete
 MIN_PUBLISH_ARTICLES = int(os.getenv("NN_MIN_PUBLISH_ARTICLES", "4"))
 MIN_PUBLISH_DOMAINS = int(os.getenv("NN_MIN_PUBLISH_DOMAINS", "3"))
 _EVENT_TOKEN_USAGE = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
@@ -1012,6 +1012,70 @@ def _gdelt_shadow_blended_score(
     return round((0.80 * stronger + 0.20 * weaker) * 100.0, 3)
 
 
+def _gdelt_review_bounds(
+    local_upper: float,
+    retained_evidence: dict,
+    matcher: dict | None,
+) -> dict:
+    """Bound the score after cleaning, independently of review priority.
+
+    Cleaning can remove a match or reveal a different catalog match. A short
+    list of tentative semantic matches cannot bound those outcomes. Include
+    every available catalog candidate, all retained candidates, and no match.
+    This changes stopping safety only, never a published score or eligibility.
+    """
+    candidates = list(retained_evidence.get("candidates") or [])
+    if matcher and matcher.get("status") == "OK":
+        candidates.extend({
+            "candidate_id": row.get("candidate_id"),
+            "discovery_percentile": (row.get("global_attention") or {}).get("discovery_percentile", 0.0),
+        } for row in matcher.get("catalog") or [])
+    scores = [_gdelt_shadow_blended_score(local_upper, None)]
+    for row in candidates:
+        # The final evidence path rounds the signal to four decimal places.
+        signal = round(_clamp01(row.get("discovery_percentile", 0.0)), 4)
+        scores.append(_gdelt_shadow_blended_score(local_upper, signal))
+    return {
+        "score_upper": max(scores),
+        "candidate_ids": {row["candidate_id"] for row in candidates if row.get("candidate_id")},
+    }
+
+
+def _gdelt_assignments_may_change(
+    approved_events: list[dict], remaining_candidate_ids: set[str],
+) -> bool:
+    """An unchecked event could take a match and change an approved score.
+
+    Consider all approved options, not just current winners: one-to-one
+    assignment can cascade to alternative matches and local-only fallbacks.
+    """
+    if not remaining_candidate_ids:
+        return False
+    for event in approved_events:
+        options = event.get("_gdelt_catalog_match_options") or []
+        retained = _gdelt_global_attention_from_articles(
+            event.get("related_articles", event.get("articles", [])),
+            min_retained_articles=2,
+        )
+        if any(row.get("candidate_id") in remaining_candidate_ids
+               for row in list(options) + list(retained.get("candidates") or [])):
+            return True
+    return False
+
+
+def _gdelt_ranking_can_stop(
+    remaining_local_upper: float, cutoff_local: float,
+    remaining_global_upper: float, cutoff_global: float,
+    approved_events: list[dict], remaining_candidate_ids: set[str],
+) -> bool:
+    # Strict inequalities leave ties for the existing ranking tie-breakers.
+    return (
+        remaining_local_upper < cutoff_local
+        and remaining_global_upper < cutoff_global
+        and not _gdelt_assignments_may_change(approved_events, remaining_candidate_ids)
+    )
+
+
 def _shadow_event_id(cluster: dict) -> str:
     signature = _cluster_sig_urls(cluster)
     if not signature:
@@ -1335,6 +1399,58 @@ def _get_sem_embedder():
             return None
         _SEM_EMBEDDER = SentenceTransformer("all-MiniLM-L6-v2")
     return _SEM_EMBEDDER
+
+def suppress_repeated_approved_events(clusters: list[dict]) -> list[dict]:
+    """Keep one approved event when its core repeats verified event coverage.
+
+    This runs after purification, when RELATED has an event-specific meaning.
+    It does not combine cores, change scores, or infer identity from entities.
+    Require at least 75% of a core's headlines to be present in another event's
+    verified coverage. Long exact headline prefixes allow syndication suffixes.
+    """
+    from html import unescape
+
+    def words(article):
+        title = unescape(re.sub(r"<[^>]+>", "", article.get("title") or ""))
+        return re.findall(r"\w+(?:\.\d+)?", title.casefold().replace("%", " percent "))
+
+    def same_report(a, b):
+        left, right = words(a), words(b)
+        if min(len(left), len(right)) < 10:
+            return False
+        size = min(len(left), len(right))
+        if left[:size] != right[:size]:
+            return False
+        # Identical recurring headlines from different days are not evidence
+        # of the same event. Missing dates cannot establish report identity.
+        da = str(a.get("published_date") or a.get("published_at") or "")[:10]
+        db = str(b.get("published_date") or b.get("published_at") or "")[:10]
+        try:
+            return abs((datetime.fromisoformat(da) - datetime.fromisoformat(db)).days) <= 1
+        except ValueError:
+            return False
+
+    def covered(core, coverage):
+        return len(core) >= 2 and sum(any(same_report(a, b) for b in coverage) for a in core) / len(core) >= .75
+
+    def coverage(c):
+        return c.get("related_articles", []) + c.get("articles", [])
+
+    # Prefer the event with the richer verified coverage, without reordering it.
+    order = sorted(range(len(clusters)), key=lambda i: (
+        len(clusters[i].get("articles", [])), len(coverage(clusters[i])), -i), reverse=True)
+    kept = []
+    for i in order:
+        c = clusters[i]
+        if not c.get("publication_purification"):
+            kept.append(i)
+            continue
+        if any(clusters[j].get("publication_purification") and
+               covered(c.get("articles", []), coverage(clusters[j])) for j in kept):
+            continue
+        kept.append(i)
+    return [clusters[i] for i in sorted(kept)]
+
 
 def dedupe_topics(
     clusters: list[dict],
@@ -3171,6 +3287,8 @@ _OUTPUT_TRANSIENT_KEYS = [
     "_gdelt_shadow_global_upper_signal",
     "_gdelt_shadow_potential_score",
     "_gdelt_shadow_potential_evidence",
+    "_gdelt_shadow_score_upper_bound",
+    "_gdelt_shadow_possible_candidate_ids",
     "_gdelt_catalog_match_options",
     "_gdelt_shadow_local_signal",
     "_gdelt_shadow_global_signal",
@@ -3669,7 +3787,11 @@ def main():
                 global_upper,
             )
             c["_gdelt_shadow_potential_evidence"] = global_evidence
+            bounds = _gdelt_review_bounds(local_upper, retained_evidence, gdelt_catalog_matcher)
+            c["_gdelt_shadow_score_upper_bound"] = bounds["score_upper"]
+            c["_gdelt_shadow_possible_candidate_ids"] = sorted(bounds["candidate_ids"])
 
+        # Tentative matches prioritize reviews; they are not stopping bounds.
         review_queue = sorted(
             ranked,
             key=lambda c: (
@@ -3682,10 +3804,11 @@ def main():
             reverse=True,
         )
 
-        # Suffix maxima make stopping rank-safe for BOTH the unchanged local
-        # order and the GDELT global shadow order, regardless of queue ordering.
+        # Suffix bounds include changed/missing matches, independently of queue
+        # priority. Shared candidate IDs also guard against assignment changes.
         shadow_suffix_local_upper = [0.0] * (len(review_queue) + 1)
         shadow_suffix_global_upper = [0.0] * (len(review_queue) + 1)
+        shadow_suffix_candidate_ids = [set() for _ in range(len(review_queue) + 1)]
         for idx in range(len(review_queue) - 1, -1, -1):
             shadow_suffix_local_upper[idx] = max(
                 shadow_suffix_local_upper[idx + 1],
@@ -3694,9 +3817,13 @@ def main():
             shadow_suffix_global_upper[idx] = max(
                 shadow_suffix_global_upper[idx + 1],
                 float(
-                    review_queue[idx].get("_gdelt_shadow_potential_score", 0.0)
+                    review_queue[idx]["_gdelt_shadow_score_upper_bound"]
                     or 0.0
                 ),
+            )
+            shadow_suffix_candidate_ids[idx] = (
+                shadow_suffix_candidate_ids[idx + 1]
+                | set(review_queue[idx]["_gdelt_shadow_possible_candidate_ids"])
             )
     else:
         review_queue = sorted(
@@ -3711,6 +3838,7 @@ def main():
         )
         shadow_suffix_local_upper = []
         shadow_suffix_global_upper = []
+        shadow_suffix_candidate_ids = []
 
     # Final structured publication gate:
     # one call identifies a strict summary CORE and broader event-specific RELATED
@@ -3773,9 +3901,10 @@ def main():
                     remaining_local_upper = shadow_suffix_local_upper[queue_pos]
                     remaining_shadow_upper = shadow_suffix_global_upper[queue_pos]
 
-                    if (
-                        remaining_local_upper < cutoff_attention
-                        and remaining_shadow_upper < cutoff_shadow
+                    if _gdelt_ranking_can_stop(
+                        remaining_local_upper, cutoff_attention,
+                        remaining_shadow_upper, cutoff_shadow,
+                        vetted, shadow_suffix_candidate_ids[queue_pos],
                     ):
                         purifier_stop_reason = "top_k_local_and_global_rank_secured"
                         break
@@ -4036,6 +4165,13 @@ def main():
                 published["_gdelt_shadow_evidence"] = global_evidence
 
             vetted.append(published)
+            # Count unique approved events before evaluating the top-K stopping
+            # condition and before assigning global coverage/ranking receipts.
+            unique_vetted = suppress_repeated_approved_events(vetted)
+            for repeated in vetted:
+                if not any(repeated is retained for retained in unique_vetted):
+                    print(f"↪ Withheld repeated approved event: {repeated.get('canonical_event', '')}")
+            vetted = unique_vetted
 
             if purity_report:
                 local_removed = len(related_filter_diag.get("removed", []))

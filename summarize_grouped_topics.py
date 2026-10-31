@@ -10,6 +10,7 @@ import tiktoken
 import difflib
 import re
 import requests
+from image_framing import frame_image
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
@@ -91,7 +92,8 @@ ENCODING = tiktoken.encoding_for_model("gpt-4")
 
 # Cache config (bump PROMPT_VERSION when you change the prompt format)
 PROMPT_VERSION = "v1.1-evidence-only-2026-09-05"
-SUMM_MODEL = "gpt-4"
+SUMM_MODEL = "gpt-5.6-sol"
+MAX_SUMMARY_OUTPUT_TOKENS = 600
 
 
 def select_central_articles(articles: list[dict], k: int) -> list[dict]:
@@ -230,8 +232,91 @@ def _extract_proper_phrases(text: str) -> set[str]:
     return phrases
 
 
+def _contains_word_sequence(words: list[str], phrase: list[str]) -> bool:
+    """Match a complete contiguous phrase, never a substring or reordered name."""
+    return bool(phrase) and any(
+        words[index:index + len(phrase)] == phrase
+        for index in range(len(words) - len(phrase) + 1)
+    )
+
+
 def _anchor_key(text: str) -> str:
     return " ".join(re.findall(r"[a-z0-9]+", (text or "").lower()))
+
+
+_IMAGE_NLP = None
+_IMAGE_NLP_ATTEMPTED = False
+_IMAGE_AUDIT: list[dict] = []
+
+
+def _image_audit(provider: str, query: str, reason: str, candidate: str = "") -> None:
+    """Explain image-only omissions without logging credentials or full responses."""
+    _IMAGE_AUDIT.append({"provider": provider, "query": query,
+                         "reason": reason, "candidate": candidate})
+
+
+def _image_named_entities(title: str, description: str = "") -> list[tuple[str, str]]:
+    """Extract whole source-title entities in context using the installed local NER model.
+
+    Descriptions supply context only; generated summaries never invent search names.
+    Missing local model means no image queries, never a model download or paid call.
+    """
+    global _IMAGE_NLP, _IMAGE_NLP_ATTEMPTED
+    if not _IMAGE_NLP_ATTEMPTED:
+        _IMAGE_NLP_ATTEMPTED = True
+        try:
+            import spacy
+            _IMAGE_NLP = spacy.load("en_core_web_sm", disable=["parser", "lemmatizer"])
+        except Exception:
+            _IMAGE_NLP = None
+    if _IMAGE_NLP is None:
+        _image_audit("queries", "", "local_entity_model_unavailable")
+        return []
+    doc = _IMAGE_NLP(title + ". " + _clean_html(description)[:1200])
+    title_tokens = [token for token in doc if token.idx + len(token.text) <= len(title)]
+    phrases = set()
+
+    def add(tokens):
+        while tokens and tokens[-1].pos_ not in {"PROPN", "NUM"}:
+            tokens = tokens[:-1]
+        if not tokens or not any(token.pos_ == "PROPN" for token in tokens):
+            return
+        phrase = title[tokens[0].idx:tokens[-1].idx + len(tokens[-1].text)]
+        phrase = re.sub(r"[’']s$", "", phrase).strip()
+        # Do not search a name fragment cut at one side of a quoted nickname.
+        quote_text = re.sub(r"(?<=[A-Za-z])[’'](?=[A-Za-z])", "", phrase)
+        if quote_text.count("‘") != quote_text.count("’") or quote_text.count("'") % 2:
+            return
+        if phrase:
+            phrases.add(phrase)
+
+    # Contextual part-of-speech spans preserve complete names, including names
+    # containing numbers. Roles/actions and sentence boundaries end a name span.
+    run = []
+    for token in title_tokens:
+        if token.pos_ in {"PROPN", "NUM"} or (run and token.text.lower() in _IMAGE_CONNECTORS):
+            run.append(token)
+        else:
+            add(run)
+            run = []
+    add(run)
+    # NER can add a name with internal punctuation/connectors, but a mistaken
+    # span containing a verb or common-noun headline text cannot become a query.
+    for ent in doc.ents:
+        if ent.end_char <= len(title) and ent.label_ in {
+            "PERSON", "ORG", "FAC", "GPE", "LOC", "EVENT", "WORK_OF_ART", "PRODUCT", "LAW"
+        } and all(token.pos_ in {"PROPN", "NUM", "PUNCT", "PART"}
+                  or token.text.lower() in _IMAGE_CONNECTORS for token in ent):
+            add(list(ent))
+    results = []
+    entity_words = {_anchor_key(ent.text) for ent in doc.ents if ent.end_char <= len(title)}
+    for phrase in sorted(phrases):
+        if len(_anchor_key(phrase).split()) == 1 and _anchor_key(phrase) not in entity_words:
+            continue
+        kind = classify_context_anchor(phrase)
+        if kind != "generic":
+            results.append((phrase, kind))
+    return results
 
 
 def build_context_image_queries(
@@ -240,97 +325,61 @@ def build_context_image_queries(
     central_title: str = "",
     max_queries: int = 6,
 ) -> list[str]:
-    """
-    Build entity-first image queries from verified core headlines.
-
-    Proper-name candidates come from structure, while generic headline phrases
-    are rejected by a local semantic prototype classifier. Repeated named
-    subjects win. Multiword entities receive a modest bonus,
-    which favors anchors such as "White House", "Ed Sheeran", "Saudi Arabia",
-    "Kennedy Center", and "Munich Oktoberfest" over generic action words.
-    """
-    source_titles = []
+    """Rank complete source-grounded entities, consolidating nested name variants."""
+    counts: dict[str, int] = {}
+    display: dict[str, str] = {}
+    kinds: dict[str, set[str]] = {}
+    seen_titles = set()
     for article in articles or []:
         title = (article.get("title") or "").strip()
-        if title:
-            source_titles.append(title)
-
-    if central_title and central_title not in source_titles:
-        source_titles.append(central_title)
-    if not source_titles and headline:
-        source_titles.append(headline)
-
-    counts: dict[str, float] = {}
-    source_support: dict[str, int] = {}
-    display: dict[str, str] = {}
-
-    for title in source_titles:
+        if not title or title.casefold() in seen_titles:
+            continue
+        seen_titles.add(title.casefold())
         seen = set()
-        for phrase in _extract_proper_phrases(title):
+        for phrase, kind in _image_named_entities(title, article.get("description") or ""):
             key = _anchor_key(phrase)
             if not key or key in seen:
                 continue
             seen.add(key)
-            counts[key] = counts.get(key, 0.0) + 1.0
-            source_support[key] = source_support.get(key, 0) + 1
+            counts[key] = counts.get(key, 0) + 1
             display.setdefault(key, phrase)
-
-    # The generated Nominal News headline may strengthen an anchor that was
-    # already observed in purifier-approved source headlines, but it must not
-    # manufacture a new entity. Generated headlines often use Title Case, which
-    # can make ordinary headline wording look like a proper name.
-    for phrase in _extract_proper_phrases(headline):
-        key = _anchor_key(phrase)
-        if key and key in counts:
-            counts[key] += 1.25
-
+            kinds.setdefault(key, set()).add(kind)
+    headline_words = _anchor_key(headline).split()
+    # One-off names must also be central enough to appear in the headline;
+    # this keeps publisher footers and incidental bylines out of query slots.
+    eligible = {key for key, count in counts.items()
+                if count >= 2 or _contains_word_sequence(headline_words, key.split())}
+    # Prefer the repeatedly sourced name over a one-off role/title extension.
+    eligible = {key for key in eligible if not (counts[key] == 1 and any(
+        counts[other] >= 2 and len(other.split()) >= 2
+        and len(other.split()) < len(key.split())
+        and _contains_word_sequence(key.split(), other.split()) for other in eligible))}
     scored = []
     for key, count in counts.items():
-        phrase = display[key]
-        meaningful = [t for t in key.split() if t not in _IMAGE_CONNECTORS]
-        if not meaningful:
+        if key not in eligible:
+            _image_audit("queries", display[key], "incidental_or_less_supported_name")
             continue
-
-        # Generic actions, roles, and descriptive headline fragments are
-        # rejected semantically rather than through a maintained word list.
-        # The remaining labels are durable subject shapes used elsewhere by
-        # the image selector (person/place/institution/event/other).
-        anchor_type = classify_context_anchor(phrase)
-        if anchor_type == "generic":
+        if len(kinds[key]) != 1:
+            _image_audit("queries", display[key], "conflicting_entity_types")
             continue
-
-        # Generated headlines may title-case ordinary nouns and make them look
-        # like named entities (for example, a generic structure type). For
-        # institution/other anchors, require the proper-name form to be
-        # independently corroborated by at least two purifier-approved core
-        # headlines. Named events join person/geographic anchors as eligible
-        # with one source-title occurrence because event names are themselves
-        # the visual subject we want to search. This is a structural evidence
-        # rule, not a maintained news-vocabulary list.
-        support = int(source_support.get(key, 0))
-        if anchor_type in {"institution", "other"} and len(source_titles) >= 2 and support < 2:
+        words = key.split()
+        # Do not search an ambiguous short name when a complete source name
+        # contains it. A coincidentally same-named place is conservatively omitted.
+        if any(len(parent.split()) > len(words)
+               and _contains_word_sequence(parent.split(), words)
+               for parent in eligible if len(kinds[parent]) == 1):
+            _image_audit("queries", display[key], "nested_name_variant")
             continue
+        kind = next(iter(kinds[key]))
+        score = count * 10 + (12 if len(words) >= 2 else 0)
+        score += 12.5 if _contains_word_sequence(headline_words, words) else 0
+        scored.append((score, key, display[key]))
+    scored.sort(key=lambda row: (-row[0], row[1]))
+    queries = [row[2] for row in scored[:max_queries]]
+    if not queries:
+        _image_audit("queries", "", "no_supported_named_subject")
+    return queries
 
-        multiword_bonus = 12.0 if len(meaningful) >= 2 else 0.0
-        acronym_penalty = 0.0
-        compact_words = [re.sub(r"[^A-Za-z0-9]", "", w) for w in phrase.split()]
-        if compact_words and all(w.isupper() and len(w) <= 4 for w in compact_words if w):
-            acronym_penalty = 5.0
-        score = (count * 10.0) + multiword_bonus + min(len(key), 20) * 0.05 - acronym_penalty
-        scored.append((score, count, len(meaningful), phrase, key))
-
-    scored.sort(key=lambda row: (-row[0], -row[1], -row[2], row[4]))
-
-    out: list[str] = []
-    seen_keys = set()
-    for _, _, _, phrase, key in scored:
-        if key in seen_keys:
-            continue
-        seen_keys.add(key)
-        out.append(phrase)
-        if len(out) >= max_queries:
-            break
-    return out
 
 
 
@@ -369,6 +418,17 @@ def _clean_html(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _commons_credit_text(text: str) -> str:
+    """Render provider credit markup without guessing damaged attribution."""
+    from html import unescape
+    text = unescape(_clean_html(text))
+    # Commons may return external wikilinks containing an HTML anchor.
+    text = re.sub(r"\[https?://[^\s\]]+\s+([^\]]+)\]", r"\1", text)
+    if "\ufffd" in text or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", text):
+        raise ValueError("Unreadable source attribution; creator text requires verification")
+    return text.strip()
+
+
 def _tokenize(text: str) -> set:
     text = (text or "").lower()
     text = re.sub(r"[^a-z0-9\s]+", " ", text)
@@ -397,11 +457,8 @@ def anchor_match_score(anchor: str, image_text: str) -> int:
     if not anchor_words or not image_words:
         return 0
 
-    anchor_norm = " ".join(anchor_words)
-    image_norm = " ".join(image_words)
-
     if len(anchor_words) >= 2:
-        return 4 if anchor_norm in image_norm else 0
+        return 4 if _contains_word_sequence(image_words, anchor_words) else 0
 
     return 3 if anchor_words[0] in set(image_words) else 0
 
@@ -782,6 +839,9 @@ def _candidate_context_metrics(anchor: str, topic_text: str, title: str, desc: s
     title_focus = _title_anchor_focus(anchor, title)
     anchor_type = classify_context_anchor(anchor)
     scene_type = classify_candidate_scene(title, desc)
+    # A filename/location can overwhelm the activity described in a caption.
+    # Evaluate that evidence independently; it may veto, never relax a gate.
+    caption_scene_type = classify_candidate_scene("", desc) if desc.strip() else "other"
     title_anchor_match = anchor_match_score(anchor, title) > 0
 
     title_total, title_foreign, title_extensions = _proper_context_counts(
@@ -803,6 +863,7 @@ def _candidate_context_metrics(anchor: str, topic_text: str, title: str, desc: s
         "title_focus": title_focus,
         "anchor_type": anchor_type,
         "scene_type": scene_type,
+        "caption_scene_type": caption_scene_type,
         "title_anchor_match": title_anchor_match,
         "title_foreign": title_foreign,
         "title_extensions": title_extensions,
@@ -832,19 +893,14 @@ def _context_candidate_is_safe(metrics: dict) -> bool:
     title_extensions = int(metrics.get("title_extensions", 0))
     foreign_ratio = float(metrics.get("foreign_ratio", 0.0))
 
-    # Provider search is a legitimate relevance signal for a *named event*.
-    # Provider captions are often sparse, so allow missing literal event-name
-    # metadata only when the returned scene is itself an event and remains
-    # semantically aligned with the verified story. All other anchor types
-    # still require an explicit metadata match.
-    event_retrieval_support = (
-        anchor_type == "event"
-        and scene_type == "event"
-        and anchor_score <= 0
-        and topic_semantic >= 0.24
-        and anchor_semantic >= 0.18
-        and foreign_ratio < 0.60
-    )
+    # Retrieval and semantic similarity do not establish identity. Require
+    # the complete search subject in the caption or scored provider metadata.
+    # This also applies to named events, where homonyms can look event-like.
+    if anchor_score <= 0:
+        return False
+
+    if metrics.get("caption_scene_type") == "event" and scene_type in {"geographic", "institution"}:
+        return False
 
     # Unsplash full-photo metadata can provide an exact event-name match even
     # when the visible alt text is generic. Treat that as stronger evidence
@@ -861,9 +917,6 @@ def _context_candidate_is_safe(metrics: dict) -> bool:
         and title_foreign == 0
         and title_extensions == 0
     )
-
-    if anchor_score <= 0 and not event_retrieval_support:
-        return False
 
     # A small, permanent compatibility matrix prevents category mistakes
     # such as a country selecting an air-show/event image or a place selecting
@@ -939,17 +992,7 @@ def _context_candidate_is_safe(metrics: dict) -> bool:
         if event_metadata_support:
             return True
 
-        # If exact named-event retrieval already passed the structural event
-        # support gate above, do not require a second, stronger literal-name
-        # match here. That would nullify the provider-retrieval signal we added
-        # specifically for sparse event metadata.
-        if event_retrieval_support:
-            if title_extensions > 0 and topic_semantic < 0.30:
-                return False
-            return True
-
-        # When provider retrieval support is absent, keep the stricter literal
-        # evidence requirement for named events.
+        # Keep the literal identity requirement for named events as well.
         if not title_anchor_match and anchor_semantic < 0.55:
             return False
         if title_extensions > 0 and topic_semantic < 0.30:
@@ -1348,16 +1391,17 @@ def _relevance_score(topic_query: str, title: str, desc: str) -> int:
     return len(q & (t | d))
 
 
-def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
+def fetch_wikimedia_image(image_query: str, topic_text: str = "", *, all_candidates: bool = False,
+                          page_ids: list[int] | None = None):
     """
-    Return the strongest Wikimedia candidate for one entity anchor.
+    Return hard-checked Wikimedia candidates, or the strongest for legacy callers.
 
     Every result for this anchor is evaluated before a winner is chosen. The
     returned candidate includes internal selection metadata so winners from
     different anchors can then compete globally.
     """
-    if not image_query or IMAGES_OFF:
-        return None
+    if not image_query or IMAGES_OFF or page_ids == []:
+        return [] if all_candidates else None
 
     headers = {
         "User-Agent": "NominalNewsBot/0.1 (contact: 221876385+jchstrfld@users.noreply.github.com)"
@@ -1375,21 +1419,30 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
             "iiurlwidth": 600,
             "format": "json",
         }
+        if page_ids is not None:
+            # Openverse supplies discovery only. Retrieve current metadata for
+            # these exact Commons records and reuse every existing safety gate.
+            for key in ("generator", "gsrsearch", "gsrnamespace", "gsrlimit"):
+                params.pop(key)
+            params["pageids"] = "|".join(str(int(value)) for value in page_ids[:20])
         r = requests.get("https://commons.wikimedia.org/w/api.php", params=params, headers=headers, timeout=8)
         r.raise_for_status()
         data = r.json()
     except Exception as e:
+        _image_audit("wikimedia", image_query, "provider_error")
         print(f"ℹ️ Wikimedia fetch failed: {e}")
-        return None
+        return [] if all_candidates else None
 
     pages = (data.get("query") or {}).get("pages") or {}
     if not pages:
-        return None
+        _image_audit("wikimedia", image_query, "no_results")
+        return [] if all_candidates else None
 
-    best = None
-    best_score = -1e9
+    candidates = []
 
     for page in pages.values():
+        if page_ids is not None and page.get("pageid") not in page_ids:
+            continue
         imageinfo = page.get("imageinfo") or []
         if not imageinfo:
             continue
@@ -1410,6 +1463,7 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
         if not (license_short or license_url):
             continue
         if not _commons_license_is_approved(license_short, license_url, ext):
+            _image_audit("wikimedia", image_query, "license", title)
             continue
         if not _wiki_media_is_photo_candidate(info):
             continue
@@ -1421,10 +1475,12 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
         medium_context = _wikimedia_medium_context(desc, ext)
         visual_medium = classify_candidate_medium(title, medium_context)
         if visual_medium != "photo":
+            _image_audit("wikimedia", image_query, "not_photographic", title)
             continue
 
         metrics = _candidate_context_metrics(image_query, topic_text, title, desc)
         if not _context_candidate_is_safe(metrics):
+            _image_audit("wikimedia", image_query, "missing_subject_identity" if metrics.get("anchor_score", 0) <= 0 else "subject_or_scene_mismatch", str(metrics))
             continue
 
         # PNG remains supported, but because it is commonly used for both
@@ -1441,6 +1497,7 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
             _commons_image_year(ext, title, desc),
         )
         if not temporal["allowed"]:
+            _image_audit("wikimedia", image_query, "image_age")
             continue
 
         image_text = f"{title} {desc}".strip()
@@ -1459,6 +1516,17 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
             credit_bits.append(artist)
         credit_bits.append("Wikimedia Commons")
         credit = "Photo: " + " / ".join(credit_bits)
+        if page_ids is not None:
+            # Fail closed if an Openverse-discovered record cannot support a
+            # complete, explicit credit and license link from the origin.
+            if not artist or not title or not _openverse_license_url(license_url):
+                _image_audit("openverse", image_query, "incomplete_attribution", title)
+                continue
+            credit = f'Photo: "{title}" / {artist} / Wikimedia Commons'
+            for field in ("Attribution", "Credit", "Copyright"):
+                notice = _clean_html((ext.get(field) or {}).get("value") or "").strip()
+                if notice:
+                    credit += " / " + notice
 
         event_retrieval_bonus = 30.0 if (
             metrics.get("anchor_type") == "event"
@@ -1485,6 +1553,7 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
             "credit": credit,
             "source": "wikimedia",
             "source_url": source_url,
+            "discovery_source": "openverse" if page_ids is not None else "",
             "license": license_short or "Wikimedia license",
             "license_url": license_url,
             "photographer_url": "",
@@ -1504,12 +1573,87 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = ""):
             "_freshness": temporal["freshness"],
         }
 
-        if score > best_score:
-            best = candidate
-            best_score = score
+        candidates.append(candidate)
 
-    return best
+    candidates.sort(key=lambda candidate: -candidate["_selection_score"])
+    return candidates if all_candidates else (candidates[0] if candidates else None)
 
+
+
+_OPENVERSE_CACHE: dict[str, list[int]] = {}
+_OPENVERSE_UNAVAILABLE = False
+
+
+def _openverse_license_url(value: str) -> bool:
+    """Exact CC host/path, rather than trusting a license-name substring."""
+    from urllib.parse import urlparse
+    parsed = urlparse(value or "")
+    return (
+        parsed.scheme in {"http", "https"}
+        and parsed.netloc.lower() == "creativecommons.org"
+        and not parsed.query and not parsed.fragment
+        and bool(re.fullmatch(
+            r"/(?:licenses/by/(?:1\.0|2\.0|2\.5|3\.0|4\.0)|publicdomain/(?:zero|mark)/1\.0)/?(?:deed(?:\.[a-zA-Z-]+)?/?)?",
+            parsed.path,
+        ))
+    )
+
+
+def _openverse_commons_id(record: dict) -> int | None:
+    from urllib.parse import urlparse, parse_qs
+    if (record.get("source") != "wikimedia"
+            or record.get("license") not in {"by", "cc0", "pdm"}
+            or record.get("mature")
+            or not _openverse_license_url(record.get("license_url") or "")):
+        return None
+    parsed = urlparse(record.get("foreign_landing_url") or "")
+    if (parsed.scheme != "https" or parsed.netloc.lower() != "commons.wikimedia.org"
+            or parsed.path not in {"/w/index.php", "/"}):
+        return None
+    values = parse_qs(parsed.query).get("curid", [])
+    if len(values) != 1 or not re.fullmatch(r"[1-9][0-9]*", values[0]):
+        return None
+    return int(values[0])
+
+
+def fetch_openverse_image(image_query: str, topic_text: str = "", *, all_candidates: bool = False):
+    """Bounded discovery, independently verified at Commons; no other hosts yet.
+
+    Openverse does not warrant licensing. Never publish its thumbnail, credit,
+    tags or indexed license as verification. Unsupported origins fail closed.
+    """
+    global _OPENVERSE_UNAVAILABLE
+    empty = [] if all_candidates else None
+    if IMAGES_OFF or not image_query or _OPENVERSE_UNAVAILABLE:
+        return empty
+    if image_query not in _OPENVERSE_CACHE:
+        try:
+            response = requests.get(
+                "https://api.openverse.org/v1/images/",
+                params={"q": image_query[:200], "source": "wikimedia",
+                        "license": "by,cc0,pdm", "page_size": 20, "mature": "false"},
+                headers={"User-Agent": "NominalNewsBot/0.1 (contact: 221876385+jchstrfld@users.noreply.github.com)"},
+                timeout=8,
+            )
+            response.raise_for_status()
+            records = response.json().get("results", [])
+            ids = []
+            for record in records[:20]:
+                page_id = _openverse_commons_id(record)
+                if page_id and page_id not in ids:
+                    ids.append(page_id)
+                elif not page_id:
+                    _image_audit("openverse", image_query, "unverified_origin_or_license")
+            _OPENVERSE_CACHE[image_query] = ids
+        except Exception:
+            # Includes throttling: no retries or attempts to evade rate limits.
+            _OPENVERSE_UNAVAILABLE = True
+            _image_audit("openverse", image_query, "provider_unavailable")
+            return empty
+    return fetch_wikimedia_image(
+        image_query, topic_text=topic_text, all_candidates=all_candidates,
+        page_ids=_OPENVERSE_CACHE[image_query],
+    )
 
 
 _UNSPLASH_DETAIL_CACHE: dict[str, dict] = {}
@@ -1628,16 +1772,16 @@ def _unsplash_display_alt(image_query: str, alt: str, desc: str) -> str:
     return clean_desc if desc_match > alt_match else clean_alt
 
 
-def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str = "", core_text: str = ""):
+def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str = "", core_text: str = "", *, all_candidates: bool = False):
     """
-    Return the strongest Unsplash candidate for one entity anchor.
+    Return hard-checked Unsplash candidates, or the strongest for legacy callers.
 
     Unsplash remains a neutral-context fallback only. Generic protest, police,
     war, explosion, or other event-action imagery cannot stand in for the
     reported event.
     """
     if IMAGES_OFF or not UNSPLASH_ACCESS_KEY or not image_query:
-        return None
+        return [] if all_candidates else None
 
     topic_text_clean = (topic_text or headline or core_text or image_query).strip()
     headers = {
@@ -1652,11 +1796,11 @@ def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str =
         r.raise_for_status()
         results = (r.json() or {}).get("results") or []
     except Exception as e:
+        _image_audit("unsplash", image_query, "provider_error")
         print(f"ℹ️ Unsplash fetch failed: {e}")
-        return None
+        return [] if all_candidates else None
 
-    best = None
-    best_score = -1e9
+    candidates = []
 
     for result_rank, photo in enumerate(results):
         scoring_photo = photo
@@ -1694,9 +1838,11 @@ def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str =
         # sparse captions make it too easy to select symbolic or unrelated
         # imagery, so fail closed to Wikimedia-or-none.
         if metrics.get("anchor_type") == "person":
+            _image_audit("unsplash", image_query, "person_requires_wikimedia")
             continue
 
         if not _context_candidate_is_safe(metrics):
+            _image_audit("unsplash", image_query, "missing_subject_identity" if metrics.get("anchor_score", 0) <= 0 else "subject_or_scene_mismatch", str(metrics))
             continue
 
         image_text = scoring_text
@@ -1706,6 +1852,7 @@ def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str =
             _unsplash_image_year(scoring_photo),
         )
         if not temporal["allowed"]:
+            _image_audit("unsplash", image_query, "image_age")
             continue
 
         semantic = float(metrics["topic_semantic"])
@@ -1788,17 +1935,148 @@ def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str =
             "_metadata_enriched": scoring_photo is not photo,
         }
 
-        if score > best_score:
-            best = candidate
-            best_score = score
+        candidates.append(candidate)
 
-    return best
+    candidates.sort(key=lambda candidate: -candidate["_selection_score"])
+    return candidates if all_candidates else (candidates[0] if candidates else None)
+
+
+def _image_rights_record(candidate: dict) -> dict:
+    """Fetch only the selected asset's current public source record."""
+    from urllib.parse import urlparse, parse_qs
+    source = candidate.get("source")
+    parsed = urlparse(candidate.get("source_url") or "")
+    headers = {"User-Agent": "NominalNewsBot/0.1 (contact: 221876385+jchstrfld@users.noreply.github.com)"}
+    if source == "wikimedia":
+        ids = parse_qs(parsed.query).get("curid", [])
+        if parsed.hostname != "commons.wikimedia.org" or len(ids) != 1 or not ids[0].isdigit():
+            raise ValueError("Missing exact Commons identifier")
+        response = requests.get("https://commons.wikimedia.org/w/api.php", params={
+            "action": "query", "pageids": ids[0], "prop": "imageinfo|templates",
+            "iiprop": "url|extmetadata|sha1", "iiurlwidth": 600,
+            "tllimit": "max", "format": "json",
+        }, headers=headers, timeout=8)
+        response.raise_for_status()
+        data = response.json()
+        # Older image revisions may remain (iistart); we need only the current
+        # asset. An incomplete warning-template list must still fail closed.
+        if "tlcontinue" in (data.get("continue") or {}) or data.get("error"):
+            raise ValueError("Incomplete Commons record")
+        page = (data.get("query") or {}).get("pages", {}).get(ids[0])
+        if not page or page.get("ns") != 6 or "missing" in page:
+            raise ValueError("Source file unavailable")
+        return page
+    if source == "unsplash":
+        photo_id = parsed.path.rstrip("/").split("/")[-1][-11:]
+        if (parsed.hostname != "unsplash.com" or not parsed.path.startswith("/photos/")
+                or not re.fullmatch(r"[A-Za-z0-9_-]{11}", photo_id)):
+            raise ValueError("Missing exact Unsplash identifier")
+        if not UNSPLASH_ACCESS_KEY:
+            raise ValueError("Unsplash verification unavailable")
+        response = requests.get(f"https://api.unsplash.com/photos/{photo_id}", headers={
+            **headers, "Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}", "Accept-Version": "v1",
+        }, timeout=8)
+        response.raise_for_status()
+        record = response.json()
+        if record.get("id") != photo_id:
+            raise ValueError("Mismatched Unsplash identifier")
+        return record
+    raise ValueError("Unsupported source")
+
+
+def _commons_asset_identity(url: str) -> str:
+    from urllib.parse import urlparse, unquote
+    parsed = urlparse(url or "")
+    if parsed.hostname not in {"upload.wikimedia.org", "thumb.wikimedia.org"}:
+        return ""
+    prefix = "/wikipedia/commons/"
+    if not parsed.path.startswith(prefix):
+        return ""
+    path = unquote(parsed.path[len(prefix):])
+    if path.startswith("thumb/"):
+        path = path[len("thumb/"):]
+    return "/".join(path.split("/")[:3])
+
+
+def final_image_rights_check(candidate: dict | None) -> tuple[dict | None, dict]:
+    """Lightweight evidence check, not an ownership investigation or legal guarantee.
+
+    Does not change relevance/licensing policy. Withhold on a concrete warning,
+    inconsistent asset, incomplete source record, or unfulfillable attribution.
+    Store this review with the output, including when the image is withheld.
+    """
+    from datetime import datetime, timezone
+    from urllib.parse import urlparse
+    review = {"status": "not_applicable", "checked_at": datetime.now(timezone.utc).isoformat(),
+              "scope": "Source metadata and known warning notices; no ownership guarantee."}
+    if not candidate:
+        return None, review
+    review.update(status="withheld", source_url=candidate.get("source_url", ""))
+    try:
+        record = _image_rights_record(candidate)
+        review["source_record"] = record
+        checked = dict(candidate)
+        if candidate.get("source") == "wikimedia":
+            # Provider-defined warning templates, not story-specific vocabulary.
+            warnings = {"copyvio", "delete", "speedydelete", "no permission since",
+                        "no license since", "no source since", "disputed", "license review failed"}
+            flags = [t.get("title", "") for t in record.get("templates", [])
+                     if t.get("title", "").lower().removeprefix("template:").split("/")[0] in warnings]
+            if flags:
+                raise ValueError("Source warning: " + ", ".join(flags))
+            info = record["imageinfo"][0]
+            identity = _commons_asset_identity(candidate.get("url", ""))
+            if not identity or identity != _commons_asset_identity(info.get("url", "")):
+                raise ValueError("Displayed image differs from source record")
+            ext = info.get("extmetadata") or {}
+            value = lambda field: _commons_credit_text((ext.get(field) or {}).get("value") or "")
+            short, license_url = value("LicenseShortName"), value("LicenseUrl")
+            if not _commons_license_is_approved(short, license_url, ext):
+                raise ValueError("License or restrictions fail existing policy")
+            artist, origin = value("Artist"), value("Credit")
+            if not artist or not origin:
+                raise ValueError("Missing creator or stated source")
+            if "cc by" in short.lower() and not _openverse_license_url(license_url):
+                raise ValueError("Missing or unrecognized attribution license link")
+            # Carry all supplied credit notices through to the existing caption.
+            title = value("ObjectName") or record.get("title", "").removeprefix("File:")
+            bits = [title, artist, "Wikimedia Commons", origin]
+            bits.extend(value(field) for field in ("Attribution", "Copyright"))
+            checked.update(credit="Photo: " + " / ".join(dict.fromkeys(x for x in bits if x)),
+                           license=short, license_url=license_url)
+        elif candidate.get("source") == "unsplash":
+            image = urlparse(candidate.get("url", ""))
+            original = urlparse((record.get("urls") or {}).get("raw", ""))
+            if image.hostname != "images.unsplash.com" or image.path != original.path:
+                raise ValueError("Displayed image differs from source record")
+            if record.get("premium") or record.get("plus"):
+                raise ValueError("Image is outside the existing Unsplash license")
+            user = record.get("user") or {}
+            creator = user.get("name")
+            author_url = (user.get("links") or {}).get("html", "")
+            source_url = (record.get("links") or {}).get("html", "")
+            if not creator or any(urlparse(u).hostname != "unsplash.com" for u in (author_url, source_url)):
+                raise ValueError("Missing creator or source attribution")
+            checked.update(credit=f"Photo: {creator} / Unsplash", license="Unsplash License",
+                           license_url="https://unsplash.com/license",
+                           photographer_url=_unsplash_referral_url(author_url),
+                           source_url=_unsplash_referral_url(source_url),
+                           provider_url="https://unsplash.com/?utm_source=nominal_news&utm_medium=referral")
+            review["license_basis"] = "https://unsplash.com/license"
+            review["limitation"] = "Unsplash API provides no comprehensive per-image rights-dispute field."
+        review.update(status="passed", credit=checked["credit"], license=checked["license"],
+                      license_url=checked.get("license_url", ""))
+        return checked, review
+    except Exception as exc:
+        # Never expose request headers or credentials in reports.
+        review["reason"] = str(exc) if isinstance(exc, ValueError) else "Source verification unavailable or incomplete"
+        _image_audit(candidate.get("source", ""), candidate.get("query", ""), "final_rights_check_withheld")
+        return None, review
 
 
 def choose_best_context_candidate(candidates: list[dict], source: str) -> dict | None:
     """
-    Compare the strongest candidate from every entity anchor instead of taking
-    the first acceptable hit.
+    Apply confidence checks to all hard-checked candidates before final ranking.
 
     Earlier/more-central anchors get only a small tie-break bonus. Relevance and
     contextual quality remain dominant. Borderline ambiguous candidates fail
@@ -1808,7 +2086,11 @@ def choose_best_context_candidate(candidates: list[dict], source: str) -> dict |
         return None
 
     ranked = []
+    confidence_floor = 0.48 if source == "wikimedia" else 0.50
     for candidate in candidates:
+        if float(candidate.get("_confidence", 0.0)) < confidence_floor:
+            _image_audit(source, candidate.get("query", ""), "confidence_floor", candidate.get("source_url", ""))
+            continue
         rank = int(candidate.get("_anchor_rank", 0))
         anchor_words = _normalized_words(candidate.get("query") or "")
 
@@ -1832,10 +2114,19 @@ def choose_best_context_candidate(candidates: list[dict], source: str) -> dict |
         )
     )
 
-    best = ranked[0]
-    confidence_floor = 0.48 if source == "wikimedia" else 0.50
-    if float(best.get("_confidence", 0.0)) < confidence_floor:
+    unique = []
+    seen = set()
+    for candidate in ranked:
+        identity = (candidate.get("url") or "").split("?", 1)[0]
+        if identity and identity in seen:
+            continue
+        if identity:
+            seen.add(identity)
+        unique.append(candidate)
+    ranked = unique
+    if not ranked:
         return None
+    best = ranked[0]
 
     if len(ranked) > 1 and float(best.get("_confidence", 0.0)) < 0.58:
         margin = (
@@ -1843,6 +2134,7 @@ def choose_best_context_candidate(candidates: list[dict], source: str) -> dict |
             - float(ranked[1].get("_final_selection_score", 0.0))
         )
         if margin < 2.0:
+            _image_audit(source, best.get("query", ""), "ambiguous_candidates")
             return None
 
     return best
@@ -2456,18 +2748,28 @@ Summary: <summary>
                 },
                 {"role": "user", "content": prompt},
             ],
+            reasoning_effort="none",
+            max_completion_tokens=MAX_SUMMARY_OUTPUT_TOKENS,
             temperature=0,
         )
-        return response.choices[0].message["content"]
-    except Exception as e:
-        print(f"⚠️ Failed to summarize cluster: {e}")
-        return None
+        choice = response.choices[0]
+        content = choice.message.get("content")
+        if choice.get("finish_reason") != "stop" or choice.message.get("refusal"):
+            raise ValueError("Incomplete or refused summary response.")
+        if not isinstance(content, str) or not re.fullmatch(
+            r"\s*Headline:[ \t]*(\S[^\n]*)\n\s*Summary:\s*(\S[\s\S]*)\s*", content, re.I
+        ):
+            raise ValueError("Summary response must contain a nonempty headline and summary.")
+        return content
+    except Exception as exc:
+        raise RuntimeError("Summary generation failed; the saved edition was not replaced.") from exc
 
 
 def extract_headline(summary_text):
     for line in (summary_text or "").splitlines():
+        line = line.strip()
         if line.lower().startswith("headline:"):
-            return line.replace("Headline:", "").strip()
+            return line.split(":", 1)[1].strip()
     return "Untitled"
 
 
@@ -2497,6 +2799,29 @@ def extract_body(summary_text):
     # Fail-open for an unexpected model format: remove a leading headline label
     # but keep the remaining evidence-bound copy.
     return re.sub(r"(?is)^\s*headline\s*:\s*[^\n]+\n?", "", text).strip()
+
+
+def get_or_create_summary(core_articles, summ_cache):
+    """Persist each completed summary so a later failure can resume cheaply."""
+    selected_articles = select_central_articles(core_articles, MAX_ARTICLES_PER_CLUSTER)
+    all_urls = sorted([a.get("url") for a in core_articles if a.get("url")])
+    cache_key = make_summ_key(all_urls, SUMM_MODEL, PROMPT_VERSION, MAX_ARTICLES_PER_CLUSTER)
+    cached = get_cached_summary(summ_cache, cache_key)
+    if cached:
+        headline, body = cached.get("headline"), cached.get("summary")
+        if not all(isinstance(value, str) and value.strip() for value in (headline, body)):
+            raise RuntimeError("Incomplete cached summary; the saved edition was not replaced.")
+        print("💾 Reused cached headline/summary")
+        return headline, body
+
+    summary_text = summarize_cluster(selected_articles)
+    headline, body = extract_headline(summary_text), extract_body(summary_text)
+    if headline == "Untitled" or not headline.strip() or not body.strip():
+        raise RuntimeError("Incomplete summary; the saved edition was not replaced.")
+    # The legacy takeaways slot stays empty, as before.
+    put_cached_summary(summ_cache, cache_key, headline, body, [])
+    save_summ_cache(summ_cache)
+    return headline, body
 
 
 # --- Safety valve: collapse near-duplicate topics after summarization (no tokens) ---
@@ -2588,10 +2913,11 @@ valid_clusters = [c for c in clusters if len(c["articles"]) >= MIN_ARTICLES]
 # Preserve that order here. Re-sorting by verified-core article count would
 # overwrite the ranking decision and make the webpage order misleading.
 top_clusters = valid_clusters[:MAX_CLUSTERS]
+if not top_clusters:
+    raise RuntimeError("No eligible stories to summarize; the saved edition was not replaced.")
 
 # load summaries cache once
 summ_cache = load_summ_cache()
-summ_cache_dirty = False
 
 summaries = []
 used_context_image_urls: set[str] = set()
@@ -2607,30 +2933,7 @@ for idx, cluster in enumerate(top_clusters):
     display_sources = build_display_sources(cluster, coverage_articles)
     coverage_writeups = build_coverage_writeups(cluster, coverage_articles)
 
-    selected_articles = select_central_articles(
-        core_articles,
-        MAX_ARTICLES_PER_CLUSTER
-    )
-
-    # Cache key should be stable for the cluster (use ALL URLs, not just the selected subset)
-    all_urls = sorted([a.get("url") for a in core_articles if a.get("url")])
-    cache_key = make_summ_key(all_urls, SUMM_MODEL, PROMPT_VERSION, MAX_ARTICLES_PER_CLUSTER)
-
-    cached = get_cached_summary(summ_cache, cache_key)
-    if cached:
-        print(f"💾 Cache hit for topic {idx + 1} — reused headline/summary")
-        headline = cached["headline"]
-        body = cached["summary"]
-    else:
-        summary_text = summarize_cluster(selected_articles)
-        if not summary_text:
-            continue
-        headline = extract_headline(summary_text)
-        body = extract_body(summary_text)
-        # summaries_cache.py keeps a legacy takeaways slot for compatibility.
-        # Store an empty list; no takeaways are generated or consumed.
-        put_cached_summary(summ_cache, cache_key, headline, body, [])
-        summ_cache_dirty = True
+    headline, body = get_or_create_summary(core_articles, summ_cache)
 
     all_articles = core_articles
 
@@ -2639,6 +2942,7 @@ for idx, cluster in enumerate(top_clusters):
     # standalone image fallbacks.
     topic_text = f"{headline}. {body}".strip()
     central_title = most_central_title(all_articles)
+    _IMAGE_AUDIT.clear()
     query_candidates = build_context_image_queries(
         headline=headline,
         articles=all_articles,
@@ -2653,10 +2957,10 @@ for idx, cluster in enumerate(top_clusters):
     # winners compete with one another instead of accepting the first hit.
     wiki_candidates = []
     for anchor_rank, q in enumerate(query_candidates):
-        candidate = fetch_wikimedia_image(q, topic_text=topic_text)
-        if candidate and candidate.get("url") not in used_context_image_urls:
-            candidate["_anchor_rank"] = anchor_rank
-            wiki_candidates.append(candidate)
+        for candidate in fetch_wikimedia_image(q, topic_text=topic_text, all_candidates=True):
+            if candidate.get("url") not in used_context_image_urls:
+                candidate["_anchor_rank"] = anchor_rank
+                wiki_candidates.append(candidate)
 
     img = choose_best_context_candidate(wiki_candidates, source="wikimedia")
     if img:
@@ -2681,15 +2985,17 @@ for idx, cluster in enumerate(top_clusters):
     if not img:
         unsplash_candidates = []
         for anchor_rank, q in enumerate(query_candidates):
-            candidate = fetch_unsplash_image(
+            candidates = fetch_unsplash_image(
                 q,
                 topic_text=topic_text,
                 headline=headline,
                 core_text=central_title,
+                all_candidates=True,
             )
-            if candidate and candidate.get("url") not in used_context_image_urls:
-                candidate["_anchor_rank"] = anchor_rank
-                unsplash_candidates.append(candidate)
+            for candidate in candidates:
+                if candidate.get("url") not in used_context_image_urls:
+                    candidate["_anchor_rank"] = anchor_rank
+                    unsplash_candidates.append(candidate)
 
         img = choose_best_context_candidate(unsplash_candidates, source="unsplash")
         if img:
@@ -2707,6 +3013,21 @@ for idx, cluster in enumerate(top_clusters):
                 f"🖼️ Topic {idx+1}: No defensible context image "
                 f"(tried {len(query_candidates)} anchors)"
             )
+
+    # Only fill remaining gaps. Openverse discoveries must pass exact-file
+    # Commons verification; existing selected images retain their priority.
+    if not img:
+        openverse_candidates = []
+        for anchor_rank, q in enumerate(query_candidates):
+            for candidate in fetch_openverse_image(q, topic_text=topic_text, all_candidates=True):
+                if candidate.get("url") not in used_context_image_urls:
+                    candidate["_anchor_rank"] = anchor_rank
+                    openverse_candidates.append(candidate)
+        img = choose_best_context_candidate(openverse_candidates, source="openverse")
+
+    img, image_rights_review = final_image_rights_check(img)
+    image_framing = frame_image((img or {}).get("url", ""))
+    print("IMAGE_SELECTION_AUDIT " + json.dumps({"topic": idx + 1, "queries": query_candidates, "rejections": _IMAGE_AUDIT}, ensure_ascii=True))
 
     if img and img.get("url"):
         used_context_image_urls.add(img["url"])
@@ -2825,12 +3146,15 @@ for idx, cluster in enumerate(top_clusters):
         "image_credit": image_credit,
         "image_credit_short": (image_credit[:80] + "…") if image_credit and len(image_credit) > 80 else image_credit,
         "image_source": image_source,
+        "image_discovery_source": (img or {}).get("discovery_source", ""),
+        "image_rights_review": image_rights_review,
         "image_source_url": image_source_url,
         "image_license": image_license,
         "image_license_url": image_license_url,
         "image_photographer_url": image_photographer_url,
         "image_provider_url": image_provider_url,
         "image_width": 600,
+        "image_framing": image_framing,
         "image_max_width": 600,
 
     })
@@ -2843,9 +3167,8 @@ summaries = dedupe_topic_summaries(
     body_sim=0.88
 )
 
-# Save cache if we wrote anything
-if summ_cache_dirty:
-    save_summ_cache(summ_cache)
+if not summaries:
+    raise RuntimeError("No summaries produced; the saved edition was not replaced.")
 
 tmp_file = OUTPUT_FILE + ".tmp"
 with open(tmp_file, "w", encoding="utf-8") as f:
