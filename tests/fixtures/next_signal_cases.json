@@ -25088,5 +25088,1402 @@
       "chars": 2482,
       "text": "By GENE JOHNSON and JULIE CARR SMYTH Associated Press James Copenhaver, one of three campaign rally attendees shot in 2024 during an assassination attempt on then-candidate Donald Trump, has died in Pittsburgh, his lawyer said Thursday. He was 76. Copenhaver was in the bleachers during the event in Butler, Pennsylvania, when a 20-year-old gunman opened fire from a nearby rooftop, grazing Trump’s right ear with one bullet. Copenhaver was struck in the arm and in the abdomen, wounds that left him with lingering injuries and walking with a cane. Two other attendees were also shot — David Dutch, who survived, and Corey Comperatore, who shielded his family from gunfire and was killed. Copenhaver died Wednesday at Allegheny Health Network’s West Penn Hospital in Pittsburgh, according to a statement from the Allegheny County medical examiner cited in local media accounts. Copenhaver’s lawyer, Joseph Feldman, said in a statement issued on behalf of the family that he died surrounded by loved ones. The statement did not specify if his death was directly related to the injuries he suffered at the rally. Copenhaver and his wife, Marianne Copenhaver, sued the federal government in June, alleging that the Secret Service and Department of Homeland Security had “utterly failed” to provide appropriate security at the rally. Copenhaver’s injuries required multiple surgeries, including a transection of his colon, and he had lingering kidney and other damage, including a loss of feeling in his leg. The lawsuit described the wounds as “debilitating, grievous, permanent and life altering.” The family's statement Thursday called Copenhaver above all else a devoted husband, father and grandfather who instilled the values of hard work, integrity and the service to others in his children. “James’s dedication to this great country was a defining part of his life,” it said. “As a veteran, he proudly served our nation in the armed forces, and his love of country never wavered. James was a true American patriot who believed deeply in the freedoms and ideals upon which this nation was founded, and he embodied the very best traits of our great nation.” In a statement posted to social media, Trump on Thursday called Copenhaver “a true American Patriot.” “Jim showed tremendous bravery, courageously continuing to FIGHT, FIGHT, FIGHT, and maintaining a positive spirit despite unimaginable hardships,” Trump wrote. Johnson reported from Seattle and Smyth from Columbus, Ohio."
     }
-  }
+  },
+  "oct19_timed_source_reviews": [
+    {
+      "date": "2026-10-19",
+      "topic": {
+        "topic_title": "President Trump Signs Executive Order Establishing Women's Health Division at NIH",
+        "summary": "President Donald Trump has signed an executive order to launch a women's health division at the National Institutes of Health (NIH). The order, championed by First Lady Melania Trump, also establishes a White House task force on women's health. The initiative aims to set new standards and improve funding for women's health care and research. The executive action is described as a 'transformative moment' for US women's health."
+      },
+      "evidence": [
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Trump signs order launching women’s health division at NIH, White House",
+          "description": "Our generation will fight to discover the cures that will ensure a woman can live her life in health and to the fullest.” The newly minted project, spearheaded by the first lady, requires the new health division to be established within 90 days.",
+          "published_at": "2026-10-19T20:29:46Z",
+          "url": "https://www.aljazeera.com/news/2026/10/19/trump-signs-order-launching-womens-health-division-at-nih-white-house?traffic_source=rss",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 1.0,
+          "grounded_sentence": "Our generation will fight to discover the cures that will ensure a woman can live her life in health and to the fullest.” The newly minted project, spearheaded by the first lady, requires the new health division to be established within 90 days.",
+          "grounded_time_keys": [
+            "relative:within 90 days"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Trump orders creation of NIH division, task force on women’s health",
+          "description": "“Our generation will fight to find the cures to ensure a woman can live her life with health and to the fullest.” The new NIH division, to be set up within 90 days, is intended to streamline research into understudied diseases in women, advance innovation in diagnostics, and improve treatment, establishing “a new standard for women’s health,” the first lady said.",
+          "published_at": "2026-10-19T17:42:45Z",
+          "url": "https://www.statnews.com/2026/10/19/executive-order-melania-trump-nih-division-on-womens-health/?utm_campaign=rss",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.4551,
+          "grounded_sentence": "“Our generation will fight to find the cures to ensure a woman can live her life with health and to the fullest.” The new NIH division, to be set up within 90 days, is intended to streamline research into understudied diseases in women, advance innovation in diagnostics, and improve treatment, establishing “a new standard for women’s health,” the first lady said.",
+          "grounded_time_keys": [
+            "relative:within 90 days"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        }
+      ],
+      "proposal": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "The new women's health division at NIH must be established within 90 days.",
+        "source_index": 1,
+        "reason": "The establishment of the division is a direct next step defined by the executive order.",
+        "research_gap": "",
+        "search_queries": []
+      },
+      "review": {
+        "eligible": true,
+        "signal": "The new women's health division at NIH must be established within 90 days.",
+        "source_index": 1,
+        "proposed_signal": "The new women's health division at NIH must be established within 90 days.",
+        "proposed_source_index": 1,
+        "reason": "Reviewer returned approval without an explanation.",
+        "reason_code": "none",
+        "review_model_called": true,
+        "comparisons": [
+          {
+            "source_index": 1,
+            "event": "establish women's health division",
+            "timing": "within 90 days",
+            "qualifies": true,
+            "reason": "Directly supports the establishment timeline."
+          },
+          {
+            "source_index": 2,
+            "event": "set up NIH division",
+            "timing": "within 90 days",
+            "qualifies": true,
+            "reason": "Also supports the establishment timeline.",
+            "before_selected": null
+          }
+        ]
+      }
+    },
+    {
+      "date": "2026-10-19",
+      "topic": {
+        "topic_title": "Musk Pledges SpaceX Share to Every Child in America Next Year",
+        "summary": "Billionaire Elon Musk has pledged to give a share of his SpaceX company to 'every kid in America' next year. However, he did not provide further details about how this pledge would be executed. Ahead of the company’s quarterly earnings report, SpaceX shares closed at $146.03 on Friday."
+      },
+      "evidence": [
+        {
+          "origin": "core",
+          "title": "Musk vows a SpaceX share for every US child next year, says it's 'the first of many'",
+          "description": "03 on Friday, ahead of the company’s quarterly earnings report Tuesday.",
+          "published_at": "2026-10-19T12:46:13.000Z",
+          "url": "https://local21news.com/news/nation-world/tesla-ceo-billionaire-elon-musk-vows-a-spacex-share-for-every-us-child-next-year-2027-says-its-the-first-of-many-artificial-super-intelligence-anthropic-public-benefit-fund",
+          "grounded_sentence": "03 on Friday, ahead of the company’s quarterly earnings report Tuesday.",
+          "grounded_time_keys": [
+            "weekday:friday",
+            "weekday:tuesday"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Musk pledges to give share of SpaceX company to 'every kid in America'",
+          "description": "In a response to that Sunday post, Musk wrote, “I recommend giving the shares directly to the public.” Shares of SpaceX, which will report its quarterly earnings on Tuesday, closed at $146.",
+          "published_at": "2026-10-19",
+          "url": "https://www.bostonherald.com/2026/10/19/elon-musk-spacex-shares-kids/",
+          "source": "bostonherald.com",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 1.0,
+          "grounded_sentence": "In a response to that Sunday post, Musk wrote, “I recommend giving the shares directly to the public.” Shares of SpaceX, which will report its quarterly earnings on Tuesday, closed at $146.",
+          "grounded_time_keys": [
+            "weekday:tuesday"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Musk pledges a share of his SpaceX company to 'every kid in America'",
+          "description": "Next year, I will give one of my SpaceX shares to every kid in America. — Elon Musk (@elonmusk) October 19, 2026 With approximately 73 million children under the age of 18 in the US, this would put the value of Mr Musk’s pledge at about 10.",
+          "published_at": "2026-10-19",
+          "url": "https://www.bordertelegraph.com/news/national/26649534.musk-pledges-share-spacex-company-every-kid-america/",
+          "source": "bordertelegraph.com",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 0.7857,
+          "grounded_sentence": "Next year, I will give one of my SpaceX shares to every kid in America. — Elon Musk (@elonmusk) October 19, 2026 With approximately 73 million children under the age of 18 in the US, this would put the value of Mr Musk’s pledge at about 10.",
+          "grounded_time_keys": [
+            "relative:next year"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_metadata",
+          "title": "Musk says will give SpaceX share to 'every kid in America'",
+          "description": "Musk says will give SpaceX share to 'every kid in America' \"Next year, I will give one of my SpaceX shares to every kid in America,\" Musk, the richest man in the world, said on X.",
+          "published_at": "2026-10-19T09:43:18+00:00",
+          "url": "https://www.vanguardngr.com/2026/10/musk-says-will-give-spacex-share-to-every-kid-in-america/",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.6429,
+          "grounded_sentence": "Musk says will give SpaceX share to 'every kid in America' \"Next year, I will give one of my SpaceX shares to every kid in America,\" Musk, the richest man in the world, said on X.",
+          "grounded_time_keys": [
+            "relative:next year"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Musk pledges to give share of SpaceX company to 'every kid in America'",
+          "description": "Anthropic is planning a massive initial public offering as soon as November.",
+          "published_at": "2026-10-19",
+          "url": "https://www.bostonherald.com/2026/10/19/elon-musk-spacex-shares-kids/",
+          "source": "bostonherald.com",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 1.0,
+          "grounded_sentence": "Anthropic is planning a massive initial public offering as soon as November.",
+          "grounded_time_keys": [
+            "month:2026-11"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "core",
+          "title": "Musk pledges to give share of SpaceX company to 'every kid in America'",
+          "description": "03 on Friday.",
+          "published_at": "2026-10-19T12:44:44+00:00",
+          "url": "https://www.dailynews.com/2026/10/19/elon-musk-spacex-shares-kids/",
+          "grounded_sentence": "03 on Friday.",
+          "grounded_time_keys": [
+            "weekday:friday"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        }
+      ],
+      "proposal": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "Elon Musk pledges to give one of his SpaceX shares to every kid in America next year.",
+        "source_index": 3,
+        "reason": "This statement directly outlines a future action by Musk that could materially update the story.",
+        "research_gap": "",
+        "search_queries": []
+      },
+      "review": {
+        "eligible": true,
+        "signal": "Elon Musk pledges to give one of his SpaceX shares to every kid in America next year.",
+        "source_index": 3,
+        "proposed_signal": "Elon Musk pledges to give one of his SpaceX shares to every kid in America next year.",
+        "proposed_source_index": 3,
+        "reason": "Reviewer returned approval without an explanation.",
+        "reason_code": "none",
+        "review_model_called": true,
+        "comparisons": [
+          {
+            "source_index": 1,
+            "event": "",
+            "timing": "",
+            "qualifies": false,
+            "reason": "No future event mentioned.",
+            "before_selected": null
+          },
+          {
+            "source_index": 2,
+            "event": "",
+            "timing": "",
+            "qualifies": false,
+            "reason": "No future event mentioned.",
+            "before_selected": null
+          },
+          {
+            "source_index": 3,
+            "event": "Musk pledges a share to every kid",
+            "timing": "Next year",
+            "qualifies": true,
+            "reason": "Directly supports the proposed signal."
+          },
+          {
+            "source_index": 4,
+            "event": "",
+            "timing": "",
+            "qualifies": false,
+            "reason": "No future event mentioned.",
+            "before_selected": null
+          },
+          {
+            "source_index": 5,
+            "event": "",
+            "timing": "",
+            "qualifies": false,
+            "reason": "No future event mentioned.",
+            "before_selected": null
+          },
+          {
+            "source_index": 6,
+            "event": "",
+            "timing": "",
+            "qualifies": false,
+            "reason": "No future event mentioned.",
+            "before_selected": null
+          }
+        ]
+      }
+    },
+    {
+      "date": "2026-10-19",
+      "topic": {
+        "topic_title": "Curfews Imposed in Paris and Other French Cities Following Widespread Rioting",
+        "summary": "Following widespread rioting across France, curfews have been imposed in parts of central Paris and other cities. The country's interior minister acknowledged that the police \"lost control\" in some areas during the weekend protests, which saw participation from over half a million people. The protests were reportedly against declining public services and rising cost-of-living pressures. Prime Minister Sébastien Lecornu has defended the police's efforts and pledged to restore order."
+      },
+      "evidence": [
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "France Orders Curfews Amid Widespread Rioting",
+          "description": "Another round of massive demonstrations across France, dubbed “Act II,” is scheduled for Saturday.",
+          "published_at": "2026-10-19T20:46:23Z",
+          "url": "https://foreignpolicy.com/2026/10/19/france-protests-violence-riots-curfew-paris-lecornu-macron-melenchon/",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.2713,
+          "grounded_sentence": "Another round of massive demonstrations across France, dubbed “Act II,” is scheduled for Saturday.",
+          "grounded_time_keys": [
+            "weekday:saturday"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "France imposes partial curfews in several cities, including parts of Paris",
+          "description": "French unions, meanwhile, called for a new ⁠round of strikes and rallies on 5 November.",
+          "published_at": "2026-10-19T18:16:45Z",
+          "url": "https://www.theguardian.com/world/2026/oct/19/french-police-lost-control-during-riots-concedes-interior-minister",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.5625,
+          "grounded_sentence": "French unions, meanwhile, called for a new ⁠round of strikes and rallies on 5 November.",
+          "grounded_time_keys": [
+            "date:2026-11-05"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "France protests latest: Curfews announced in Paris and Nice as minister vows ‘firm and unrelenting’ response",
+          "description": "Meanwhile, French unions called for a new round of strikes and rallies on 5 November.",
+          "published_at": "2026-10-19T22:20:59Z",
+          "url": "https://www.independent.co.uk/news/world/europe/france-protests-paris-riots-students-arrests-live-b3068924.html",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.3318,
+          "grounded_sentence": "Meanwhile, French unions called for a new round of strikes and rallies on 5 November.",
+          "grounded_time_keys": [
+            "date:2026-11-05"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "France protests latest: Curfews announced in Paris and Nice as minister vows ‘firm and unrelenting’ response",
+          "description": "Paris police said they had issued orders barring protests in certain areas of the French capital from 8 pm (1800 GMT) and had issued a curfew around the Place de la Republique and Les Halles from 10pm. Both would remain in effect until 6 am on Tuesday morning.",
+          "published_at": "2026-10-19T22:20:59Z",
+          "url": "https://www.independent.co.uk/news/world/europe/france-protests-paris-riots-students-arrests-live-b3068924.html",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.3318,
+          "grounded_sentence": "Paris police said they had issued orders barring protests in certain areas of the French capital from 8 pm (1800 GMT) and had issued a curfew around the Place de la Republique and Les Halles from 10pm. Both would remain in effect until 6 am on Tuesday morning.",
+          "grounded_time_keys": [
+            "weekday:tuesday"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false,
+          "recovered_context_from_saved_article": true
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "France Orders Curfews Amid Widespread Rioting",
+          "description": "More than 5,000 people gathered in Milan over the weekend to denounce rising prices and poor public services.",
+          "published_at": "2026-10-19T20:46:23Z",
+          "url": "https://foreignpolicy.com/2026/10/19/france-protests-violence-riots-curfew-paris-lecornu-macron-melenchon/",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.2713,
+          "grounded_sentence": "More than 5,000 people gathered in Milan over the weekend to denounce rising prices and poor public services.",
+          "grounded_time_keys": [
+            "relative:over the weekend"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "core",
+          "title": "France Orders Curfews Amid Widespread Rioting",
+          "description": "More than half a million people joined anti-government protests over the weekend.",
+          "published_at": "2026-10-19T20:46:23Z",
+          "url": "https://foreignpolicy.com/2026/10/19/france-protests-violence-riots-curfew-paris-lecornu-macron-melenchon/",
+          "grounded_sentence": "More than half a million people joined anti-government protests over the weekend.",
+          "grounded_time_keys": [
+            "relative:over the weekend"
+          ],
+          "grounded_reference_date": "2026-10-19",
+          "grounded_vague_context": false
+        }
+      ],
+      "proposal": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "Another round of massive demonstrations across France, dubbed 'Act II,' is scheduled for Saturday.",
+        "source_index": 1,
+        "reason": "This event could materially update the story by potentially escalating the situation or leading to further government responses.",
+        "research_gap": "",
+        "search_queries": []
+      },
+      "review": {
+        "eligible": true,
+        "signal": "Another round of massive demonstrations across France, dubbed 'Act II,' is scheduled for Saturday.",
+        "source_index": 1,
+        "proposed_signal": "Another round of massive demonstrations across France, dubbed 'Act II,' is scheduled for Saturday.",
+        "proposed_source_index": 1,
+        "reason": "Reviewer returned approval without an explanation.",
+        "reason_code": "none",
+        "review_model_called": true,
+        "comparisons": [
+          {
+            "source_index": 1,
+            "event": "Another round of massive demonstrations",
+            "timing": "Saturday",
+            "qualifies": true,
+            "reason": "Directly supports the proposed event."
+          },
+          {
+            "source_index": 2,
+            "event": "New round of strikes and rallies",
+            "timing": "5 November",
+            "qualifies": false,
+            "reason": "Later event, does not conflict.",
+            "before_selected": null
+          },
+          {
+            "source_index": 3,
+            "event": "New round of strikes and rallies",
+            "timing": "5 November",
+            "qualifies": false,
+            "reason": "Later event, does not conflict.",
+            "before_selected": null
+          },
+          {
+            "source_index": 4,
+            "event": "",
+            "timing": "",
+            "qualifies": false,
+            "reason": "No future event mentioned.",
+            "before_selected": null
+          },
+          {
+            "source_index": 5,
+            "event": "",
+            "timing": "",
+            "qualifies": false,
+            "reason": "No future event mentioned.",
+            "before_selected": null
+          },
+          {
+            "source_index": 6,
+            "event": "",
+            "timing": "",
+            "qualifies": false,
+            "reason": "No future event mentioned.",
+            "before_selected": null
+          }
+        ]
+      }
+    }
+  ],
+  "france_start_time_instead_of_expiry": {
+    "eligible": true,
+    "signal": "Another round of massive demonstrations across France, dubbed 'Act II,' is scheduled for Saturday.",
+    "source_index": 1,
+    "proposed_signal": "Another round of massive demonstrations across France, dubbed 'Act II,' is scheduled for Saturday.",
+    "proposed_source_index": 1,
+    "reason": "Reviewer returned approval without an explanation.",
+    "reason_code": "none",
+    "review_model_called": true,
+    "comparisons": [
+      {
+        "source_index": 1,
+        "event": "Another round of massive demonstrations across France",
+        "timing": "Saturday",
+        "qualifies": true,
+        "reason": "Directly supports the proposed event."
+      },
+      {
+        "source_index": 2,
+        "event": "New round of strikes and rallies",
+        "timing": "5 November",
+        "qualifies": false,
+        "reason": "Later date, not directly related to current protests.",
+        "before_selected": null
+      },
+      {
+        "source_index": 3,
+        "event": "New round of strikes and rallies",
+        "timing": "5 November",
+        "qualifies": false,
+        "reason": "Later date, not directly related to current protests.",
+        "before_selected": null
+      },
+      {
+        "source_index": 4,
+        "event": "Curfew issued in Paris",
+        "timing": "10pm",
+        "qualifies": false,
+        "reason": "Ongoing curfew, not a future event.",
+        "before_selected": null
+      },
+      {
+        "source_index": 5,
+        "event": "Protests in Milan",
+        "timing": "over the weekend",
+        "qualifies": false,
+        "reason": "Not relevant to French protests.",
+        "before_selected": null
+      },
+      {
+        "source_index": 6,
+        "event": "Anti-government protests",
+        "timing": "over the weekend",
+        "qualifies": false,
+        "reason": "Completed event, not future.",
+        "before_selected": null
+      }
+    ]
+  },
+  "oct27_sentence_selection": [
+    {
+      "date": "2026-10-27",
+      "topic": {
+        "topic_title": "No Clear Winner Projected in Israel Election",
+        "summary": "Exit polls and projections showed opposition or anti-Netanyahu parties holding a slim seat advantage over Prime Minister Benjamin Netanyahu’s coalition, but neither bloc secured a clear majority. Netanyahu’s party was projected to remain the largest in parliament. The election recorded Israel’s highest turnout in more than 25 years and was the first since the Oct. 7 attacks and the war in Gaza.",
+        "sources": [
+          "https://biztoc.com/x/9d3d6cf08a9a797d",
+          "https://www.pbs.org/newshour/show/projections-show-no-clear-winner-in-israels-election",
+          "https://www.newser.com/story/398921/no-clear-winner-emerges-in-israel-election.html",
+          "https://www.dw.com/en/israel-election-anti-netanyahu-bloc-ahead-but-no-majority/live-79713839?maca=en-rss-en-all-1573-rdf",
+          "https://www.independent.co.uk/news/world/middle-east/israel-election-exit-poll-results-time-b3074004.html",
+          "https://www.aljazeera.com/news/2026/10/27/exit-polls-following-israeli-elections-indicate-no-clear-winner?traffic_source=rss",
+          "https://www.cbsnews.com/video/status-israels-election-exit-polling-reveals-divided-nation/",
+          "https://www.npr.org/2026/10/27/nx-s1-6019381/israel-elections",
+          "https://www.nytimes.com/live/2026/10/27/world/israel-elections",
+          "https://www.nbcwashington.com/news/national-international/israel-elections-netanyahu-eisenkot-war/4172466/",
+          "https://foreignpolicy.com/2026/10/27/israel-election-netanyahu-likud-eisenkot-yashar-hamas-gaza-war/",
+          "https://www.aljazeera.com/news/liveblog/2026/10/27/israel-election-results-live-exit-polls-soon-as-netanyahu-faces-tight-race?traffic_source=rss",
+          "https://www.independent.co.uk/news/world/middle-east/israel-election-2026-results-netanyahu-trump-iran-live-updates-b3074404.html",
+          "https://www.startribune.com/voters-in-israel-will-decide-whether-to-oust-netanyahu-after-3-years-of-war/601905784",
+          "https://www.breitbart.com/politics/2026/10/27/israel-election-cliffhanger-exit-polls-show-netanyahu-eisenkot-deadlocked-arab-parties-surge/",
+          "https://www.aljazeera.com/video/newsfeed/2026/10/27/go-home-ben-gvir-arab-bloc-celebrates-record-turnout-in-israel-election?traffic_source=rss"
+        ]
+      },
+      "evidence": [
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "No Clear Winner Emerges in Israel Election",
+          "description": "Yair Golan, leader of the opposition bloc Democrats, expected to win 9 seats, declared victory for the bloc Tuesday night, saying Israel has \"fired Netanyahu and Likud.",
+          "published_at": "2026-10-27T22:46:20Z",
+          "url": "https://www.newser.com/story/398921/no-clear-winner-emerges-in-israel-election.html",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.875,
+          "grounded_sentence": "Yair Golan, leader of the opposition bloc Democrats, expected to win 9 seats, declared victory for the bloc Tuesday night, saying Israel has \"fired Netanyahu and Likud.",
+          "grounded_time_keys": [
+            "window:2026-10-27:night"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Israel election: Anti-Netanyahu bloc ahead, but no majority",
+          "description": "\"I will receive the official election results next week,\" Herzog said.",
+          "published_at": "2026-10-27T20:21:00Z",
+          "url": "https://www.dw.com/en/israel-election-anti-netanyahu-bloc-ahead-but-no-majority/live-79713839?maca=en-rss-en-all-1573-rdf",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.3893,
+          "grounded_sentence": "\"I will receive the official election results next week,\" Herzog said.",
+          "grounded_time_keys": [
+            "relative:next week"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Voters deliver rebuke to Netanyahu but no clear winner in Israel's election",
+          "description": "If no one can cobble together a majority coalition, new elections could be held early next year.",
+          "published_at": "2026-10-27",
+          "url": "https://www.echo-news.co.uk/news/national/26675863.voters-deliver-rebuke-netanyahu-no-clear-winner-israels-election/",
+          "source": "echo-news.co.uk",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 0.5,
+          "grounded_sentence": "If no one can cobble together a majority coalition, new elections could be held early next year.",
+          "grounded_time_keys": [
+            "relative:next year"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        }
+      ],
+      "original_decision": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "I will receive the official election results next week,\" Herzog said.",
+        "source_index": 2,
+        "reason": "The official election results will provide clarity on the election outcome, which is essential for understanding the political landscape following the election.",
+        "research_gap": "",
+        "search_queries": []
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "topic": {
+        "topic_title": "Jay-Z to Headline Super Bowl LXI Halftime Show",
+        "summary": "Jay-Z will headline the Super Bowl LXI halftime show at SoFi Stadium in California. The performance is scheduled for Valentine’s Day 2027 and will be broadcast live from Los Angeles. One article states that Jay-Z, who produces the halftime show, selected himself to headline the event.",
+        "sources": [
+          "https://pitchfork.com/story/jay-z-confirmed-for-super-bowl-2027-halftime-show/",
+          "https://www.nbcwashington.com/super-bowl/jay-z-super-bowl-61-halftime-show-los-angeles/4149799/",
+          "https://www.cbsnews.com/video/jay-z-selects-himself-to-headline-super-bowl-halftime-show/",
+          "http://www.cambodiantimes.com/news/279399148/jay-z-to-headline-super-bowl-lxi-halftime-show",
+          "https://www.oann.com/newsroom/jay-zs-roc-nation-picks-himself-to-headline-super-bowl-lxi-halftime-show/",
+          "https://www.news10.com/top-stories/jay-z-picks-himself-to-headline-the-super-bowl-halftime-show/"
+        ]
+      },
+      "evidence": [
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Jay-Z to Headline Super Bowl LXI Halftime Show at SoFi Stadium",
+          "description": "The NFL announced Monday that hip-hop icon and business mogul Jay-Z will headline the Super Bowl LXI halftime show. The announcement was made during the halftime broadcast of the “Monday Night Football” matchup between the Dallas Cowboys and Philadelphia Eagles, confirming that one of the most influential figures in music history will take the stage at SoFi Stadium on Feb. 14, 2027.",
+          "published_at": "2026-10-27",
+          "url": "https://www.hot97.com/news/jay-z-to-headline-super-bowl-lxi-halftime-show-at-sofi-stadium/",
+          "source": "hot97.com",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 0.75,
+          "grounded_sentence": "The announcement was made during the halftime broadcast of the “Monday Night Football” matchup between the Dallas Cowboys and Philadelphia Eagles, confirming that one of the most influential figures in music history will take the stage at SoFi Stadium on Feb. 14, 2027.",
+          "grounded_time_keys": [
+            "weekday:monday",
+            "date:2027-02-14"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": true
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Jay-Z will headline Super Bowl LXI halftime show",
+          "description": "The 25-time Grammy Award winner , whose Roc Nation company has helped produce Super Bowl halftime shows, will step onto the stage on Feb. 14, 2027, at SoFi Stadium in Inglewood, California.",
+          "published_at": "2026-10-27",
+          "url": "https://www.wdbo.com/news/trending/jay-z-will-headline-super-bowl-lxi-halftime-show/WHQ3F4OEYJEJNKLXGNS3INVCO4/",
+          "source": "wdbo.com",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 0.8,
+          "grounded_sentence": "The 25-time Grammy Award winner , whose Roc Nation company has helped produce Super Bowl halftime shows, will step onto the stage on Feb. 14, 2027, at SoFi Stadium in Inglewood, California.",
+          "grounded_time_keys": [
+            "date:2027-02-14"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        }
+      ],
+      "original_decision": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "will take the stage at SoFi Stadium on Feb. 14, 2027.",
+        "source_index": 1,
+        "reason": "This future action directly relates to the story's central fact about Jay-Z headlining the Super Bowl LXI halftime show, and it provides a specific date for the performance.",
+        "research_gap": "",
+        "search_queries": []
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "topic": {
+        "topic_title": "Justice Department Files New Charges Against Former FBI Director James Comey",
+        "summary": "Federal prosecutors have filed a third set of charges against former FBI Director James Comey. The Justice Department filed two criminal charges accusing Comey of unlawfully disclosing national defense information. One article says the information was shared with a New York Times reporter in 2016.",
+        "sources": [
+          "https://www.nbcwashington.com/news/national-international/james-comey-charged-third-time-trump-administration/4172204/",
+          "https://www.realclearpolitics.com/2026/10/27/comey_charged--again_715594.html",
+          "https://fox17.com/news/nation-world/federal-prosecutors-file-third-set-of-charges-against-ex-fbi-director-james-comey-trump-charges-russia-interference-conspiracy-defense-information",
+          "https://www.kxxv.com/us-news/crime/justice-department-files-new-charges-against-former-fbi-director-james-comey",
+          "https://www.dw.com/en/us-seeks-new-charges-against-former-fbi-chief-james-comey/a-79771256?maca=en-rss-en-all-1573-rdf",
+          "https://www.oann.com/newsroom/judge-rejects-new-charges-against-fbi-officials-accused-of-lying-to-congress-about-hunter-bidens-laptop-investigations/"
+        ]
+      },
+      "evidence": [
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "James Comey charged for a third time by the Trump administration",
+          "description": "Comey responded to the new charges in a video Monday.",
+          "published_at": "2026-10-26T05:31:22Z",
+          "url": "https://www.nbcwashington.com/news/national-international/james-comey-charged-third-time-trump-administration/4172204/",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 1.0,
+          "grounded_sentence": "Comey responded to the new charges in a video Monday.",
+          "grounded_time_keys": [
+            "weekday:monday"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Justice Department files new charges against former FBI Director James Comey",
+          "description": "Comey maintained his innocence in a video statement released on Monday.",
+          "published_at": "2026-10-26T21:53:17.118",
+          "url": "https://www.kxxv.com/us-news/crime/justice-department-files-new-charges-against-former-fbi-director-james-comey",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 1.0,
+          "grounded_sentence": "Comey maintained his innocence in a video statement released on Monday.",
+          "grounded_time_keys": [
+            "weekday:monday"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        }
+      ],
+      "original_decision": {
+        "status": "NO_SIGNAL",
+        "eligible": false,
+        "signal": "",
+        "source_index": null,
+        "reason": "The evidence does not provide any future checkpoints that could materially update the story about the charges against James Comey. The references to Comey's video responses do not indicate any upcoming events or developments related to the charges.",
+        "research_gap": "",
+        "search_queries": []
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "topic": {
+        "topic_title": "Two UK nationals charged over suspected RAF Fairford plot",
+        "summary": "Mohmed Abdulkarim and Nouman Essghir, both 24, were charged with UK national security offenses related to a suspected plot against RAF Fairford, a U.S.-run military air base in England. The alleged plot was described as Iran-backed or intended to aid Iran. The two men appeared in a London court and were due to appear at Westminster Magistrates’ Court.",
+        "sources": [
+          "https://www.oxfordmail.co.uk/news/national/26672672.two-uk-nationals-charged-raf-fairford-plot-aid-iran/",
+          "https://www.wdbo.com/news/world/2-men-charged-with/WHIG2TD2RE3BZLFQ7NAMWGYJMM/",
+          "https://www.wxii12.com/article/2-men-charged-uk-us-air-base-security-incident/74257848",
+          "https://www.bostonherald.com/2026/10/27/men-charged-uk-national-security-offenses-raf-fairford/",
+          "https://www.dw.com/en/two-men-face-uk-national-security-charges-following-an-incident-near-raf-fairford-with-police-suspecting-iranian-state-involvement/a-79773432?maca=en-rss-en-all-1573-rdf"
+        ]
+      },
+      "evidence": [
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "2 charged with UK national security offenses incident at US-run military base",
+          "description": "Abdulkarim is charged with assisting Iran's intelligence service and Essghir with entering a prohibited place for a purpose prejudicial to the UK Previous video: President Trump announces the US will not strike Iran before the November midterm elections RAF Fairford, in western England, has been used by American bombers to strike Iran during this year’s war.",
+          "published_at": "2026-10-27",
+          "url": "https://www.gulfcoastnewsnow.com/article/2-men-charged-uk-us-air-base-security-incident/74257848",
+          "source": "gulfcoastnewsnow.com",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 0.6496,
+          "grounded_sentence": "Abdulkarim is charged with assisting Iran's intelligence service and Essghir with entering a prohibited place for a purpose prejudicial to the UK Previous video: President Trump announces the US will not strike Iran before the November midterm elections RAF Fairford, in western England, has been used by American bombers to strike Iran during this year’s war.",
+          "grounded_time_keys": [
+            "month:2026-11"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        }
+      ],
+      "original_decision": {
+        "status": "RESEARCH_NEEDED",
+        "eligible": false,
+        "signal": "",
+        "source_index": null,
+        "reason": "The evidence indicates charges have been made, but it does not specify the timing of any upcoming court appearances or proceedings that would directly update the story.",
+        "research_gap": "Details on the next court date or proceedings related to the charges against Abdulkarim and Essghir.",
+        "search_queries": [
+          "next court date for Mohmed Abdulkarim and Nouman Essghir",
+          "updates on RAF Fairford plot charges"
+        ]
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "topic": {
+        "topic_title": "Localized Russia-Ukraine ceasefire begins in Oleshky",
+        "summary": "A localized ceasefire between Russia and Ukraine took effect early Tuesday in the southern Ukrainian city of Oleshky. The truce, brokered by U.S. first lady Melania Trump, is intended to allow a humanitarian aid mission. It began ahead of U.S.-brokered talks between Russia and Ukraine expected next month, while missile attacks resumed in Kyiv.",
+        "sources": [
+          "https://www.krwg.org/national-news/2026-10-26/local-ceasefire-brokered-by-melania-trump-starts-in-southern-ukraine",
+          "https://www.timesandstar.co.uk/news/national/26673106.localised-russia-ukraine-ceasefire-starts-deal-brokered-melania-trump/",
+          "https://www.thewestonmercury.co.uk/news/national/26672284.melania-trump-brokered-ceasefire-starts-area-ukraine-ahead-aid-mission/",
+          "http://www.idahopress.com/news/world/localized-russia-ukraine-ceasefire-takes-effect-in-oleshky-in-deal-brokered-by-melania-trump/article_448d700a-f978-50b7-9542-90f4222dce95.html",
+          "https://www.euronews.com/2026/10/27/us-brokered-ceasefire-begins-in-russian-occupied-oleshky-as-strikes-hit-kyiv",
+          "https://www.snopes.com//news/2026/10/27/melania-trump-pope-ukraine-ceasefire/",
+          "https://www.nytimes.com/2026/10/26/world/europe/ukraine-oleshky-ceasefire-russia-war.html"
+        ]
+      },
+      "evidence": [
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Localized Russia-Ukraine ceasefire takes effect in Oleshky in deal brokered by Melania Trump",
+          "description": "Start every Wednesday and Friday at 6 a.m. with all the local news you need.",
+          "published_at": "2026-10-27",
+          "url": "http://www.cecildaily.com/ap/world/localized-russia-ukraine-ceasefire-takes-effect-in-oleshky-in-deal-brokered-by-melania-trump/article_8ab800d0-eb1e-5df4-b183-bd602735af33.html",
+          "source": "cecildaily.com",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 0.6875,
+          "grounded_sentence": "Start every Wednesday and Friday at 6 a.m. with all the local news you need.",
+          "grounded_time_keys": [
+            "weekday:wednesday",
+            "weekday:friday"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Localized Russia-Ukraine ceasefire takes effect in Oleshky in deal brokered by Melania Trump",
+          "description": "The pause in fighting started at 3 a.m. in Ukraine to allow an aid mission into the Russian-occupied town of Oleshky in southern Ukraine later this week. According to her office, Melania Trump led talks with civilian negotiators from Russia and Ukraine after meeting with United Nations officials who briefed her on the situation in the town. The aid mission is planned ahead of a new round of US-brokered talks between Russia and Ukraine expected next month and aimed at ending the war after more than 4½ years of fighting.",
+          "published_at": "2026-10-27",
+          "url": "http://www.cecildaily.com/ap/world/localized-russia-ukraine-ceasefire-takes-effect-in-oleshky-in-deal-brokered-by-melania-trump/article_8ab800d0-eb1e-5df4-b183-bd602735af33.html",
+          "source": "cecildaily.com",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 0.6875,
+          "grounded_sentence": "The aid mission is planned ahead of a new round of US-brokered talks between Russia and Ukraine expected next month and aimed at ending the war after more than 4½ years of fighting.",
+          "grounded_time_keys": [
+            "relative:next month"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": true
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Localized Russia-Ukraine ceasefire takes effect in Oleshky in deal brokered by Melania Trump",
+          "description": "Stubb and Støre said they initiated the call with Putin, speaking with him for 90 minutes, to discuss the war and upcoming trilateral talks involving delegations from Russia, Ukraine and the United States that are expected to take place next month in Abu Dhabi, United Arab Emirates.",
+          "published_at": "2026-10-27T10:28:20-06:00",
+          "url": "http://www.idahopress.com/news/world/localized-russia-ukraine-ceasefire-takes-effect-in-oleshky-in-deal-brokered-by-melania-trump/article_448d700a-f978-50b7-9542-90f4222dce95.html",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.6875,
+          "grounded_sentence": "Stubb and Støre said they initiated the call with Putin, speaking with him for 90 minutes, to discuss the war and upcoming trilateral talks involving delegations from Russia, Ukraine and the United States that are expected to take place next month in Abu Dhabi, United Arab Emirates.",
+          "grounded_time_keys": [
+            "relative:next month"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Localized Russia-Ukraine ceasefire takes effect in Oleshky in deal brokered by Melania Trump",
+          "description": "Under international law, the occupying power — Russia — must ensure civilians under its occupation live safely. Ukraine has repeatedly tried to negotiate with Moscow to establish a humanitarian corridor for evacuations and aid delivery. The local ceasefire is due to continue until 10:59 p.m. local time on Sunday, according to Davyd Arakhamia, a lawmaker with Ukrainian President Volodymyr Zelenskyy’s Servant of the People party.",
+          "published_at": "2026-10-27T10:28:20-06:00",
+          "url": "http://www.idahopress.com/news/world/localized-russia-ukraine-ceasefire-takes-effect-in-oleshky-in-deal-brokered-by-melania-trump/article_448d700a-f978-50b7-9542-90f4222dce95.html",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.6875,
+          "grounded_sentence": "The local ceasefire is due to continue until 10:59 p.m. local time on Sunday, according to Davyd Arakhamia, a lawmaker with Ukrainian President Volodymyr Zelenskyy’s Servant of the People party.",
+          "grounded_time_keys": [
+            "weekday:sunday"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": true
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Localised Russia-Ukraine ceasefire starts in deal brokered by Melania Trump",
+          "description": "Mr Stubb and Mr Store said they initiated the call with Mr Putin, speaking with him for 90 minutes, to discuss the war and upcoming trilateral talks involving delegations from Russia, Ukraine and the United States that are expected to take place next month in Abu Dhabi, United Arab Emirates.",
+          "published_at": "2026-10-27",
+          "url": "https://www.braintreeandwithamtimes.co.uk/news/national/26673106.localised-russia-ukraine-ceasefire-starts-deal-brokered-melania-trump/",
+          "source": "braintreeandwithamtimes.co.uk",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 0.5923,
+          "grounded_sentence": "Mr Stubb and Mr Store said they initiated the call with Mr Putin, speaking with him for 90 minutes, to discuss the war and upcoming trilateral talks involving delegations from Russia, Ukraine and the United States that are expected to take place next month in Abu Dhabi, United Arab Emirates.",
+          "grounded_time_keys": [
+            "relative:next month"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Melania Trump-brokered ceasefire starts in area of Ukraine ahead of aid mission",
+          "description": "The local pause in fighting started at 3am to allow an aid mission into the Russian-occupied town of Oleshky in southern Ukraine later this week. According to her office, the US first lady led talks with civilian negotiators from Russia and Ukraine after meeting UN officials who briefed her on the situation in the town. The aid mission is planned ahead of a new round of US-brokered talks between Russia and Ukraine expected next month aimed at ending the war after more than four years of fighting.",
+          "published_at": "2026-10-27T07:42:10Z",
+          "url": "https://www.thewestonmercury.co.uk/news/national/26672284.melania-trump-brokered-ceasefire-starts-area-ukraine-ahead-aid-mission/",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.4036,
+          "grounded_sentence": "The aid mission is planned ahead of a new round of US-brokered talks between Russia and Ukraine expected next month aimed at ending the war after more than four years of fighting.",
+          "grounded_time_keys": [
+            "relative:next month"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": true
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Melania Trump-brokered ceasefire starts in area of Ukraine ahead of aid mission",
+          "description": "They are unable to leave because of explosive mines and drone attacks in the area, according to the UN. Russian and Ukrainian negotiators as well as the militaries of the two countries confirmed in separate statements that the ceasefire had begun. The local ceasefire is due to last through to Saturday, or longer, though deep mistrust between Russia and Ukraine has thwarted previous attempts at ceasefires.",
+          "published_at": "2026-10-27T07:42:10Z",
+          "url": "https://www.thewestonmercury.co.uk/news/national/26672284.melania-trump-brokered-ceasefire-starts-area-ukraine-ahead-aid-mission/",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.4036,
+          "grounded_sentence": "The local ceasefire is due to last through to Saturday, or longer, though deep mistrust between Russia and Ukraine has thwarted previous attempts at ceasefires.",
+          "grounded_time_keys": [
+            "weekday:saturday"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": true
+        },
+        {
+          "origin": "core",
+          "title": "Melania Trump-brokered ceasefire starts in area of Ukraine ahead of aid mission",
+          "description": "The aid mission is planned ahead of a new round of US-brokered talks between Russia and Ukraine expected next month aimed at ending the war.",
+          "published_at": "2026-10-27T07:42:10Z",
+          "url": "https://www.thewestonmercury.co.uk/news/national/26672284.melania-trump-brokered-ceasefire-starts-area-ukraine-ahead-aid-mission/",
+          "grounded_sentence": "The aid mission is planned ahead of a new round of US-brokered talks between Russia and Ukraine expected next month aimed at ending the war.",
+          "grounded_time_keys": [
+            "relative:next month"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        }
+      ],
+      "original_decision": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "The aid mission is planned ahead of a new round of US-brokered talks between Russia and Ukraine expected next month aimed at ending the war after more than four years of fighting.",
+        "source_index": 2,
+        "reason": "This checkpoint directly relates to the ongoing ceasefire and its purpose, which is to facilitate humanitarian aid and is tied to future diplomatic efforts.",
+        "research_gap": "",
+        "search_queries": []
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "topic": {
+        "topic_title": "Harry Kane wins 2026 Ballon d’Or",
+        "summary": "England and Bayern Munich striker Harry Kane won the 2026 Ballon d’Or in London. The England captain became the first English footballer to receive the award since Michael Owen in 2001. The articles say Kane scored 73 goals for club and country last season, with Kylian Mbappé finishing behind him in the voting.",
+        "sources": [
+          "https://www.dw.com/en/england-and-bayern-munich-striker-harry-kane-wins-ballon-d-or/a-79771067?maca=en-rss-en-all-1573-rdf",
+          "https://abcnews.com/video/137619082/",
+          "https://www.kmuw.org/2026-10-27/harry-kane-becomes-first-englishman-in-25-years-to-win-ballon-dor",
+          "https://www.newsandstar.co.uk/news/26672711.harry-kane-wins-ballon-dor-first-englishman-since-2001/",
+          "https://www.dw.com/en/harry-kane-ballon-d-or-for-bayern-munich-striker/a-79723299?maca=en-rss-en-all-1573-rdf",
+          "https://www.rollingstone.com/product-recommendations/lifestyle/harry-kane-ballon-dor-merch-2026-buy-jersey-t-shirts-cards-1235648780/"
+        ]
+      },
+      "evidence": [
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Harry Kane wins Ballon d'Or as first Englishman since 2001",
+          "description": "\"I can’t wait to celebrate tonight.",
+          "published_at": "2026-10-27",
+          "url": "https://www.nwemail.co.uk/news/26672711.harry-kane-wins-ballon-dor-first-englishman-since-2001/",
+          "source": "nwemail.co.uk",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 0.6101,
+          "grounded_sentence": "\"I can’t wait to celebrate tonight.",
+          "grounded_time_keys": [
+            "relative:tonight"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        }
+      ],
+      "original_decision": {
+        "status": "NO_SIGNAL",
+        "eligible": false,
+        "signal": "",
+        "source_index": null,
+        "reason": "The evidence does not provide a concrete future action or state change that would materially update the story about Harry Kane winning the Ballon d'Or. The mention of celebrating tonight does not constitute a significant checkpoint related to the story's central fact.",
+        "research_gap": "",
+        "search_queries": []
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "topic": {
+        "topic_title": "Flávio Bolsonaro Leaves Brazil for U.S. After Election Defeat",
+        "summary": "Flávio Bolsonaro left Brazil for the United States after losing the presidential election, according to reports. Brazil’s Supreme Court had ordered him to surrender his passports in connection with a money-laundering investigation, and one report said he missed the deadline. A U.S. official said Bolsonaro and his family would receive U.S. visas.",
+        "sources": [
+          "https://www.nytimes.com/2026/10/27/world/americas/brazil-flavio-bolsonaro-flees-election.html",
+          "https://www.aljazeera.com/news/2026/10/27/flavio-bolsonaro-flees-brazil-after-election-loss-us-says-will-grant-visa?traffic_source=rss",
+          "https://www.theguardian.com/world/2026/oct/27/flavio-bolsonaro-brazil-argentina-fled",
+          "https://www.cbsnews.com/news/brazil-flavio-bolsonaro-u-s-visa-presidential-election-loss/",
+          "https://www.dw.com/en/flavio-bolsonaro-flees-brazil-for-us-amid-investigation-reports/a-79781094?maca=en-rss-en-all-1573-rdf",
+          "https://www.npr.org/2026/10/27/nx-s1-6019217/bolsonaro-flavio-lula-brazil-election-trump"
+        ]
+      },
+      "evidence": [
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Brazil's Flávio Bolsonaro leaves Brazil for US, according to reports",
+          "description": "His eight-year term as a senator expires Jan. 31, 2027, which will also cause him to lose special jurisdiction at the country’s Supreme Court.",
+          "published_at": "2026-10-27",
+          "url": "https://www.advocate-news.com/2026/10/27/brazil-flavio-bolsonaro-whereabouts/",
+          "source": "advocate-news.com",
+          "sidecar_source_origin": "coverage_receipt",
+          "sidecar_similarity": 0.4973,
+          "grounded_sentence": "His eight-year term as a senator expires Jan. 31, 2027, which will also cause him to lose special jurisdiction at the country’s Supreme Court.",
+          "grounded_time_keys": [
+            "date:2027-01-31"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "core",
+          "title": "U.S. issuing visas to Brazil's Flávio Bolsonaro and family, official says",
+          "description": "Flávio Bolsonaro and his family will receive US visas after Bolsonaro lost Brazil's presidential election over the weekend, a State Department official told CBS News.",
+          "published_at": "2026-10-27T21:43:14Z",
+          "url": "https://www.cbsnews.com/news/brazil-flavio-bolsonaro-u-s-visa-presidential-election-loss/",
+          "grounded_sentence": "Flávio Bolsonaro and his family will receive US visas after Bolsonaro lost Brazil's presidential election over the weekend, a State Department official told CBS News.",
+          "grounded_time_keys": [
+            "relative:over the weekend"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_metadata",
+          "title": "U.S. issuing visas to Brazil's Flávio Bolsonaro and family, official says",
+          "description": "US issuing visas to Brazil's Flávio Bolsonaro and family, official says Flávio Bolsonaro and his family will receive US visas after Bolsonaro lost Brazil's presidential election over the weekend, a State Department official told CBS News.",
+          "published_at": "2026-10-27T21:43:14Z",
+          "url": "https://www.cbsnews.com/news/brazil-flavio-bolsonaro-u-s-visa-presidential-election-loss/",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.5018,
+          "grounded_sentence": "US issuing visas to Brazil's Flávio Bolsonaro and family, official says Flávio Bolsonaro and his family will receive US visas after Bolsonaro lost Brazil's presidential election over the weekend, a State Department official told CBS News.",
+          "grounded_time_keys": [
+            "relative:over the weekend"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "U.S. issuing visas to Brazil's Flávio Bolsonaro and family, official says",
+          "description": "After his 2022 defeat, Jair Bolsonaro fled Brazil for Florida. He returned three months later. The sealed Supreme Court order, viewed by The Associated Press, was issued Sunday.",
+          "published_at": "2026-10-27T21:43:14Z",
+          "url": "https://www.cbsnews.com/news/brazil-flavio-bolsonaro-u-s-visa-presidential-election-loss/",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.5018,
+          "grounded_sentence": "The sealed Supreme Court order, viewed by The Associated Press, was issued Sunday.",
+          "grounded_time_keys": [
+            "weekday:sunday"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": true
+        }
+      ],
+      "original_decision": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "His eight-year term as a senator expires Jan. 31, 2027, which will also cause him to lose special jurisdiction at the country’s Supreme Court.",
+        "source_index": 1,
+        "reason": "The expiration of Flávio Bolsonaro's term as a senator is a future event that will materially change his legal standing and could impact his situation in the U.S.",
+        "research_gap": "",
+        "search_queries": []
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "topic": {
+        "topic_title": "Emmy-winning actor Susan Saint James dies at 80",
+        "summary": "Susan Saint James, known for her roles in the television series “McMillan & Wife” and “Kate & Allie,” has died at age 80. She co-starred with Rock Hudson as Sally McMillan, the wife of San Francisco police commissioner Stewart McMillan, in “McMillan & Wife.” She later co-starred with Jane Curtin in “Kate & Allie.”",
+        "sources": [
+          "https://www.stcatharinesstandard.ca/entertainment/susan-saint-james-emmy-winning-actor-of-mcmillan-wife-and-kate-allie-dies-at-80/article_dd68a45a-9e8b-5710-ada4-8de66ad62bfc.html",
+          "https://www.nbcphiladelphia.com/entertainment/entertainment-news/susan-saint-james-emmy-winning-actor-mcmillan-wife-kate-allie-dies-80/4486135/",
+          "https://www.kcra.com/article/susan-saint-james-dies/74261414",
+          "https://littleapplepost.com/posts/ef60d7d2-e74c-4ddd-9616-9f5522c5727e"
+        ]
+      },
+      "evidence": [],
+      "original_decision": null
+    },
+    {
+      "date": "2026-10-27",
+      "topic": {
+        "topic_title": "Trump holds Texas rallies ahead of midterm elections",
+        "summary": "President Donald Trump campaigned in Texas on Tuesday with one week remaining before the midterm elections. He spoke at rallies in Corpus Christi and Lubbock to support Republican candidates, including Senate candidate Ken Paxton and Gov. Greg Abbott. One article described Paxton as virtually tied with Democrat James Talarico, who planned a dueling event.",
+        "sources": [
+          "https://www.abc.net.au/news/2026-10-28/us-midterms-daily-news-briefing-/107315208",
+          "https://www.independent.co.uk/news/world/americas/us-politics/trump-midterms-texas-live-updates-b3074205.html",
+          "https://abcnews.com/Politics/trump-continues-red-state-campaign-push-days-midterms/story?id=137576082",
+          "https://thehill.com/homenews/state-watch/6173803-live-updates-trump-texas-midterm-elections/",
+          "https://www.washingtontimes.com/news/2026/oct/27/donald-trump-returns-texas-high-stakes-push-keep-state-republican/",
+          "https://www.cbsnews.com/video/heres-whether-texas-could-go-blue-as-midterms-approach-trump-visits-state-again/",
+          "https://www.cbsnews.com/video/trump-campaigns-texas-polled-say-corruption-major-factor-midterms/"
+        ]
+      },
+      "evidence": [
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Trump continues red-state campaign push with days until midterms",
+          "description": "Trump is headed back to Kansas on Saturday in Salina, where he will need to run up the score in a county he carried by more than 30 points in 2024.",
+          "published_at": "2026-10-27T21:00:49Z",
+          "url": "https://abcnews.com/Politics/trump-continues-red-state-campaign-push-days-midterms/story?id=137576082",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.3318,
+          "grounded_sentence": "Trump is headed back to Kansas on Saturday in Salina, where he will need to run up the score in a county he carried by more than 30 points in 2024.",
+          "grounded_time_keys": [
+            "weekday:saturday"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Trump returns to Texas for a high-stakes push to keep the state in Republican hands",
+          "description": "WASHINGTON — President Donald Trump will be joined by one of his potential successors on Tuesday as he tries to keep Texas , which hasn’t elected a Democrat to statewide office in 32 years, in the Republican column in next week’s midterm elections.",
+          "published_at": "2026-10-27T15:19:58Z",
+          "url": "https://www.washingtontimes.com/news/2026/oct/27/donald-trump-returns-texas-high-stakes-push-keep-state-republican/",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.2877,
+          "grounded_sentence": "WASHINGTON — President Donald Trump will be joined by one of his potential successors on Tuesday as he tries to keep Texas , which hasn’t elected a Democrat to statewide office in 32 years, in the Republican column in next week’s midterm elections.",
+          "grounded_time_keys": [
+            "relative:next week"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "core",
+          "title": "Trump returns to Texas for a high-stakes push to keep the state in Republican hands",
+          "description": "President Donald Trump will be joined by one of his potential successors on Tuesday as he tries to keep Texas, which hasn't elected a Democrat to statewide office in 32 years, in the Republican column in next week's midterm elections.",
+          "published_at": "2026-10-27T15:19:58Z",
+          "url": "https://www.washingtontimes.com/news/2026/oct/27/donald-trump-returns-texas-high-stakes-push-keep-state-republican/",
+          "grounded_sentence": "President Donald Trump will be joined by one of his potential successors on Tuesday as he tries to keep Texas, which hasn't elected a Democrat to statewide office in 32 years, in the Republican column in next week's midterm elections.",
+          "grounded_time_keys": [
+            "relative:next week"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_metadata",
+          "title": "Trump returns to Texas for a high-stakes push to keep the state in Republican hands",
+          "description": "Trump returns to Texas for a high-stakes push to keep the state in Republican hands President Donald Trump will be joined by one of his potential successors on Tuesday as he tries to keep Texas, which hasn't elected a Democrat to statewide office in 32 years, in the Republican column in next week's midterm elections.",
+          "published_at": "2026-10-27T15:19:58Z",
+          "url": "https://www.washingtontimes.com/news/2026/oct/27/donald-trump-returns-texas-high-stakes-push-keep-state-republican/",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.2877,
+          "grounded_sentence": "Trump returns to Texas for a high-stakes push to keep the state in Republican hands President Donald Trump will be joined by one of his potential successors on Tuesday as he tries to keep Texas, which hasn't elected a Democrat to statewide office in 32 years, in the Republican column in next week's midterm elections.",
+          "grounded_time_keys": [
+            "relative:next week"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        },
+        {
+          "origin": "signal_sidecar_fulltext",
+          "title": "Trump embarks on Texas campaign swing to shore up votes for lagging ally",
+          "description": "I'll be back same time tomorrow with more.",
+          "published_at": "2026-10-27T20:25:31Z",
+          "url": "https://www.abc.net.au/news/2026-10-28/us-midterms-daily-news-briefing-/107315208",
+          "source": "",
+          "sidecar_source_origin": "existing_story_source",
+          "sidecar_similarity": 0.2968,
+          "grounded_sentence": "I'll be back same time tomorrow with more.",
+          "grounded_time_keys": [
+            "relative:tomorrow"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        }
+      ],
+      "original_decision": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "President Donald Trump will be joined by one of his potential successors on Tuesday as he tries to keep Texas, which hasn't elected a Democrat to statewide office in 32 years, in the Republican column in next week's midterm elections.",
+        "source_index": 3,
+        "reason": "This event directly relates to the ongoing campaign efforts in Texas and is explicitly timed for next week, which is crucial for the midterm elections.",
+        "research_gap": "",
+        "search_queries": []
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "topic": {
+        "topic_title": "Walter Koenig, ‘Star Trek’ actor who played Chekov, dies at 90",
+        "summary": "Walter Koenig, best known for playing USS Enterprise navigator Ensign Pavel Chekov on the original “Star Trek” television series, has died at age 90. Reports disagree on whether he died Sunday or Monday. Koenig also portrayed Chekov in several feature films.",
+        "sources": [
+          "https://www.butlereagle.com/20261026/walter-koenig-ensign-chekov-on-the-original-star-trek-series-dies-at-90/",
+          "https://www.ks95.com/star-trek-actor-walter-koenig-dies-at-90/",
+          "https://khak.com/ixp/442/p/walter-koenig-chekov-dies/",
+          "https://www.brisbanetimes.com.au/culture/celebrity/star-trek-actor-walter-koenig-dies-aged-90-20261027-p618s4.html",
+          "https://www.space.com/entertainment/star-trek-legend-and-sci-fi-luminary-walter-koenig-dies-at-90"
+        ]
+      },
+      "evidence": [
+        {
+          "origin": "core",
+          "title": "Walter Koenig, Ensign Chekov on the original 'Star Trek' series, dies at 90 – Butler Eagle",
+          "description": "Koenig died Monday at...",
+          "published_at": "2026-10-27",
+          "url": "https://www.butlereagle.com/20261026/walter-koenig-ensign-chekov-on-the-original-star-trek-series-dies-at-90/",
+          "grounded_sentence": "Koenig died Monday at...",
+          "grounded_time_keys": [
+            "weekday:monday"
+          ],
+          "grounded_reference_date": "2026-10-27",
+          "grounded_vague_context": false
+        }
+      ],
+      "original_decision": {
+        "status": "NO_SIGNAL",
+        "eligible": false,
+        "signal": "",
+        "source_index": null,
+        "reason": "The evidence only confirms the death of Walter Koenig without any future checkpoints or actions that could materially update the story.",
+        "research_gap": "",
+        "search_queries": []
+      }
+    }
+  ],
+  "oct27_sentence_selection_reviews": [
+    {
+      "topic_index": 2,
+      "title": "Jay-Z to Headline Super Bowl LXI Halftime Show",
+      "proposal": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "The 25-time Grammy Award winner , whose Roc Nation company has helped produce Super Bowl halftime shows, will step onto the stage on Feb. 14, 2027, at SoFi Stadium in Inglewood, California.",
+        "source_index": 2,
+        "reason": "The performance is scheduled for February 14, 2027, which is a direct future checkpoint that will confirm Jay-Z's headlining of the Super Bowl LXI halftime show.",
+        "research_gap": "",
+        "search_queries": []
+      },
+      "review": {
+        "eligible": true,
+        "signal": "The 25-time Grammy Award winner , whose Roc Nation company has helped produce Super Bowl halftime shows, will step onto the stage on Feb. 14, 2027, at SoFi Stadium in Inglewood, California.",
+        "source_index": 2,
+        "proposed_signal": "The 25-time Grammy Award winner , whose Roc Nation company has helped produce Super Bowl halftime shows, will step onto the stage on Feb. 14, 2027, at SoFi Stadium in Inglewood, California.",
+        "proposed_source_index": 2,
+        "reason": "Reviewer returned approval without an explanation.",
+        "reason_code": "none",
+        "review_model_called": true,
+        "comparisons": [
+          {
+            "source_index": 1,
+            "event": "Jay-Z will perform at Super Bowl LXI",
+            "timing": "Feb. 14, 2027",
+            "qualifies": true,
+            "reason": "Confirms the same event and timing.",
+            "before_selected": false
+          },
+          {
+            "source_index": 2,
+            "event": "Jay-Z will perform at Super Bowl LXI",
+            "timing": "Feb. 14, 2027",
+            "qualifies": true,
+            "reason": "Directly supports the proposed event."
+          }
+        ]
+      }
+    },
+    {
+      "topic_index": 1,
+      "title": "No Clear Winner Projected in Israel Election",
+      "proposal": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "If no one can cobble together a majority coalition, new elections could be held early next year.",
+        "source_index": 3,
+        "reason": "The potential for new elections early next year directly relates to the current election's outcome and the inability to form a majority coalition, which could materially update the story.",
+        "research_gap": "",
+        "search_queries": []
+      },
+      "review": {
+        "eligible": true,
+        "signal": "If no one can cobble together a majority coalition, new elections could be held early next year.",
+        "source_index": 3,
+        "proposed_signal": "If no one can cobble together a majority coalition, new elections could be held early next year.",
+        "proposed_source_index": 3,
+        "reason": "Reviewer returned approval without an explanation.",
+        "reason_code": "none",
+        "review_model_called": true,
+        "comparisons": [
+          {
+            "source_index": 1,
+            "event": "declared victory for the bloc",
+            "timing": "Tuesday night",
+            "qualifies": false,
+            "reason": "Past event, does not affect future elections.",
+            "before_selected": null
+          },
+          {
+            "source_index": 2,
+            "event": "receive the official election results",
+            "timing": "next week",
+            "qualifies": false,
+            "reason": "Future event but not related to elections.",
+            "before_selected": null
+          },
+          {
+            "source_index": 3,
+            "event": "new elections could be held",
+            "timing": "early next year",
+            "qualifies": true,
+            "reason": "Directly relates to coalition majority issue."
+          }
+        ]
+      }
+    },
+    {
+      "topic_index": 5,
+      "title": "Localized Russia-Ukraine ceasefire begins in Oleshky",
+      "proposal": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "The aid mission is planned ahead of a new round of US-brokered talks between Russia and Ukraine expected next month and aimed at ending the war after more than 4½ years of fighting.",
+        "source_index": 2,
+        "reason": "The aid mission is planned ahead of a new round of US-brokered talks between Russia and Ukraine expected next month, which could materially update the story regarding the ceasefire and humanitarian efforts.",
+        "research_gap": "",
+        "search_queries": []
+      },
+      "review": {
+        "eligible": false,
+        "signal": "",
+        "source_index": null,
+        "proposed_signal": "The aid mission is planned ahead of a new round of US-brokered talks between Russia and Ukraine expected next month and aimed at ending the war after more than 4½ years of fighting.",
+        "proposed_source_index": 2,
+        "reason": "Review omitted the timed action or timing in source 1; earliest-checkpoint coverage is incomplete.",
+        "reason_code": "comparison_incomplete",
+        "review_model_called": true,
+        "comparisons": [
+          {
+            "source_index": 1,
+            "event": "",
+            "timing": "",
+            "qualifies": false,
+            "reason": "No future event mentioned.",
+            "before_selected": null
+          },
+          {
+            "source_index": 2,
+            "event": "Aid mission planned ahead of talks",
+            "timing": "ahead of a new round of US-brokered talks between Russia and Ukraine expected next month",
+            "qualifies": true,
+            "reason": "Directly supports the proposed signal."
+          },
+          {
+            "source_index": 3,
+            "event": "Trilateral talks expected next month",
+            "timing": "expected to take place next month",
+            "qualifies": true,
+            "reason": "Relevant future event related to the talks.",
+            "before_selected": null
+          },
+          {
+            "source_index": 4,
+            "event": "Local ceasefire duration",
+            "timing": "due to continue until 10:59 p.m. local time on Sunday",
+            "qualifies": false,
+            "reason": "Not a future event related to the talks.",
+            "before_selected": null
+          },
+          {
+            "source_index": 5,
+            "event": "Trilateral talks expected next month",
+            "timing": "expected to take place next month",
+            "qualifies": true,
+            "reason": "Relevant future event related to the talks.",
+            "before_selected": null
+          },
+          {
+            "source_index": 6,
+            "event": "Aid mission planned ahead of talks",
+            "timing": "planned ahead of a new round of US-brokered talks",
+            "qualifies": true,
+            "reason": "Directly supports the proposed signal.",
+            "before_selected": null
+          },
+          {
+            "source_index": 7,
+            "event": "Local ceasefire duration",
+            "timing": "due to last through to Saturday, or longer",
+            "qualifies": false,
+            "reason": "Not a future event related to the talks.",
+            "before_selected": null
+          },
+          {
+            "source_index": 8,
+            "event": "Aid mission planned ahead of talks",
+            "timing": "planned ahead of a new round of US-brokered talks",
+            "qualifies": true,
+            "reason": "Directly supports the proposed signal.",
+            "before_selected": null
+          }
+        ]
+      }
+    },
+    {
+      "topic_index": 7,
+      "title": "Flávio Bolsonaro Leaves Brazil for U.S. After Election Defeat",
+      "proposal": {
+        "status": "SIGNAL",
+        "eligible": true,
+        "signal": "Flávio Bolsonaro and his family will receive US visas after Bolsonaro lost Brazil's presidential election over the weekend, a State Department official told CBS News.",
+        "source_index": 2,
+        "reason": "The issuance of U.S. visas to Flávio Bolsonaro and his family is a direct future action that could materially update the story regarding his departure from Brazil after the election defeat.",
+        "research_gap": "",
+        "search_queries": []
+      },
+      "review": {
+        "eligible": true,
+        "signal": "Flávio Bolsonaro and his family will receive US visas after Bolsonaro lost Brazil's presidential election over the weekend, a State Department official told CBS News.",
+        "source_index": 2,
+        "proposed_signal": "Flávio Bolsonaro and his family will receive US visas after Bolsonaro lost Brazil's presidential election over the weekend, a State Department official told CBS News.",
+        "proposed_source_index": 2,
+        "reason": "Reviewer returned approval without an explanation.",
+        "reason_code": "none",
+        "review_model_called": true,
+        "comparisons": [
+          {
+            "source_index": 1,
+            "event": "His eight-year term as a senator expires",
+            "timing": "Jan. 31, 2027",
+            "qualifies": false,
+            "reason": "Not a future event related to visas.",
+            "before_selected": null
+          },
+          {
+            "source_index": 2,
+            "event": "Flávio Bolsonaro and his family will receive US visas",
+            "timing": "after Bolsonaro lost Brazil's presidential election over the weekend",
+            "qualifies": true,
+            "reason": "Directly supports the proposed signal."
+          },
+          {
+            "source_index": 3,
+            "event": "Flávio Bolsonaro and his family will receive US visas",
+            "timing": "after Bolsonaro lost Brazil's presidential election over the weekend",
+            "qualifies": true,
+            "reason": "Directly supports the proposed signal.",
+            "before_selected": null
+          },
+          {
+            "source_index": 4,
+            "event": "The sealed Supreme Court order was issued",
+            "timing": "Sunday",
+            "qualifies": false,
+            "reason": "Not a future event related to visas.",
+            "before_selected": null
+          }
+        ]
+      }
+    }
+  ]
 }

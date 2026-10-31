@@ -55,6 +55,15 @@ image check runs before images are saved. Unresolved image checks withhold the
 image and retain a review reason. These metadata checks do not guarantee ownership
 or legal clearance.
 
+Next Signal is optional. It selects a complete source sentence of up to 40 words,
+preserving the source's wording, timing, conditions, and attribution. A local
+check rejects rewritten or pronoun-dependent sentences before the existing
+semantic review; uncertain cases stay blank. This deliberately omits some useful
+checkpoints rather than inventing missing context. The reviewer still checks
+relevance and competing dates in the supplied evidence; this is not a guarantee
+of finding every upcoming event. Targeted research shares the eight-passage
+evidence budget with local sources. No extra per-claim model calls are added.
+
 After that check, the bundled OpenCV YuNet detector positions the existing 16:9
 crop around a clear primary face. Detection runs locally, with no paid API calls.
 Selected photos and credits stay unchanged. No clear face, ambiguous faces, or

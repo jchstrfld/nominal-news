@@ -38,15 +38,15 @@ if openai is not None:
     openai.api_key = os.getenv("OPENAI_API_KEY")
 
 MODEL = os.getenv("NN_NEXT_SIGNAL_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
-PROMPT_VERSION = "next-signal-v20-present-schedule-2026-10-13"
-TRIAGE_PROMPT_VERSION = "next-signal-triage-v14-simple-writer-2026-09-29"
-FINAL_PROMPT_VERSION = "next-signal-final-v14-simple-writer-2026-09-29"
-VALIDATION_PROMPT_VERSION = "next-signal-validation-v15-present-schedule-2026-10-13"
+PROMPT_VERSION = "next-signal-v23-sentence-index-2026-10-29"
+TRIAGE_PROMPT_VERSION = "next-signal-triage-v18-sentence-index-2026-10-29"
+FINAL_PROMPT_VERSION = "next-signal-final-v18-sentence-index-2026-10-29"
+VALIDATION_PROMPT_VERSION = "next-signal-validation-v21-conservative-timing-2026-10-29"
 CACHE_PATH = "next_signal_cache.json"
 SIDECAR_CACHE_PATH = "next_signal_sidecar_cache.json"
 MAX_EVIDENCE_ARTICLES = 12
 MAX_DESCRIPTION_CHARS = 420
-PREFILTER_VERSION = "next-signal-prefilter-v14-present-schedule-2026-10-13"
+PREFILTER_VERSION = "next-signal-prefilter-v16-pronoun-context-2026-10-20"
 MAX_SIDECAR_CANDIDATES = 10
 MAX_SIDECAR_FETCHES = 6
 MAX_SIDECAR_MATCHES = 8
@@ -67,6 +67,7 @@ MAX_EXTERNAL_CANDIDATES = 10
 MAX_EXTERNAL_FETCHES = 6
 MAX_EXTERNAL_MATCHES = 6
 MAX_MODEL_EVIDENCE = 8
+MAX_SIGNAL_WORDS = 40
 EXTERNAL_SIMILARITY_MIN = 0.18
 EXTERNAL_SEARCH_WINDOW_DAYS = 2
 
@@ -89,9 +90,10 @@ _MONTH_NAMES = {
     "october": 10, "nov": 11, "november": 11, "dec": 12, "december": 12,
 }
 _MONTH_RE = re.compile(
-    r"\b(?P<month>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+    r"\b(?:(?P<day_first>\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?)?"
+    r"(?P<month>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
     r"jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
-    r"\.?(?:\s+(?P<day>\d{1,2})(?:st|nd|rd|th)?)?(?:,?\s+(?P<year>20\d{2}))?\b",
+    r"\.?(?(day_first)|(?:\s+(?P<day>\d{1,2})(?:st|nd|rd|th)?)?)(?:,?\s+(?P<year>20\d{2}))?\b",
     re.I,
 )
 _WEEKDAY_NAMES = {
@@ -156,7 +158,7 @@ _FINALITY_RE = re.compile(
 # be a reader-facing checkpoint is decided by the model against the exact story.
 _UNCERTAINTY_RE = re.compile(
     r"\b(?:forecast(?:ed)?|expect(?:ed|s|ing)?|could|may|might|likely|unlikely|"
-    r"possible|possibly|possibilit(?:y|ies)|potential(?:ly)?|project(?:ed|ion|ions)?|"
+    r"possible|possibly|possibilit(?:y|ies)|potential(?:ly)?|project(?:ed|ing|ion|ions)|"
     r"estimate(?:d|s)?|chance|risk|uncertain(?:ty)?|as\s+early\s+as|up\s+to)\b",
     re.I,
 )
@@ -474,7 +476,7 @@ def _future_milestone_snippets(text: str, reference_date: date) -> list[dict]:
         return []
 
     vague_subject_re = re.compile(
-        r"^(?:it|they|he|she|this|that|the\s+[a-z][a-z-]{2,}(?:\s+[a-z][a-z-]{2,}){0,2})\b",
+        r"^(?:it|they|he|she|this|that|both|these|those|either|neither|the\s+[a-z][a-z-]{2,}(?:\s+[a-z][a-z-]{2,}){0,2})\b",
         re.I,
     )
 
@@ -1626,7 +1628,7 @@ def _future_time_cues(text: str, reference_date: date) -> list[str]:
         month = _MONTH_NAMES.get(month_token[:3], _MONTH_NAMES.get(month_token))
         if not month:
             continue
-        day_value = match.group("day")
+        day_value = match.group("day") or match.group("day_first")
         year_value = match.group("year")
         # "may" is commonly a modal verb ("may produce flooding"). A bare May
         # without a day/year is too ambiguous to be a useful future date cue.
@@ -1751,7 +1753,7 @@ def _future_anchor_records(text: str, reference_date: date) -> list[dict]:
     explicit_date_spans = [
         (m.start(), m.end())
         for m in _MONTH_RE.finditer(clean)
-        if m.group("day") or m.group("year")
+        if m.group("day") or m.group("day_first") or m.group("year")
     ]
     explicit_date_spans.extend((m.start(), m.end()) for m in _NUMERIC_DATE_RE.finditer(clean))
 
@@ -1789,7 +1791,7 @@ def _future_anchor_records(text: str, reference_date: date) -> list[dict]:
         month = _MONTH_NAMES.get(month_token[:3], _MONTH_NAMES.get(month_token))
         if not month:
             continue
-        day_value = match.group("day")
+        day_value = match.group("day") or match.group("day_first")
         year_value = match.group("year")
         if month == 5 and not day_value and not year_value:
             continue
@@ -1968,7 +1970,7 @@ def _grounded_segments_for_row(date_str: str, row: dict) -> list[dict]:
         sentences = [title]
 
     vague_subject_re = re.compile(
-        r"^(?:it|they|he|she|this|that|the\s+[a-z][a-z-]{2,}(?:\s+[a-z][a-z-]{2,}){0,2})\b",
+        r"^(?:it|they|he|she|this|that|both|these|those|either|neither|the\s+[a-z][a-z-]{2,}(?:\s+[a-z][a-z-]{2,}){0,2})\b",
         re.I,
     )
 
@@ -2226,6 +2228,34 @@ def _model_evidence_candidates(
 
 
 
+def _merge_model_evidence(local: list[dict], external: list[dict], limit: int = MAX_MODEL_EVIDENCE) -> list[dict]:
+    """Reserve room for newly researched passages without discarding local context.
+
+    Each input is already ranked. Alternate them and deduplicate full event text;
+    for a duplicate retain the row with more source context. Never truncate a
+    deduplication key: two long passages can describe different later events.
+    """
+    if limit < 1:
+        return []
+    ordered, positions = [], {}
+    for offset in range(max(len(local), len(external))):
+        for rows in (local, external):
+            if offset >= len(rows):
+                continue
+            row = rows[offset]
+            key = _clean_text(row.get("grounded_sentence") or row.get("description") or "").casefold()
+            if not key:
+                continue
+            if key in positions:
+                index = positions[key]
+                if len(row.get("description") or "") > len(ordered[index].get("description") or ""):
+                    ordered[index] = row
+            else:
+                positions[key] = len(ordered)
+                ordered.append(row)
+    return ordered[:limit]
+
+
 def _evidence_lines(evidence: list[dict]) -> list[str]:
     lines = []
     for idx, row in enumerate(evidence, start=1):
@@ -2245,6 +2275,28 @@ def _evidence_lines(evidence: list[dict]) -> list[str]:
         if row.get("grounded_time_keys"):
             parts.append(f"Detected time references (unverified): {', '.join(row['grounded_time_keys'])}")
         lines.append(" | ".join(parts))
+    return lines
+
+
+def _selected_source_sentence(evidence: list[dict], source_index) -> str:
+    """Resolve the selection locally; model-generated prose is never published."""
+    if type(source_index) is not int or not 1 <= source_index <= len(evidence):
+        raise RuntimeError("Next Signal lacks a valid selected source index.")
+    row = evidence[source_index - 1]
+    sentence = row.get("grounded_sentence") or row.get("description")
+    if not isinstance(sentence, str) or not sentence.strip():
+        raise RuntimeError("Next Signal selected a source without a sentence.")
+    return _clean_text(sentence)
+
+
+def _selection_evidence_lines(evidence: list[dict]) -> list[str]:
+    """Keep every alternative visible, including sentences that cannot be copied."""
+    lines = _evidence_lines(evidence)
+    for index, row in enumerate(evidence):
+        sentence = row.get("grounded_sentence") or row.get("description") or ""
+        copyable, problem = validate_signal_source_copy(sentence, row)
+        note = "available; timing and relevance still require review" if copyable else f"unavailable: {problem}"
+        lines[index] += f" | Whole-sentence copying: {note}"
     return lines
 
 
@@ -2318,6 +2370,164 @@ def _checkpoint_timing_comparison(date_str: str, evidence: list[dict]) -> str:
         "Equal/overlapping windows do not prove which event is earlier; unresolved windows remain candidates.\n"
         + "\n".join(row[2] for row in rows)
     )
+
+
+def _checkpoint_boundary_notes(evidence: list[dict]) -> str:
+    """Flag endpoint wording for assessment, without asserting relevance."""
+    notes = []
+    for index, row in enumerate(evidence, 1):
+        sentence = _clean_text(row.get("grounded_sentence") or row.get("description") or "")
+        if re.search(r"\b(?:until|expir(?:e|es|y|ation))\b", sentence, re.I):
+            notes.append(f"[{index}] Assess the endpoint separately from the ongoing state: {sentence}")
+    if not notes:
+        return ""
+    return ("ENDPOINT CHECK — an operative measure ending can change the story's state. "
+            "Identify what ends, whether that end is actually scheduled, and whether it directly changes this story. "
+            "An uncertain duration of effects is not automatically a scheduled change. "
+            "Do not reject a scheduled end solely because the measure is currently in effect. "
+            "Do not assume an extension or a new decision. Explain relevance or uncertainty.\n" + "\n".join(notes))
+
+
+def _comparison_calendar_day(date_str: str, row: dict, timing: str) -> date | None:
+    """Resolve a single future day shared by quote and full passage, conservatively.
+
+    No duration arithmetic, ranges, same-day ordering, or reanchoring old copy.
+    Relevance and future-event qualification remain separate semantic checks.
+    """
+    sentence = _clean_text(row.get("grounded_sentence") or row.get("description") or "")
+    reference = _grounding_reference_date(date_str, row)
+    edition = date.fromisoformat(date_str)
+    if not timing or timing.casefold() not in sentence.casefold():
+        return None
+    anchors = _future_anchor_records(sentence, reference)
+    if not anchors or any(a["kind"] not in {"date", "weekday"} for a in anchors):
+        return None
+    # The future-anchor extractor omits historical dates. Do not accidentally
+    # collapse a window spanning past and future into its final day.
+    mentions = list(_WEEKDAY_RE.finditer(sentence)) + list(_NUMERIC_DATE_RE.finditer(sentence))
+    mentions += [m for m in _MONTH_RE.finditer(sentence) if m.group("day") or m.group("day_first")]
+    if len(mentions) > len(anchors):
+        return None
+    for anchor in anchors:
+        prefix = sentence[max(0, anchor["start"] - 30):anchor["start"]]
+        if re.search(r"\b(?:by|before|after|since|within|through)\s*$", prefix, re.I):
+            return None
+    keys = {a["key"] for a in anchors}
+    if len(keys) != 1:
+        return None
+    quoted = _future_anchor_records(timing, reference)
+    if {a["key"] for a in quoted} != keys:
+        return None
+    # Prior context may describe the announcement in past tense. Assess the
+    # timing clause itself, while retaining the full passage for ambiguity checks.
+    for part in _atomic_sentences(sentence):
+        for local_anchor in _future_anchor_records(part, reference):
+            if not _anchor_is_action_timing(part, local_anchor):
+                return None
+    anchor = anchors[0]
+    if anchor["kind"] == "date":
+        resolved = date.fromisoformat(anchor["key"].split(":", 1)[1])
+    else:
+        if reference != edition or re.search(r"\b(?:last|previous|past|next)\b", sentence, re.I):
+            return None
+        weekday = _WEEKDAY_NAMES[anchor["text"].lower()]
+        resolved = reference + timedelta(days=(weekday - reference.weekday()) % 7)
+    return resolved if resolved > edition else None
+
+
+def _local_calendar_conflict(date_str: str, evidence: list[dict], comparisons: list[dict], selected: int) -> str:
+    """Veto a later proposal; never promote an event or reverse a rejection."""
+    chosen = comparisons[selected - 1]
+    if not chosen["qualifies"]:
+        return ""
+    selected_day = _comparison_calendar_day(date_str, evidence[selected - 1], chosen["timing"])
+    if selected_day is None:
+        return ""
+    for item, row in zip(comparisons, evidence):
+        if item["source_index"] == selected or not item["qualifies"]:
+            continue
+        other_day = _comparison_calendar_day(date_str, row, item["timing"])
+        if other_day is not None and other_day < selected_day:
+            return (f"Source {item['source_index']} has a qualifying checkpoint on {other_day.isoformat()}, "
+                    f"before the selected {selected_day.isoformat()}; local calendar check rejects the later proposal.")
+    return ""
+
+
+def _direct_future_anchors(sentence: str, reference: date) -> list[dict]:
+    """Find conservative timing links, without borrowing an auxiliary across clauses.
+
+    This can omit valid complex prose. It cannot establish relevance or prove
+    an event will happen; the semantic reviewer still checks the full context.
+    """
+    sentence = _clean_text(sentence)
+    frames = list(_FUTURE_FRAMING_RE.finditer(sentence))
+    frames += list(re.finditer(r"\b(?:may|might|could)\b(?!\s+have\b)", sentence, re.I))
+    frames = [f for f in frames if not re.search(
+        r"\b(?:was|were|had|not|never)\s+(?:\w+\s+){0,2}$",
+        sentence[max(0, f.start() - 40):f.start()], re.I)]
+    found = []
+    for anchor in _future_anchor_records(sentence, reference):
+        if _is_explicit_deadline(sentence, anchor):
+            found.append(anchor)
+            continue
+        for frame in frames:
+            if frame.end() <= anchor["start"]:
+                between = sentence[frame.end():anchor["start"]]
+                # "will act after [another event] Friday" does not date the
+                # promised action. A new future cue inside that clause can
+                # establish timing there. Direct "before Friday" remains usable.
+                boundaries = list(re.finditer(r";|\b(?:after|before|since|when|while|whereas|because)\b", between, re.I))
+                if boundaries and between[boundaries[-1].end():].strip():
+                    continue
+                if _PAST_EVENT_RE.search(between):
+                    continue
+                found.append(anchor)
+                break
+            if anchor["end"] <= frame.start():
+                # Support a leading date: "On Friday, the board will meet."
+                # A date buried in past narration cannot borrow a later "will".
+                prefix = sentence[:anchor["start"]].strip(' \"\'“‘')
+                if re.fullmatch(r"(?:(?:on|by|before|after|from|until)\s*)?", prefix, re.I):
+                    between = sentence[anchor["end"]:frame.start()]
+                    if not _PAST_EVENT_RE.search(between) and not re.search(r";|\b(?:after|since|when|while|because)\b", between, re.I):
+                        found.append(anchor)
+                        break
+    return found
+
+
+def _unresolved_future_alternative(date_str: str, evidence: list[dict], selected: int) -> str:
+    """Withhold when a competing future passage cannot be proved same/later.
+
+    Deliberately independent of the model's relevance exclusions: an earlier
+    alternative may be relevant even when the reviewer mistakenly dismisses it.
+    This only withholds; it never selects or publishes another event.
+    """
+    selected_row = evidence[selected - 1]
+    selected_text = _clean_text(selected_row.get("grounded_sentence") or selected_row.get("description") or "")
+    selected_reference = _grounding_reference_date(date_str, selected_row)
+    selected_anchors = _direct_future_anchors(selected_text, selected_reference)
+    if not selected_anchors:
+        return "Selected sentence has no unambiguous date linked to a future action."
+    selected_keys = {a["key"] for a in selected_anchors}
+    selected_day = _comparison_calendar_day(date_str, selected_row, selected_anchors[0]["text"])
+    for index, row in enumerate(evidence, 1):
+        if index == selected:
+            continue
+        text = _clean_text(row.get("grounded_sentence") or row.get("description") or "")
+        reference = _grounding_reference_date(date_str, row)
+        anchors = _direct_future_anchors(text, reference)
+        if not anchors:
+            continue
+        # Matching date references with the same publication basis can describe
+        # duplicates or overlapping windows; do not invent a strict order.
+        if reference == selected_reference and {a["key"] for a in anchors} == selected_keys:
+            continue
+        other_day = _comparison_calendar_day(date_str, row, anchors[0]["text"])
+        if selected_day is not None and other_day is not None and other_day >= selected_day:
+            continue
+        return (f"Source {index} contains another future passage with earlier or unresolved timing; "
+                "the earliest checkpoint is not established. Withholding despite any model relevance exclusion.")
+    return ""
 
 
 def _has_unqualified_matching_clause(
@@ -2399,6 +2609,23 @@ def _has_conditional_countdown(source_sentence: str, signal_anchors: list[dict])
     return False
 
 
+def _proposal_has_scheduled_obligation(signal: str, anchors: list[dict]) -> bool:
+    """Admit grammatical obligations/plans to semantic review, not publication.
+
+    A date alone still cannot turn a completed action into a future event.
+    The reviewer must establish scope, relevance and the start of any duration.
+    """
+    if not anchors or re.search(r"\b(?:not|never|cancelled|canceled|withdrawn|rescinded|expired)\b", signal, re.I):
+        return False
+    return bool(re.search(
+        r"\bmust\s+(?!have\b|already\b)[a-z]+\b|"
+        r"\b(?:is|are)\s+required\s+to\b|"
+        r"\b(?:has|have)\s+called\s+for\b|"
+        r"\b(?:pledges?|pledged|promises?|promised|vows?|vowed)\s+to\b",
+        signal, re.I,
+    ))
+
+
 def validate_generated_signal_grounding(date_str: str, signal: str, supporting_row: dict) -> tuple[bool, str]:
     """Fail closed when model wording adds timing/certainty not present in its cited evidence."""
     signal = _clean_text(signal)
@@ -2409,6 +2636,18 @@ def validate_generated_signal_grounding(date_str: str, signal: str, supporting_r
     )
     if not signal or not source_sentence:
         return False, "Generated signal or supporting sentence was empty."
+
+    # A first-person commitment quoted in a pledge story is evidence of what
+    # the speaker promised, not independent confirmation of the outcome.
+    commitment = r"\b(?:pledges?|pledged|promises?|promised|vows?|vowed)\b"
+    quoted_commitment = (
+        re.search(commitment, str(supporting_row.get("title") or ""), re.I)
+        and re.search(r"\b(?:I|we)\s+will\b", source_sentence, re.I)
+    )
+    if (quoted_commitment or re.search(commitment, source_sentence, re.I)) and not re.search(
+        commitment + r"|\b(?:says?|said|according\s+to)\b", signal, re.I,
+    ):
+        return False, "Generated signal removed attribution from a commitment."
 
     # A past plan ("were to meet") does not establish that the event is still
     # upcoming. Do not let a rewritten "will meet" turn it into a new schedule.
@@ -2422,10 +2661,10 @@ def validate_generated_signal_grounding(date_str: str, signal: str, supporting_r
     def calendar_dates(text):
         dates = set()
         for match in _MONTH_RE.finditer(text):
-            if match.group("day"):
+            if match.group("day") or match.group("day_first"):
                 dates.add((int(match.group("year") or reference_date.year),
                            _MONTH_NAMES[match.group("month").lower()[:3]],
-                           int(match.group("day"))))
+                           int(match.group("day") or match.group("day_first"))))
         for match in _NUMERIC_DATE_RE.finditer(text):
             if match.group("ymd_year"):
                 dates.add(tuple(int(match.group(k)) for k in ("ymd_year", "ymd_month", "ymd_day")))
@@ -2458,6 +2697,7 @@ def validate_generated_signal_grounding(date_str: str, signal: str, supporting_r
         _FUTURE_FRAMING_RE.search(signal)
         or re.search(r"\b(?:may|might|could)\b", signal, re.I)
         or deadline_language
+        or _proposal_has_scheduled_obligation(signal, signal_anchors)
     ):
         return False, "Proposed signal lacks explicit future or scheduling language."
 
@@ -2515,26 +2755,34 @@ def validate_generated_signal_grounding(date_str: str, signal: str, supporting_r
 
 
 _COMPARISON_INSTRUCTIONS = """
+Separate a past announcement from its future subject: a requirement to act within a stated period or a call for a future-dated event can be a checkpoint. Do not treat the statement date as the action date. A requested court order is not a scheduled ruling. Check that any relative deadline has a supported start.
+Keep promises attributed to their speaker. A quotation saying "I will" is not independent confirmation that the promised outcome will happen. Use the source title and passage together to preserve this distinction.
+Compare all explicitly timed alternatives, including earlier expirations and scheduled events; explain any rejection for relevance rather than saying no future event exists when one is present. Do not automatically prefer a pledge over an earlier material checkpoint.
 REQUIRED SOURCE COMPARISON:
 Return comparisons before the overall decision. Include every source index exactly once, even for rejection or NO_SIGNAL.
 For each source provide: event (short action description, ideally <=8 words), timing (a verbatim timing phrase from its candidate sentence, or empty if absent), qualifies (boolean), and reason (brief evidence-based qualification or exclusion explanation, ideally <=10 words).
-qualifies is true only for an explicitly timed future event that materially advances this exact story. Keep completed actions, background dates, and conditional clocks without a confirmed start false. Use an empty event when there is no candidate event.
+qualifies is true only for an explicitly timed future event that materially advances this exact story. Keep completed actions, background dates, and conditional clocks without a confirmed start false. Inventory their timed action/state anyway; empty event/timing fields are only for passages without a timed action/state.
 For an uncited source, assess its earliest qualifying event, if any. For the cited source, assess the selected event. Attach the time phrase to its actual action; an end of lingering effects does not automatically date the start of a change.
 An item with qualifies=false needs a specific reason for exclusion. Calendar hints alone do not establish relevance or order. Do not invent events or timing to fill the format.
 """.strip()
+
 
 _WRITER_SELECTION_INSTRUCTIONS = """
 Assess all sources before choosing the earliest material checkpoint. A conditional countdown requires a confirmed start; completed actions and background dates do not qualify. Attach each timing phrase to its actual action, not a nearby event. Return only the fields in the schema; the existing reviewer independently compares the fixed proposal with all sources.
 """.strip()
 
 _WRITER_SENTENCE_INSTRUCTIONS = """
-- Write a complete sentence with an explicit future action or scheduled obligation, ideally <=18 words; an event label or noun phrase is insufficient.
-- Keep the source's action and uncertainty. A pending vote or decision must remain unresolved: say who will decide whether something happens, without promising approval or another outcome.
-- Copy the cited source's timing phrase. Do not convert a weekday or relative window into a calendar date, or add a date from the unverified calendar hints.
-- Name the relevant actor/process when a pronoun would be ambiguous. source_index must support both the action and its timing; do not add facts or causal claims.
+- Return only the source_index of one candidate source sentence. Code will copy that entire stored sentence; do not return signal text or draft wording.
+- Select a sentence marked available for whole-sentence copying, at most 40 words. That label checks format only; it does not establish a future event, relevance, or accuracy.
+- The sentence must itself identify the subject and future action. Omit sentences relying on personal/demonstrative pronouns or first-person quotations; do not repair them from the headline.
+- Preserve all conditions, attribution and timing exactly. A pending decision is not its outcome, and a pledge is not confirmed delivery. If the source has no concise, self-contained sentence, return no signal.
+- Require a direct connection to the story. Sharing an organization or date is insufficient. Do not add predicted consequences or possible updates.
+- Still consider every passage when checking earlier events and conflicting dates, including sentences unavailable for copying. Do not select a later event just because an earlier one cannot be displayed.
 """.strip()
 
 _REVIEW_ORDER_INSTRUCTIONS = """
+First inventory the timed action in EVERY passage, then assess relevance, then order. event and timing describe the source even when qualifies=false: quote its timing and identify the associated action or state (including past actions, expirations, background schedules, and conditional plans). Never leave these fields empty merely because the event is irrelevant or not future. If the actor is unclear, describe the unresolved reference and explain the ambiguity; do not claim no event exists. Only a passage without any timed action/state may have empty fields.
+Rejecting a candidate for relevance requires explaining its relationship to this exact story. Being later is not a relevance exclusion: mark a relevant later event qualifies=true and before_selected=false. A past event should retain its action/time with qualifies=false. Do not use calendar order as a substitute for relevance.
 For each OTHER source's comparison return before_selected (boolean or null): true only for a DISTINCT event strictly before the fixed proposal; false for duplicates, equal/overlapping windows, and later events; null if order cannot be established. Omit this field for the selected source: an event cannot precede itself. A qualifying earlier event prevents approving the later proposal. Explain the relationship briefly in that source's reason. Here selected means the fixed proposed event, even when rejecting it.
 Assess qualification separately from order: overlap or uncertain order does not make an otherwise material, explicitly timed future event unqualified.
 """.strip()
@@ -2574,7 +2822,8 @@ def _comparison_request_options(stage: str, source_count: int, selected_source: 
     else:
         properties["eligible"] = {"type": "boolean"}
     if stage != "candidate_validation":
-        properties.update(signal={"type": "string"}, source_index={"type": ["integer", "null"]})
+        properties["source_index"] = {"type": ["integer", "null"],
+                                      "enum": [None, *range(1, source_count + 1)]}
     properties["reason"] = {"type": ["string", "null"]}
     if stage == "triage":
         properties.update(research_gap={"type": "string"},
@@ -2651,6 +2900,25 @@ def _source_comparison_conflict(comparisons: list[dict], selected_source: int) -
     return ""
 
 
+def _source_comparison_coverage_gap(date_str: str, evidence: list[dict], comparisons: list[dict]) -> str:
+    """Require an inventory of detected timed passages, not agreement on relevance.
+
+    Heuristic anchors can be past, conditional, or background. They only require
+    an explanation; they never establish a qualifying event or its ordering.
+    """
+    for row, item in zip(evidence, comparisons):
+        sentence = _clean_text(row.get("grounded_sentence") or row.get("description") or "")
+        reference = _grounding_reference_date(date_str, row)
+        anchors = _future_anchor_records(sentence, reference)
+        if anchors and (not item["event"] or not item["timing"]):
+            return f"Review omitted the timed action or timing in source {item['source_index']}; earliest-checkpoint coverage is incomplete."
+        quoted_keys = {a["key"] for a in _future_anchor_records(item["timing"], reference)}
+        if anchors and not quoted_keys.intersection(a["key"] for a in anchors):
+            return (f"Review timing in source {item['source_index']} does not address its detected checkpoint; "
+                    "quoting a different time does not establish earliest-checkpoint coverage.")
+    return ""
+
+
 def evaluate_signal_triage(date_str: str, topic: dict, evidence: list[dict]) -> dict:
     """
     One cheap decision over local evidence only.
@@ -2663,7 +2931,7 @@ def evaluate_signal_triage(date_str: str, topic: dict, evidence: list[dict]) -> 
     if openai is None:
         raise RuntimeError("The openai package is required for Next Signal generation.")
 
-    evidence_lines = _evidence_lines(evidence)
+    evidence_lines = _selection_evidence_lines(evidence)
     prompt = f"""
 You are an evidence-bound editor triaging an optional Next Signal for a news story.
 
@@ -2677,7 +2945,7 @@ Evidence rows contain heuristic time matches. They may describe completed action
 
 Apply these checks to each source before choosing a status:
 1. STORY STATE — Identify the smallest central fact, process, condition, or unresolved question actually tracked by the headline and summary. Do not substitute the broader person, organization, place, or subject.
-2. FUTURE CHECKPOINTS — Inspect every supplied passage for concrete future actions or state changes with explicit timing. Compare these event/time pairs before drafting a sentence.
+2. FUTURE CHECKPOINTS — Inspect every supplied passage for concrete future actions or state changes with explicit timing. Compare these event/time pairs before selecting a sentence.
 3. DIRECT LINK — A checkpoint can qualify in either of two general ways: its occurrence/result can materially change, resolve, confirm, extend, reverse, or update the story state; OR it is a direct next step in an active process created by or explicitly defined as part of this exact story. The checkpoint itself does not have to guarantee a state change.
 4. INFORMATION GAIN — After the checkpoint occurs, there must be a realistic prospect of learning a new substantive fact about THIS story. If the only new fact would be that a pre-existing schedule or itinerary happened as planned, it is not useful enough.
 5. INDEPENDENCE TEST — If the future item would still occur in essentially the same way and have essentially the same relevance if the reported development had never happened, treat it as background unless the headline/summary explicitly define the central state as the ongoing event/process that contains it AND step 4 is material.
@@ -2712,9 +2980,11 @@ EVIDENCE:
 
 {_checkpoint_timing_comparison(date_str, evidence)}
 
+{_checkpoint_boundary_notes(evidence)}
+
 {_WRITER_SELECTION_INSTRUCTIONS}
 
-Return JSON matching the supplied schema: status, signal, source_index, reason, research_gap, and search_queries.
+Return JSON matching the supplied schema: status, source_index, reason, research_gap, and search_queries. Use source_index=null unless status is SIGNAL. Do not return signal text.
 """.strip()
 
     response = openai.ChatCompletion.create(
@@ -2737,13 +3007,12 @@ Return JSON matching the supplied schema: status, signal, source_index, reason, 
     status = parsed.get("status")
     if status not in {"SIGNAL", "NO_SIGNAL", "RESEARCH_NEEDED"}:
         raise RuntimeError("Next Signal triage returned an invalid status.")
-    signal = _clean_text(parsed.get("signal") or "")
+    signal = ""
     reason = _clean_text(parsed.get("reason") or "")
     research_gap = _clean_text(parsed.get("research_gap") or "")[:300]
     source_index = parsed.get("source_index")
     if status == "SIGNAL":
-        if type(source_index) is not int or not 1 <= source_index <= len(evidence) or not signal:
-            raise RuntimeError("Next Signal triage lacks a valid selected source and sentence.")
+        signal = _selected_source_sentence(evidence, source_index)
     else:
         # A negative decision cannot publish a stray draft or source index.
         signal = ""
@@ -2770,7 +3039,7 @@ Return JSON matching the supplied schema: status, signal, source_index, reason, 
             break
 
     if status == "SIGNAL":
-        if len(signal.split()) > 22:
+        if len(signal.split()) > MAX_SIGNAL_WORDS:
             return {
                 "status": "NO_SIGNAL",
                 "eligible": False,
@@ -2826,6 +3095,51 @@ def _signal_review_context(proposal: dict) -> str:
     }, sort_keys=True, ensure_ascii=False)
 
 
+def validate_signal_source_copy(signal: str, supporting_row: dict) -> tuple[bool, str]:
+    """Conservative publication gate, not proof of relevance or factual truth.
+
+    The semantic reviewer still checks attribution, conditions, article context
+    and timing. This gate prevents generated additions and deliberately omits
+    pronoun-dependent sentences rather than trying to resolve their antecedents.
+    """
+    signal = _clean_text(signal)
+    source = _clean_text(supporting_row.get("grounded_sentence") or supporting_row.get("description") or "")
+    if not signal or len(signal.split()) > MAX_SIGNAL_WORDS:
+        return False, "No source sentence within the display limit."
+    # An ellipsis can hide a condition or the rest of a schedule even when the
+    # excerpt ends in punctuation. Omit it rather than guess the missing words.
+    if re.search(r"\.{3,}|…|\.\s+\.\s+\.", signal):
+        return False, "Source sentence contains an ellipsis; completeness is uncertain."
+    if not re.search(r"[.!?][\"'”’]?$", signal):
+        return False, "Source text may be a headline or truncated fragment; no complete sentence."
+    # _atomic_sentences protects date abbreviations; the substring check also
+    # requires unchanged source wording when that splitter normalizes initials.
+    if signal not in source or signal not in _atomic_sentences(source):
+        return False, "Signal must copy a complete source sentence without additions or paraphrase."
+    if re.search(r"\b(?:I|we|you|he|she|it|they|me|him|her|them|both|these|those)\b", signal, re.I) or re.search(r"\b(?:us|Us)\b", signal) or re.match(r"[\"'“‘]*(?:this|that|my|our|your|his|its|their)\b", signal, re.I):
+        return False, "Source sentence depends on a pronoun; leave the signal blank."
+    return True, ""
+
+
+def review_signal_for_publication(date_str: str, topic: dict, evidence: list[dict], proposal: dict) -> dict:
+    """Run cheap source-copy checks before spending on the existing reviewer."""
+    index = proposal.get("source_index")
+    if proposal.get("eligible") is True and type(index) is int and 1 <= index <= len(evidence):
+        valid, problem = validate_signal_source_copy(proposal.get("signal") or "", evidence[index - 1])
+        if not valid:
+            return {"eligible": False, "signal": "", "source_index": None,
+                    "proposed_signal": proposal.get("signal"), "proposed_source_index": index,
+                    "reason": problem, "reason_code": "source_copy", "review_model_called": False,
+                    "comparisons": []}
+        problem = _unresolved_future_alternative(date_str, evidence, index)
+        if problem:
+            return {"eligible": False, "signal": "", "source_index": None,
+                    "proposed_signal": proposal.get("signal"), "proposed_source_index": index,
+                    "reason": problem, "reason_code": "unresolved_timing", "review_model_called": False,
+                    "comparisons": []}
+    return validate_candidate_signal_semantics(date_str, topic, evidence, proposal)
+
+
 def validate_candidate_signal_semantics(
     date_str: str,
     topic: dict,
@@ -2858,8 +3172,8 @@ def validate_candidate_signal_semantics(
         or not 1 <= source_index <= len(evidence)
     ):
         return decision(False, "The proposal lacks a valid sentence and supporting source.", "structure", False)
-    if len(signal.split()) > 22:
-        return decision(False, "The proposed sentence exceeds the 22-word display limit.", "structure", False)
+    if len(signal.split()) > MAX_SIGNAL_WORDS:
+        return decision(False, "The proposed sentence exceeds the source-sentence display limit.", "structure", False)
     grounded, problem = validate_generated_signal_grounding(
         date_str, signal, evidence[source_index - 1]
     )
@@ -2906,6 +3220,8 @@ OTHER PASSAGES — compare only after checking the cited support:
 Compare events before comparing dates:
 {_checkpoint_timing_comparison(date_str, evidence)}
 
+{_checkpoint_boundary_notes(evidence)}
+
 - Identify each passage's actor, action, and procedural step. Different participants or steps may have different dates without conflict. Another date alone does not contradict the cited passage.
 - Treat abbreviated and full month names for the same calendar date as equal. Repeated coverage of the same checkpoint is corroboration, not an earlier alternative.
 - Reject a supported proposal for conflicting timing only when evidence concerns the SAME checkpoint and establishes a conflicting or superseding schedule. A separate later event does not cancel an earlier supported event.
@@ -2949,6 +3265,12 @@ Approve only if the exact proposal passes and no comparison identifies an earlie
     conflict = _source_comparison_conflict(comparisons, source_index)
     if eligible and conflict:
         eligible, reason, code = False, conflict, "comparison_conflict"
+    coverage_gap = _source_comparison_coverage_gap(date_str, evidence, comparisons)
+    if eligible and coverage_gap:
+        eligible, reason, code = False, coverage_gap, "comparison_incomplete"
+    calendar_conflict = _local_calendar_conflict(date_str, evidence, comparisons, source_index)
+    if eligible and calendar_conflict:
+        eligible, reason, code = False, calendar_conflict, "calendar_conflict"
     # Ignore any attempted rewrite or changed evidence index. Only the original
     # first-pass wording and supporting source can be returned for publication.
     return decision(eligible, reason, code, True)
@@ -2957,7 +3279,7 @@ Approve only if the exact proposal passes and no comparison identifies an earlie
 def evaluate_next_signal(date_str: str, topic: dict, evidence: list[dict]) -> dict:
     if openai is None:
         raise RuntimeError("The openai package is required for Next Signal generation.")
-    evidence_lines = _evidence_lines(evidence)
+    evidence_lines = _selection_evidence_lines(evidence)
 
     prompt = f"""
 You are an evidence-bound editor deciding whether a news story has a useful Next Signal.
@@ -2970,7 +3292,7 @@ A Next Signal is the next explicit future checkpoint whose outcome could materia
 
 Apply these tests in order:
 1. Identify the smallest central story state actually tracked by the headline and summary.
-2. Inspect every supplied passage for explicitly timed future actions or state changes; compare these event/time pairs before drafting a sentence.
+2. Inspect every supplied passage for explicitly timed future actions or state changes; compare these event/time pairs before selecting a sentence.
 3. Require directness: the checkpoint's outcome must be capable of materially updating that central story state, not merely the broader subject.
 4. Apply an independence test: reject future activity that would remain merely background to this story even if the reported development had never happened, unless the story itself is explicitly tracking that ongoing process.
 5. Require source entailment: the cited evidence must state the same future action/state transition and timing. Do not substitute a different action or predicted outcome.
@@ -2990,9 +3312,11 @@ EVIDENCE:
 
 {_checkpoint_timing_comparison(date_str, evidence)}
 
+{_checkpoint_boundary_notes(evidence)}
+
 {_WRITER_SELECTION_INSTRUCTIONS}
 
-Return eligible, signal, source_index, and reason in the supplied JSON schema.
+Return eligible, source_index, and reason in the supplied JSON schema. Use source_index=null when eligible=false. Do not return signal text.
 """.strip()
 
     response = openai.ChatCompletion.create(
@@ -3015,14 +3339,13 @@ Return eligible, signal, source_index, and reason in the supplied JSON schema.
     eligible = parsed.get("eligible")
     if type(eligible) is not bool:
         raise RuntimeError("Next Signal generation returned an invalid decision.")
-    signal = _clean_text(parsed.get("signal") or "")
+    signal = ""
     source_index = parsed.get("source_index")
     reason = _clean_text(parsed.get("reason") or "")
 
     if eligible:
-        if type(source_index) is not int or not 1 <= source_index <= len(evidence) or not signal:
-            raise RuntimeError("Next Signal generation lacks a valid selected source and sentence.")
-    elif source_index is not None or signal:
+        signal = _selected_source_sentence(evidence, source_index)
+    elif source_index is not None:
         raise RuntimeError("Next Signal generation selected a sentence while declining a signal.")
 
     if not eligible:
@@ -3030,7 +3353,7 @@ Return eligible, signal, source_index, and reason in the supplied JSON schema.
         source_index = None
 
     # Keep the UI intentionally compact even if the model ignores the word limit.
-    if signal and len(signal.split()) > 22:
+    if signal and len(signal.split()) > MAX_SIGNAL_WORDS:
         signal = ""
         eligible = False
         source_index = None
@@ -3277,7 +3600,7 @@ def main() -> None:
                     topic,
                     local_model_evidence,
                     "candidate_validation",
-                    validate_candidate_signal_semantics,
+                    review_signal_for_publication,
                     proposal=triage_decision,
                 )
                 model_call_count += 1 if called else 0
@@ -3344,20 +3667,7 @@ def main() -> None:
                     external_model_rows = _model_evidence_candidates(date_str, external_additions, topic=topic, cluster=cluster)
                     # Give the final validator the best local candidates plus the
                     # newly discovered evidence, but keep the prompt compact.
-                    merged = local_model_evidence + external_model_rows
-                    final_model_evidence = []
-                    seen = set()
-                    for row in merged:
-                        key = (
-                            _canonical_url(row.get("url") or ""),
-                            _normalize_title(row.get("description") or "")[:180],
-                        )
-                        if key in seen:
-                            continue
-                        seen.add(key)
-                        final_model_evidence.append(row)
-                        if len(final_model_evidence) >= MAX_MODEL_EVIDENCE:
-                            break
+                    final_model_evidence = _merge_model_evidence(local_model_evidence, external_model_rows)
                     if final_model_evidence:
                         final_validation, final_cache_hit, called = evaluate_cached(
                             topic,
@@ -3373,7 +3683,7 @@ def main() -> None:
                                 topic,
                                 final_model_evidence,
                                 "candidate_validation",
-                                validate_candidate_signal_semantics,
+                                review_signal_for_publication,
                                 proposal=final_validation,
                             )
                             model_call_count += 1 if called else 0
@@ -3402,9 +3712,12 @@ def main() -> None:
         # Recheck cached approvals against current local grounding rules too.
         selected = final_decision.get("source_index")
         if signal:
-            valid, problem = validate_generated_signal_grounding(
-                date_str, signal, final_evidence[selected - 1]
-            ) if type(selected) is int and 1 <= selected <= len(final_evidence) else (False, "Missing supporting source.")
+            valid, problem = validate_signal_source_copy(signal, final_evidence[selected - 1]) if type(selected) is int and 1 <= selected <= len(final_evidence) else (False, "Missing supporting source.")
+            if valid:
+                valid, problem = validate_generated_signal_grounding(date_str, signal, final_evidence[selected - 1])
+            if valid:
+                problem = _unresolved_future_alternative(date_str, final_evidence, selected)
+                valid = not problem
             if not valid:
                 signal = ""
                 final_decision.update(eligible=False, signal="", reason=problem)

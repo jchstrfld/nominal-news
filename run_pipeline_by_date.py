@@ -445,7 +445,9 @@ def run() -> int:
                 global_ok = outputs_exist(global_receipts)
 
         if global_ok:
-            global_ok = run_optional(
+            # A summary/provider failure is not a discovery failure. Stop here
+            # rather than repeat paid summarization through the baseline path.
+            code = run_required(
                 base_dir=base_dir,
                 script="summarize_grouped_topics.py",
                 date_str=date_str,
@@ -457,8 +459,11 @@ def run() -> int:
                 ],
                 dry_run=args.dry_run,
             )
-            if global_ok and not args.dry_run:
-                global_ok = outputs_exist(production_summary)
+            if code:
+                return code
+            if not args.dry_run and not outputs_exist(production_summary):
+                print("❌ Summarizer did not produce an edition; stopping without a retry.")
+                return 1
 
         if global_ok:
             global_pipeline_used = True

@@ -9049,5 +9049,327 @@
       "https://mediabiasfactcheck.com/dumbarton-reporter-bias/"
     ],
     "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
+  },
+  "blogherald.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "gizmodo.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "goodmenproject.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "languagelog.ldc.upenn.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "lifeandletters.la.utexas.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "ls.berkeley.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "newsonjapan.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "patrickruffini.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "press.un.org": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "rt-english.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "shows.acast.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "timeout.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "winteriscoming.net": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "1045thezone.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "greekherald.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "journalgazette.net": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "mesabitribune.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "middleeasteye.net": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "mynews4.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "siasat.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "thetottenhamindependent.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "ca.news.yahoo.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "dansdeals.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "easysportz.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "gking.harvard.edu": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "newsbtc.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "prnewswire.co.uk": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "rockpapershotgun.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "techpowerup.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "tim.blog": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "xxlmag.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "yankodesign.com": {
+    "bias": "Unknown",
+    "sources": [
+      "auto-seen"
+    ],
+    "notes": ""
+  },
+  "700wlw.iheart.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "abc7.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "brisbanetimes.com.au": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "cambodiantimes.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "examiner.com.au": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "greenevillesun.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "kmuw.org": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "ks95.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "lebanondemocrat.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "littleapplepost.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "macombdaily.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "myfox28columbus.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "prpeak.com": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
+  },
+  "theeagleonline.com.ng": {
+    "bias": "Unknown",
+    "sources": [
+      "gdelt-discovery-auto-seen"
+    ],
+    "notes": ""
   }
 }

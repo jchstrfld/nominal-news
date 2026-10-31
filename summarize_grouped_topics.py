@@ -92,7 +92,8 @@ ENCODING = tiktoken.encoding_for_model("gpt-4")
 
 # Cache config (bump PROMPT_VERSION when you change the prompt format)
 PROMPT_VERSION = "v1.1-evidence-only-2026-09-05"
-SUMM_MODEL = "gpt-4"
+SUMM_MODEL = "gpt-5.6-sol"
+MAX_SUMMARY_OUTPUT_TOKENS = 600
 
 
 def select_central_articles(articles: list[dict], k: int) -> list[dict]:
@@ -2747,18 +2748,28 @@ Summary: <summary>
                 },
                 {"role": "user", "content": prompt},
             ],
+            reasoning_effort="none",
+            max_completion_tokens=MAX_SUMMARY_OUTPUT_TOKENS,
             temperature=0,
         )
-        return response.choices[0].message["content"]
-    except Exception as e:
-        print(f"⚠️ Failed to summarize cluster: {e}")
-        return None
+        choice = response.choices[0]
+        content = choice.message.get("content")
+        if choice.get("finish_reason") != "stop" or choice.message.get("refusal"):
+            raise ValueError("Incomplete or refused summary response.")
+        if not isinstance(content, str) or not re.fullmatch(
+            r"\s*Headline:[ \t]*(\S[^\n]*)\n\s*Summary:\s*(\S[\s\S]*)\s*", content, re.I
+        ):
+            raise ValueError("Summary response must contain a nonempty headline and summary.")
+        return content
+    except Exception as exc:
+        raise RuntimeError("Summary generation failed; the saved edition was not replaced.") from exc
 
 
 def extract_headline(summary_text):
     for line in (summary_text or "").splitlines():
+        line = line.strip()
         if line.lower().startswith("headline:"):
-            return line.replace("Headline:", "").strip()
+            return line.split(":", 1)[1].strip()
     return "Untitled"
 
 
@@ -2788,6 +2799,29 @@ def extract_body(summary_text):
     # Fail-open for an unexpected model format: remove a leading headline label
     # but keep the remaining evidence-bound copy.
     return re.sub(r"(?is)^\s*headline\s*:\s*[^\n]+\n?", "", text).strip()
+
+
+def get_or_create_summary(core_articles, summ_cache):
+    """Persist each completed summary so a later failure can resume cheaply."""
+    selected_articles = select_central_articles(core_articles, MAX_ARTICLES_PER_CLUSTER)
+    all_urls = sorted([a.get("url") for a in core_articles if a.get("url")])
+    cache_key = make_summ_key(all_urls, SUMM_MODEL, PROMPT_VERSION, MAX_ARTICLES_PER_CLUSTER)
+    cached = get_cached_summary(summ_cache, cache_key)
+    if cached:
+        headline, body = cached.get("headline"), cached.get("summary")
+        if not all(isinstance(value, str) and value.strip() for value in (headline, body)):
+            raise RuntimeError("Incomplete cached summary; the saved edition was not replaced.")
+        print("💾 Reused cached headline/summary")
+        return headline, body
+
+    summary_text = summarize_cluster(selected_articles)
+    headline, body = extract_headline(summary_text), extract_body(summary_text)
+    if headline == "Untitled" or not headline.strip() or not body.strip():
+        raise RuntimeError("Incomplete summary; the saved edition was not replaced.")
+    # The legacy takeaways slot stays empty, as before.
+    put_cached_summary(summ_cache, cache_key, headline, body, [])
+    save_summ_cache(summ_cache)
+    return headline, body
 
 
 # --- Safety valve: collapse near-duplicate topics after summarization (no tokens) ---
@@ -2879,10 +2913,11 @@ valid_clusters = [c for c in clusters if len(c["articles"]) >= MIN_ARTICLES]
 # Preserve that order here. Re-sorting by verified-core article count would
 # overwrite the ranking decision and make the webpage order misleading.
 top_clusters = valid_clusters[:MAX_CLUSTERS]
+if not top_clusters:
+    raise RuntimeError("No eligible stories to summarize; the saved edition was not replaced.")
 
 # load summaries cache once
 summ_cache = load_summ_cache()
-summ_cache_dirty = False
 
 summaries = []
 used_context_image_urls: set[str] = set()
@@ -2898,30 +2933,7 @@ for idx, cluster in enumerate(top_clusters):
     display_sources = build_display_sources(cluster, coverage_articles)
     coverage_writeups = build_coverage_writeups(cluster, coverage_articles)
 
-    selected_articles = select_central_articles(
-        core_articles,
-        MAX_ARTICLES_PER_CLUSTER
-    )
-
-    # Cache key should be stable for the cluster (use ALL URLs, not just the selected subset)
-    all_urls = sorted([a.get("url") for a in core_articles if a.get("url")])
-    cache_key = make_summ_key(all_urls, SUMM_MODEL, PROMPT_VERSION, MAX_ARTICLES_PER_CLUSTER)
-
-    cached = get_cached_summary(summ_cache, cache_key)
-    if cached:
-        print(f"💾 Cache hit for topic {idx + 1} — reused headline/summary")
-        headline = cached["headline"]
-        body = cached["summary"]
-    else:
-        summary_text = summarize_cluster(selected_articles)
-        if not summary_text:
-            continue
-        headline = extract_headline(summary_text)
-        body = extract_body(summary_text)
-        # summaries_cache.py keeps a legacy takeaways slot for compatibility.
-        # Store an empty list; no takeaways are generated or consumed.
-        put_cached_summary(summ_cache, cache_key, headline, body, [])
-        summ_cache_dirty = True
+    headline, body = get_or_create_summary(core_articles, summ_cache)
 
     all_articles = core_articles
 
@@ -3155,9 +3167,8 @@ summaries = dedupe_topic_summaries(
     body_sim=0.88
 )
 
-# Save cache if we wrote anything
-if summ_cache_dirty:
-    save_summ_cache(summ_cache)
+if not summaries:
+    raise RuntimeError("No summaries produced; the saved edition was not replaced.")
 
 tmp_file = OUTPUT_FILE + ".tmp"
 with open(tmp_file, "w", encoding="utf-8") as f:

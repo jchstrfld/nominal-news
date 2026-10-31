@@ -763,8 +763,43 @@ def _fetch_fed_events(date_str: str) -> List[Dict[str, Any]]:
     return events
 
 
-def _official_calendar_events(date_str: str) -> List[Dict[str, Any]]:
-    return _fetch_bls_events() + _fetch_bea_events() + _fetch_fed_events(date_str)
+def _calendar_status(date_str: str, source_events: Dict[str, List[Dict[str, Any]]]) -> Dict[str, Any]:
+    """Require usable future schedules from every agency before claiming 'next'.
+
+    Empty results can mean HTTP failure, changed markup, or an expired calendar;
+    they do not establish that an agency has no earlier release. This status is
+    edition-specific and is not a certification of the agencies' underlying data.
+    """
+    target = _target_date(date_str)
+    sources = {}
+    for source in ("BLS", "BEA", "Federal Reserve"):
+        rows = source_events.get(source) or []
+        if not rows:
+            sources[source] = "unavailable_or_unusable"
+        elif not any(
+            isinstance(row.get("date"), date)
+            and row["date"] > target
+            and _normalize_event_title(row.get("title", ""))
+            for row in rows
+        ):
+            sources[source] = "no_usable_future_events"
+        else:
+            sources[source] = "ok"
+    return {
+        "date": date_str,
+        "complete": all(status == "ok" for status in sources.values()),
+        "sources": sources,
+    }
+
+
+def _official_calendar_events(date_str: str) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    source_events = {
+        "BLS": _fetch_bls_events(),
+        "BEA": _fetch_bea_events(),
+        "Federal Reserve": _fetch_fed_events(date_str),
+    }
+    events = [event for rows in source_events.values() for event in (rows or [])]
+    return events, _calendar_status(date_str, source_events)
 
 
 def _normalize_event_title(title: str) -> Optional[str]:
@@ -782,7 +817,21 @@ def _normalize_event_title(title: str) -> Optional[str]:
     return None
 
 
-def _next_signal(date_str: str, events: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+def _next_signal(
+    date_str: str,
+    events: List[Dict[str, Any]],
+    *,
+    calendar_status: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    if (
+        calendar_status.get("date") != date_str
+        or calendar_status.get("complete") is not True
+        or any(
+            calendar_status.get("sources", {}).get(source) != "ok"
+            for source in ("BLS", "BEA", "Federal Reserve")
+        )
+    ):
+        return None
     target = _target_date(date_str)
     candidates: List[Tuple[date, str, str]] = []
     for event in events:
@@ -1355,8 +1404,8 @@ def main():
     secondary = _build_secondary_context(date_str)
     evidence = _semantic_evidence(articles)
 
-    calendar_events = _official_calendar_events(date_str)
-    next_signal = _next_signal(date_str, calendar_events)
+    calendar_events, calendar_status = _official_calendar_events(date_str)
+    next_signal = _next_signal(date_str, calendar_events, calendar_status=calendar_status)
     what_changed = _what_changed(
         date_str=date_str,
         inflation=inflation,
@@ -1442,6 +1491,7 @@ def main():
         "what_it_means": what_it_means,
         "what_changed": what_changed,
         "next_signal": next_signal,
+        "calendar_status": calendar_status,
         "secondary_context": secondary,
         "macro_evidence_by_theme": evidence,
         "evidence_titles": evidence_titles,
@@ -1472,6 +1522,9 @@ def main():
     )
     if next_signal:
         print(f"🗓️ Next signal: {next_signal['label']} · {next_signal['date']}")
+    elif not calendar_status["complete"]:
+        missing = ", ".join(source for source, status in calendar_status["sources"].items() if status != "ok")
+        print(f"🗓️ Next signal withheld: official calendar coverage unavailable or unusable ({missing}).")
     else:
         print("🗓️ Next signal: unavailable")
 
