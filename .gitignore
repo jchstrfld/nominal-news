@@ -92,3 +92,11 @@ gdelt_global_ranking_*.json
 /.pytest_cache/
 /.coverage
 /*.json.tmp
+
+# Local development journal
+/NEXT_SIGNAL_REVIEW.md
+
+# Private local work; public regression fixtures stay under tests/.
+/.private/
+/private_notes/
+/*.bundle

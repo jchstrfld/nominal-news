@@ -83,7 +83,9 @@ a separate generator and is not part of the daily runner.
 
 Tests use mocks and one fixed fixture under `tests/fixtures/`. They do not need
 daily JSON files, local provider caches, credentials, or paid calls. Fixture dates
-are historical regression examples, not runtime configuration.
+are historical regression examples, not runtime configuration. Fixtures retain
+inputs and expected responses needed for regression checks; development journals,
+spending records, and experiment logs remain private.
 
 ## Local data and Git
 
