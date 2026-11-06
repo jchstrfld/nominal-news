@@ -463,6 +463,26 @@ def anchor_match_score(anchor: str, image_text: str) -> int:
     return 3 if anchor_words[0] in set(image_words) else 0
 
 
+def _candidate_has_named_anchor(anchor: str, title: str, desc: str) -> bool:
+    """A single common word is not evidence of the named subject's identity.
+
+    Reuse the local contextual entity extractor: the photo metadata must name
+    the whole subject, not merely contain its spelling as an ordinary noun.
+    Missing entity support withholds the image; similarity cannot override it.
+    Multiword names retain the existing exact-phrase and context checks.
+    """
+    if len(_normalized_words(anchor)) != 1:
+        return True
+    key = _normalized_phrase(anchor)
+    for text, context in ((title, desc), (desc, title)):
+        if anchor_match_score(anchor, text) <= 0:
+            continue
+        if any(_normalized_phrase(name) == key
+               for name, _ in _image_named_entities(text, context)):
+            return True
+    return False
+
+
 def semantic_similarity(topic_text: str, image_text: str) -> float:
     if not topic_text or not image_text:
         return 0.0
@@ -858,6 +878,7 @@ def _candidate_context_metrics(anchor: str, topic_text: str, title: str, desc: s
 
     return {
         "anchor_score": anchor_score,
+        "named_subject_match": _candidate_has_named_anchor(anchor, title, desc),
         "topic_semantic": topic_semantic,
         "anchor_semantic": anchor_semantic,
         "title_focus": title_focus,
@@ -897,6 +918,8 @@ def _context_candidate_is_safe(metrics: dict) -> bool:
     # the complete search subject in the caption or scored provider metadata.
     # This also applies to named events, where homonyms can look event-like.
     if anchor_score <= 0:
+        return False
+    if not metrics.get("named_subject_match", True):
         return False
 
     if metrics.get("caption_scene_type") == "event" and scene_type in {"geographic", "institution"}:
@@ -1391,6 +1414,46 @@ def _relevance_score(topic_query: str, title: str, desc: str) -> int:
     return len(q & (t | d))
 
 
+def _commons_person_identity_matches(query: str, topic_text: str, title: str, ext: dict) -> bool:
+    """Require explicit namesake qualifiers to match the person in the story.
+
+    A matching name is insufficient when Commons distinguishes its subject by
+    a parenthetical identity. Use only labels attached to that exact name, not
+    unrelated categories or places mentioned elsewhere in either document.
+    Missing corroboration withholds the image; this is an additional veto, not
+    a replacement for the existing relevance and license checks.
+    """
+    import html
+    import unicodedata
+
+    def normalize(text):
+        text = html.unescape(_clean_html(text or "")).replace("_", " ")
+        text = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
+        return re.sub(r"\s+", " ", text.casefold()).strip()
+
+    name = normalize(query)
+    if not name:
+        return False
+    labels = [title, (ext.get("ObjectName") or {}).get("value", "")]
+    labels.extend(((ext.get("Categories") or {}).get("value") or "").split("|"))
+    qualifiers = set()
+    for label in labels:
+        label = re.sub(r"^(?:file|category):", "", normalize(label))
+        match = re.match(rf"^{re.escape(name)}\s*\(([^()]+)\)(?:\.[a-z0-9]+)?$", label)
+        if match and not re.fullmatch(r"\d{4}", match[1]):
+            # A bare year on a photo title is commonly its capture date.
+            qualifiers.add(match[1].strip())
+    context = normalize(topic_text)
+    for qualifier in qualifiers:
+        q, n = re.escape(qualifier), re.escape(name)
+        # Accept a direct identity description only. A New York visit, for
+        # example, cannot establish that someone is a New York politician.
+        identity = rf"\b(?:{q}\s+{n}|{n}(?:\s*,\s*|\s+(?:is|was)\s+)(?:an?\s+)?{q})\b"
+        if not re.search(identity, context):
+            return False
+    return True
+
+
 def fetch_wikimedia_image(image_query: str, topic_text: str = "", *, all_candidates: bool = False,
                           page_ids: list[int] | None = None):
     """
@@ -1483,6 +1546,12 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = "", *, all_candida
             _image_audit("wikimedia", image_query, "missing_subject_identity" if metrics.get("anchor_score", 0) <= 0 else "subject_or_scene_mismatch", str(metrics))
             continue
 
+        if metrics.get("anchor_type") == "person" and not _commons_person_identity_matches(
+            image_query, topic_text, page_title, ext
+        ):
+            _image_audit("wikimedia", image_query, "unverified_namesake_identity", title)
+            continue
+
         # PNG remains supported, but because it is commonly used for both
         # photographs and rasterized graphics, require positive photographic
         # evidence before a PNG can become a production image.
@@ -1567,6 +1636,7 @@ def fetch_wikimedia_image(image_query: str, topic_text: str = "", *, all_candida
             "_title_focus": metrics["title_focus"],
             "_foreign_ratio": metrics["foreign_ratio"],
             "_anchor_type": metrics["anchor_type"],
+            "_identity_context": topic_text,
             "_scene_type": metrics["scene_type"],
             "_image_year": temporal["image_year"],
             "_image_age_years": temporal["age_years"],
@@ -2029,6 +2099,11 @@ def final_image_rights_check(candidate: dict | None) -> tuple[dict | None, dict]
             if not identity or identity != _commons_asset_identity(info.get("url", "")):
                 raise ValueError("Displayed image differs from source record")
             ext = info.get("extmetadata") or {}
+            if candidate.get("_anchor_type") == "person" and not _commons_person_identity_matches(
+                candidate.get("query", ""), candidate.get("_identity_context", ""),
+                record.get("title", ""), ext,
+            ):
+                raise ValueError("Namesake identity is not established by the story")
             value = lambda field: _commons_credit_text((ext.get(field) or {}).get("value") or "")
             short, license_url = value("LicenseShortName"), value("LicenseUrl")
             if not _commons_license_is_approved(short, license_url, ext):

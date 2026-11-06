@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import math
+import os
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Sequence
 
@@ -28,6 +33,11 @@ BASELINE_POST_FINAL_STAGES = [
     "expand_cluster_coverage_gdelt.py",
     "summarize_grouped_topics.py",
 ]
+
+REVIEW_ENV_NAMES = (
+    "NN_EVENT_MODEL", "NN_EVENT_MAX_CALLS", "NN_EVENT_CACHE_FILE",
+    "NN_MIN_PUBLISH_ARTICLES", "NN_MIN_PUBLISH_DOMAINS",
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -66,7 +76,42 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print the planned commands without executing them.",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--story-review-budget-usd",
+        help="Additional allowance for this story-review attempt only; defaults to NN_EVENT_BUDGET_USD or 0.90. Required explicitly when resuming. Not a whole-pipeline cap.",
+    )
+    parser.add_argument(
+        "--resume-story-review", action="store_true",
+        help="Resume a stopped story review using its unchanged saved inputs and ranking path; skip fetching and clustering.",
+    )
+    parser.add_argument(
+        "--next-signal-budget-usd", default="0.25",
+        help="Cumulative Next Signal cap per edition, including earlier attempts (default: 0.25 USD). Not a whole-pipeline cap.",
+    )
+    parser.add_argument(
+        "--next-signal-max-calls", type=int, default=40,
+        help="Cumulative Next Signal request limit per edition (default: 40). Exhaustion stops the run; it does not skip reviews.",
+    )
+    args = parser.parse_args()
+    try:
+        limit = Decimal(args.next_signal_budget_usd)
+        valid_limit = limit.is_finite() and limit > 0
+    except InvalidOperation:
+        valid_limit = False
+    if not valid_limit or args.next_signal_max_calls <= 0:
+        parser.error("Next Signal requires a positive finite dollar cap and a positive call limit.")
+    if args.resume_story_review and args.story_review_budget_usd is None:
+        parser.error("Resuming requires --story-review-budget-usd with the approved remaining allowance.")
+    if args.story_review_budget_usd is None:
+        args.story_review_budget_usd = os.getenv("NN_EVENT_BUDGET_USD", "0.90")
+    try:
+        limit = Decimal(args.story_review_budget_usd)
+        valid_limit = limit.is_finite() and limit > 0 and math.isfinite(float(limit)) and float(limit) > 0
+    except (InvalidOperation, OverflowError):
+        valid_limit = False
+    if not valid_limit:
+        parser.error("Story review requires a positive finite dollar allowance.")
+    return args
 
 
 def _display_command(command: Sequence[str], base_dir: Path) -> str:
@@ -90,6 +135,7 @@ def run_required(
     date_str: str,
     extra_args: Sequence[str] = (),
     dry_run: bool = False,
+    env_overrides: dict[str, str] | None = None,
 ) -> int:
     script_path = base_dir / script
     if not script_path.exists():
@@ -107,9 +153,12 @@ def run_required(
     print(f"➡️ Running: {script}")
     if dry_run:
         print(f"   DRY RUN: {_display_command(command, base_dir)}")
+        if env_overrides:
+            print(f"   Story-review allowance: ${env_overrides['NN_EVENT_BUDGET_USD']} for this attempt.")
         return 0
 
-    result = subprocess.run(command, cwd=str(base_dir))
+    options = {"env": {**os.environ, **env_overrides}} if env_overrides else {}
+    result = subprocess.run(command, cwd=str(base_dir), **options)
     if result.returncode != 0:
         print(f"❌ Stage failed: {script} (exit code {result.returncode})")
         print("🛑 Pipeline stopped. Downstream stages were not run.")
@@ -173,6 +222,83 @@ def outputs_exist(*paths: Path) -> bool:
     return all(path.exists() and path.stat().st_size > 0 for path in paths)
 
 
+def review_state_path(base_dir: Path, date_str: str) -> Path:
+    return base_dir / "outputs" / f"story_review_run_{date_str}.json"
+
+
+def review_context(base_dir: Path, date_str: str, global_mode: bool) -> dict:
+    """Bind retries to the same evidence, ranking path, code and review settings."""
+    names = [f"grouped_articles_filtered_{date_str}.json"]
+    if global_mode:
+        names.append(f"gdelt_discovery_candidates_{date_str}.json")
+    for name in names:
+        if not (base_dir / name).is_file():
+            raise ValueError(f"Missing saved review input: {name}")
+    names += ["final_cohesion_check.py", "audit_gdelt_global_discovery.py",
+              "inject_gdelt_discovery_candidates.py", "bias_overrides.json"]
+    return {
+        "date": date_str, "global_mode": global_mode,
+        "files": {name: hashlib.sha256((base_dir / name).read_bytes()).hexdigest()
+                  if (base_dir / name).is_file() else None for name in names},
+        "settings": {name: os.getenv(name) for name in REVIEW_ENV_NAMES},
+    }
+
+
+def save_review_state(path: Path, state: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                         prefix=path.name + ".", suffix=".tmp", delete=False) as file:
+            temporary = Path(file.name)
+            json.dump(state, file, indent=2)
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def run_story_review(*, base_dir: Path, date_str: str, global_mode: bool,
+                     budget: str, extra_args: Sequence[str] = (), dry_run: bool = False) -> int:
+    """An incomplete review is required work, never a discovery fallback."""
+    path = review_state_path(base_dir, date_str)
+    state = None
+    if not dry_run:
+        try:
+            context = review_context(base_dir, date_str, global_mode)
+            state = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+            attempts = state.get("attempts", []) if state.get("context") == context else []
+            state = {"version": 1, "status": "pending", "context": context, "attempts": attempts}
+            state["attempts"].append({"allowance_usd": budget})
+            save_review_state(path, state)
+        except (ValueError, OSError) as exc:
+            print(f"❌ Cannot prepare story review: {exc}")
+            return 1
+    code = run_required(base_dir=base_dir, script="final_cohesion_check.py", date_str=date_str,
+                        extra_args=extra_args, dry_run=dry_run,
+                        env_overrides={"NN_EVENT_BUDGET_USD": budget})
+    expected = [base_dir / f"grouped_articles_final_{date_str}.json"]
+    if global_mode:
+        expected += [base_dir / f"gdelt_global_ranking_{date_str}.json",
+                     base_dir / f"grouped_articles_final_global_{date_str}.json"]
+    if not code and not dry_run and not outputs_exist(*expected):
+        print("❌ Story review did not produce all expected outputs; stopping.")
+        code = 1
+    if state is not None:
+        state["status"] = "pending" if code else "complete"
+        state["attempts"][-1]["exit_code"] = code
+        save_review_state(path, state)
+    if code:
+        print("🛑 Story review stopped. No ranking fallback or downstream stages will run.")
+        print(f"   Saved review state: {path.relative_to(base_dir)}")
+        print("   Inspect the review status and spending before retrying. Resume with:")
+        print(f"   python run_pipeline_by_date.py --date {date_str} --resume-story-review "
+              "--story-review-budget-usd APPROVED_REMAINING_ALLOWANCE")
+    return code
+
+
 def run_baseline_post_final(
     *,
     base_dir: Path,
@@ -180,13 +306,15 @@ def run_baseline_post_final(
     local_final: Path,
     local_final_ready: bool,
     dry_run: bool,
+    story_review_budget: str,
 ) -> int:
     """Run the original final -> expansion -> summary path."""
     if not local_final_ready:
-        code = run_required(
+        code = run_story_review(
             base_dir=base_dir,
-            script="final_cohesion_check.py",
             date_str=date_str,
+            global_mode=False,
+            budget=story_review_budget,
             dry_run=dry_run,
         )
         if code:
@@ -222,13 +350,38 @@ def run() -> int:
         return 1
 
     base_dir = Path(__file__).resolve().parent
+    state_path = review_state_path(base_dir, date_str)
+    resume_global = False
+    try:
+        saved = json.loads(state_path.read_text(encoding="utf-8")) if state_path.exists() else None
+        if args.resume_story_review:
+            if not isinstance(saved, dict) or saved.get("version") != 1 or saved.get("status") != "pending":
+                raise ValueError("No stopped story review to resume for this edition.")
+            resume_global = saved["context"]["global_mode"]
+            if not isinstance(resume_global, bool) or saved["context"] != review_context(base_dir, date_str, resume_global):
+                raise ValueError("Saved review inputs, code or settings changed; inspect before starting another review.")
+            if resume_global and not args.with_gdelt_discovery:
+                raise ValueError("Cannot resume a global review as a baseline review.")
+        elif saved is not None and (not isinstance(saved, dict) or saved.get("status") != "complete"):
+            raise ValueError("An unfinished review exists. Use --resume-story-review with an approved remaining allowance.")
+    except (ValueError, KeyError, TypeError, OSError) as exc:
+        print(f"❌ Cannot start story review: {exc}")
+        return 1
     print(f"🚀 Running full pipeline for {date_str}...")
+    print(f"🔎 Story review allowance: ${args.story_review_budget_usd} for this attempt only.")
+    if args.resume_story_review:
+        print("↪ Resuming saved story review; fetching, discovery and clustering are skipped.")
     if args.with_gdelt_discovery:
         print("🌍 End-to-end GDELT global path: ENABLED")
     else:
         print("🌍 End-to-end GDELT global path: disabled")
+    print(
+        "🧭 Next Signal: source-bound checkpoint review; "
+        f"edition limits ${args.next_signal_budget_usd} / {args.next_signal_max_calls} requests "
+        "(other pipeline stages billed separately)."
+    )
 
-    for script in PRE_MERGE_STAGES:
+    for script in ([] if args.resume_story_review else PRE_MERGE_STAGES):
         code = run_required(
             base_dir=base_dir,
             script=script,
@@ -239,14 +392,14 @@ def run() -> int:
             return code
 
     merge_extra: list[str] = []
-    discovery_used = False
+    discovery_used = resume_global
 
     candidate_json = base_dir / f"gdelt_discovery_candidates_{date_str}.json"
     candidate_csv = base_dir / f"gdelt_discovery_candidates_{date_str}.csv"
     augmented_json = base_dir / f"clustered_articles_with_gdelt_{date_str}.json"
     manifest_json = base_dir / f"gdelt_discovery_injection_{date_str}.json"
 
-    if args.with_gdelt_discovery:
+    if args.with_gdelt_discovery and not args.resume_story_review:
         if not args.dry_run:
             # Never permit stale optional discovery data to enter a fresh run.
             for stale in (
@@ -317,17 +470,18 @@ def run() -> int:
                 f"clustered_articles_{date_str}.json"
             )
 
-    code = run_required(
-        base_dir=base_dir,
-        script="merge_similar_clusters.py",
-        date_str=date_str,
-        extra_args=merge_extra,
-        dry_run=args.dry_run,
-    )
-    if code:
-        return code
+    if not args.resume_story_review:
+        code = run_required(
+            base_dir=base_dir,
+            script="merge_similar_clusters.py",
+            date_str=date_str,
+            extra_args=merge_extra,
+            dry_run=args.dry_run,
+        )
+        if code:
+            return code
 
-    for script in POST_MERGE_PRE_FINAL_STAGES:
+    for script in ([] if args.resume_story_review else POST_MERGE_PRE_FINAL_STAGES):
         code = run_required(
             base_dir=base_dir,
             script=script,
@@ -341,7 +495,7 @@ def run() -> int:
     global_pipeline_used = False
     local_final_ready = False
 
-    if discovery_used or (args.dry_run and args.with_gdelt_discovery):
+    if discovery_used or (args.dry_run and args.with_gdelt_discovery and not args.resume_story_review):
         global_ranking = base_dir / f"gdelt_global_ranking_{date_str}.json"
         global_final = base_dir / f"grouped_articles_final_global_{date_str}.json"
         global_enriched = (
@@ -355,23 +509,12 @@ def run() -> int:
         )
         production_summary = base_dir / f"topic_summaries_{date_str}.json"
 
-        if not args.dry_run:
-            # Remove only optional/intermediate global artifacts. Do not remove
-            # the existing production summary until a replacement is written.
-            for stale in (
-                global_ranking,
-                global_final,
-                global_enriched,
-                global_expanded,
-                global_receipts,
-            ):
-                stale.unlink(missing_ok=True)
-
         print("🌐 Running post-purity global ranking and receipt path...")
-        global_ok = run_optional(
+        code = run_story_review(
             base_dir=base_dir,
-            script="final_cohesion_check.py",
             date_str=date_str,
+            global_mode=True,
+            budget=args.story_review_budget_usd,
             extra_args=[
                 "--output-file",
                 local_final.name,
@@ -385,12 +528,14 @@ def run() -> int:
             ],
             dry_run=args.dry_run,
         )
-
-        if global_ok:
-            local_final_ready = args.dry_run or outputs_exist(local_final)
-            global_ok = args.dry_run or outputs_exist(global_ranking, global_final)
-            if not global_ok:
-                print("⚠️ Global ranking stage did not produce all expected outputs.")
+        if code:
+            return code
+        local_final_ready = True
+        global_ok = True
+        if not args.dry_run:
+            # Keep the existing edition and receipts intact until review succeeds.
+            for stale in (global_enriched, global_expanded, global_receipts):
+                stale.unlink(missing_ok=True)
 
         if global_ok:
             global_ok = run_optional(
@@ -481,6 +626,7 @@ def run() -> int:
             local_final=local_final,
             local_final_ready=local_final_ready,
             dry_run=args.dry_run,
+            story_review_budget=args.story_review_budget_usd,
         )
         if code:
             return code
@@ -504,6 +650,14 @@ def run() -> int:
         extra_args=[
             "--summary-file", f"topic_summaries_{date_str}.json",
             "--cluster-file", signal_clusters.name,
+            "--checkpoint-review",
+            "--checkpoint-live",
+            "--checkpoint-budget-usd", args.next_signal_budget_usd,
+            "--checkpoint-max-calls", str(args.next_signal_max_calls),
+            "--checkpoint-max-output-tokens", "2400",
+            "--checkpoint-cache-file", f"outputs/checkpoint_receipts_{date_str}.json",
+            "--checkpoint-ledger-file", f"outputs/checkpoint_usage_{date_str}.json",
+            "--no-external",
         ],
         dry_run=args.dry_run,
     )

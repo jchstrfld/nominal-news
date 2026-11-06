@@ -92,6 +92,7 @@ gdelt_global_ranking_*.json
 /.pytest_cache/
 /.coverage
 /*.json.tmp
+/*.json.*.tmp
 
 # Local development journal
 /NEXT_SIGNAL_REVIEW.md

@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -41,6 +42,73 @@ class FramingTests(unittest.TestCase):
     def test_face_too_large_for_frame_falls_back(self):
         self.assertEqual(framing.position_for_faces(400, 800,
             [[80, 20, 200, 300, .99]])['reason'], 'face_exceeds_frame')
+
+    def assert_face_visible(self, width, height, face):
+        result = framing.position_for_faces(width, height, [face])
+        self.assertEqual(result['reason'], 'primary_face')
+        crop_w, crop_h = min(width, height * 16 / 9), min(height, width * 9 / 16)
+        left = (width - crop_w) * result['x'] / 100
+        top = (height - crop_h) * result['y'] / 100
+        x, y, w, h, _ = face
+        # CSS percentages are rounded; allow less than a hundredth of a pixel.
+        self.assertLessEqual(left, x + .01)
+        self.assertLessEqual(top, y + .01)
+        self.assertGreaterEqual(left + crop_w, x + w - .01)
+        self.assertGreaterEqual(top + crop_h, y + h - .01)
+        self.assertTrue(all(0 <= result[k] <= 100 for k in ('x', 'y')))
+        return result, (left, top, crop_w, crop_h)
+
+    def test_portrait_reduces_padding_without_losing_face_or_headroom(self):
+        face = [110, 140, 180, 200, .96]
+        result, (_, top, _, crop_h) = self.assert_face_visible(400, 800, face)
+        self.assertLess(result['y'], 50)
+        headroom = face[1] - top
+        footroom = top + crop_h - face[1] - face[3]
+        self.assertGreater(headroom, footroom)
+        self.assertGreater(footroom, 0)
+
+    def test_landscape_reduces_horizontal_padding(self):
+        result, _ = self.assert_face_visible(1200, 400, [550, 50, 600, 180, .96])
+        self.assertGreater(result['x'], 50)
+
+    def test_face_exactly_filling_crop_does_not_require_padding(self):
+        result, _ = self.assert_face_visible(400, 800, [100, 20, 200, 225, .96])
+        self.assertLess(result['y'], 50)
+
+    def test_padding_near_each_edge_keeps_the_full_face(self):
+        for width, height, face in (
+                (400, 800, [100, 0, 200, 200, .96]),
+                (400, 800, [100, 600, 200, 200, .96]),
+                (1200, 400, [0, 100, 650, 150, .96]),
+                (1200, 400, [550, 100, 650, 150, .96])):
+            with self.subTest(width=width, height=height, face=face):
+                self.assert_face_visible(width, height, face)
+
+    def test_horizontal_face_too_large_still_falls_back(self):
+        result = framing.position_for_faces(1200, 400, [[100, 50, 800, 180, .96]])
+        self.assertEqual(result['reason'], 'face_exceeds_frame')
+
+    def test_padding_does_not_override_ambiguity_or_low_confidence(self):
+        result = framing.position_for_faces(400, 800,
+            [[0, 40, 180, 200, .96], [200, 420, 180, 200, .96]])
+        self.assertEqual(result['reason'], 'ambiguous_faces')
+        self.assertEqual(framing.position_for_faces(400, 800,
+            [[110, 140, 180, 200, .89]])['reason'], 'no_clear_face')
+
+    def test_old_padding_fallback_cache_cannot_hide_the_new_crop(self):
+        url = 'https://images.unsplash.com/test'
+        old = {'x': 50, 'y': 50, 'reason': 'face_exceeds_frame', 'version': 'yunet-2023mar-v1'}
+        expected = framing.position_for_faces(400, 800, [[110, 140, 180, 200, .96]])
+        with tempfile.TemporaryDirectory() as directory:
+            old_path = Path(directory) / (hashlib.sha256((old['version'] + url).encode()).hexdigest() + '.json')
+            old_path.write_text(json.dumps(old), encoding='utf-8')
+            with patch.object(framing, 'download_image', return_value=b'photo') as download:
+                with patch.object(framing, 'analyze_image', return_value=expected) as detect:
+                    self.assertEqual(framing.frame_image(url, cache_dir=directory), expected)
+                    self.assertEqual(framing.frame_image(url, cache_dir=directory), expected)
+                    download.assert_called_once()
+                    detect.assert_called_once()
+            self.assertEqual(json.loads(old_path.read_text(encoding='utf-8')), old)
 
     def test_real_detector_on_blank_image(self):
         _, encoded = cv2.imencode('.jpg', np.zeros((300, 400, 3), dtype=np.uint8))

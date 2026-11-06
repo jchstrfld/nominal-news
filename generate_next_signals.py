@@ -8,6 +8,7 @@ import ipaddress
 import json
 import os
 import re
+import sys
 from datetime import datetime, date, timedelta
 from html.parser import HTMLParser
 from urllib.error import HTTPError, URLError
@@ -38,15 +39,16 @@ if openai is not None:
     openai.api_key = os.getenv("OPENAI_API_KEY")
 
 MODEL = os.getenv("NN_NEXT_SIGNAL_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
+REVIEW_MODEL = "gpt-5.4-mini-2026-03-17"
 PROMPT_VERSION = "next-signal-v23-sentence-index-2026-10-29"
 TRIAGE_PROMPT_VERSION = "next-signal-triage-v18-sentence-index-2026-10-29"
 FINAL_PROMPT_VERSION = "next-signal-final-v18-sentence-index-2026-10-29"
-VALIDATION_PROMPT_VERSION = "next-signal-validation-v21-conservative-timing-2026-10-29"
+VALIDATION_PROMPT_VERSION = "next-signal-validation-v29-bound-event-status-2026-11-03"
 CACHE_PATH = "next_signal_cache.json"
 SIDECAR_CACHE_PATH = "next_signal_sidecar_cache.json"
 MAX_EVIDENCE_ARTICLES = 12
 MAX_DESCRIPTION_CHARS = 420
-PREFILTER_VERSION = "next-signal-prefilter-v16-pronoun-context-2026-10-20"
+PREFILTER_VERSION = "next-signal-prefilter-v17-metadata-selection-2026-11-02"
 MAX_SIDECAR_CANDIDATES = 10
 MAX_SIDECAR_FETCHES = 6
 MAX_SIDECAR_MATCHES = 8
@@ -466,6 +468,25 @@ def _sentence_windows(text: str) -> list[str]:
     return windows
 
 
+def _checkpoint_context(sentences: list[str], index: int) -> str:
+    """Keep adjacent updates as review evidence, separate from copyable wording."""
+    before = " ".join(sentences[max(0, index - 2):index])
+    after = " ".join(sentences[index + 1:index + 3])
+    # Reserve room on both sides. A following cancellation must not disappear
+    # merely because a long preceding paragraph used the entire excerpt limit.
+    return _clean_text(" ".join((before[-250:], sentences[index], after[:350])))
+
+
+def _source_overview(sentences: list[str]) -> str:
+    """Bound the article opening without cutting a sentence or its conditions."""
+    selected = []
+    for sentence in sentences:
+        if len(" ".join([*selected, sentence])) > 2000:
+            break
+        selected.append(sentence)
+    return " ".join(selected)
+
+
 def _future_milestone_snippets(text: str, reference_date: date) -> list[dict]:
     clean = _clean_text(text)
     if not clean:
@@ -474,6 +495,7 @@ def _future_milestone_snippets(text: str, reference_date: date) -> list[dict]:
     parts = _atomic_sentences(clean)
     if not parts:
         return []
+    overview = _source_overview(parts)
 
     vague_subject_re = re.compile(
         r"^(?:it|they|he|she|this|that|both|these|those|either|neither|the\s+[a-z][a-z-]{2,}(?:\s+[a-z][a-z-]{2,}){0,2})\b",
@@ -540,6 +562,8 @@ def _future_milestone_snippets(text: str, reference_date: date) -> list[dict]:
             score += 1
         ranked.append({
             "text": excerpt,
+            "source_context": _checkpoint_context(parts, idx if direct_qualifies else idx + 1),
+            "source_overview": overview,
             "time_cues": cues,
             "score": score,
         })
@@ -613,7 +637,9 @@ def _candidate_from_row(row: dict, origin: str, priority: float = 0.0) -> dict |
         "title": title,
         "description": desc,
         "url": url,
-        "published_at": str(row.get("published_at") or row.get("published_date") or row.get("target_date") or ""),
+        # A discovery/receipt date is not the article's publication date.
+        "published_at": str(row.get("published_at") or row.get("published_date") or ""),
+        "reference_date_unverified": not bool(row.get("published_at") or row.get("published_date")),
         "source": row.get("source") or row.get("domain") or "",
         "family_id": row.get("writeup_family_id") or row.get("family_id") or "",
     }
@@ -774,6 +800,9 @@ def build_signal_sidecar(
             "title": candidate.get("title") or "",
             "description": description,
             "published_at": candidate.get("published_at") or "",
+            "reference_date_unverified": candidate.get("reference_date_unverified", False),
+            "source_context": snippet.get("source_context") or description,
+            "source_overview": snippet.get("source_overview") or "",
             "url": candidate.get("url") or "",
             "source": candidate.get("source") or "",
             "sidecar_source_origin": candidate.get("origin") or "",
@@ -1325,6 +1354,9 @@ def build_external_signal_evidence(
             "url": candidate.get("url") or "",
             "source": candidate.get("source") or "",
             "external_similarity": candidate.get("similarity"),
+            "source_context": snippet.get("source_context") or description,
+            "source_overview": snippet.get("source_overview") or "",
+            "reference_date_unverified": candidate.get("reference_date_unverified", False),
             "external_search_provider": candidate.get("search_provider") or "external_search",
             "_signal_score": round(quality, 4),
             "_fetch_status": fetch_status,
@@ -1539,31 +1571,35 @@ def _published_sort_value(article: dict) -> str:
     return str(article.get("published_at") or article.get("published_date") or "")
 
 
-def select_signal_evidence(cluster: dict) -> list[dict]:
-    """Use the verified core first, then same-event related/coverage context."""
-    selected = []
+def select_signal_evidence(cluster: dict, date_str: str | None = None) -> list[dict]:
+    """Reserve current-story context, then find timed passages before the cap.
+
+    This scans saved metadata only. It changes neither cluster membership nor
+    the source/model limits, and a timing match is not publication approval.
+    """
+    available = []
     seen = set()
 
     def add(article: dict, origin: str) -> None:
-        if len(selected) >= MAX_EVIDENCE_ARTICLES:
-            return
         ident = _article_identity(article)
         if not ident or ident in seen:
             return
-        title = _clean_text(article.get("title") or "")
-        desc = _clean_text(article.get("description") or "")[:MAX_DESCRIPTION_CHARS]
+        title = _clean_text(html_lib.unescape(article.get("title") or ""))
+        desc = _clean_text(html_lib.unescape(article.get("description") or ""))
         if not title and not desc:
             return
         seen.add(ident)
-        selected.append({
+        published = str(article.get("published_at") or article.get("published_date") or "")
+        available.append({
             "origin": origin,
             "title": title,
             "description": desc,
-            "published_at": str(article.get("published_at") or article.get("published_date") or ""),
+            "published_at": published,
+            "reference_date_unverified": _parse_reference_date(published, date.min) == date.min,
             "url": article.get("url") or article.get("url_normalized") or "",
         })
 
-    # Preserve purifier-approved core order exactly.
+    # Preserve the purifier's ordering as the default and as the context reserve.
     for article in cluster.get("articles") or []:
         add(article, "core")
 
@@ -1584,7 +1620,46 @@ def select_signal_evidence(cluster: dict) -> list[dict]:
     for article in coverage:
         add(article, "coverage")
 
-    return selected[:MAX_EVIDENCE_ARTICLES]
+    timed = {}
+    if date_str:
+        for position, row in enumerate(available):
+            for candidate in _grounded_segments_for_row(date_str, row):
+                sentence = candidate["sentence"]
+                source = {**row, "grounded_sentence": sentence}
+                # Avoid prioritizing date-only background, stale dates or a
+                # relative schedule whose publication date was never saved.
+                if not _direct_future_anchors(sentence, _grounding_reference_date(date_str, row)):
+                    continue
+                if not validate_generated_signal_grounding(date_str, sentence, source)[0]:
+                    continue
+                timed[position] = candidate
+                break
+
+    # Half of the existing budget keeps the leading story/current-state evidence.
+    # The remainder can recover a checkpoint anywhere in the saved metadata.
+    order = list(range(min(len(available), MAX_EVIDENCE_ARTICLES // 2)))
+    event_keys = {_normalize_title(timed[i]["sentence"]) for i in order if i in timed}
+    for position, candidate in timed.items():
+        key = _normalize_title(candidate["sentence"])
+        if position not in order and key not in event_keys:
+            order.append(position)
+            event_keys.add(key)
+    order += [i for i in range(len(available)) if i not in order]
+    selected = []
+    for position in order[:MAX_EVIDENCE_ARTICLES]:
+        row = dict(available[position])
+        candidate = timed.get(position)
+        prefix = row["description"][:MAX_DESCRIPTION_CHARS]
+        if candidate:
+            row["source_context"] = candidate["source_context"]
+        if candidate and candidate["sentence"] not in prefix:
+            # Preserve the whole timed sentence and adjacent qualifications if
+            # the normal description prefix would cut them off.
+            row["description"] = candidate["excerpt"]
+        else:
+            row["description"] = prefix
+        selected.append(row)
+    return selected
 
 
 def _parse_reference_date(value: str, fallback: date) -> date:
@@ -2018,6 +2093,7 @@ def _grounded_segments_for_row(date_str: str, row: dict) -> list[dict]:
             "anchors": anchors,
             "reference_date": reference_date.isoformat(),
             "vague_context": vague_context,
+            "source_context": row.get("source_context") or _checkpoint_context(sentences, idx),
         })
 
     candidates.sort(key=lambda item: (-item["score"], -len(item["sentence"])))
@@ -2097,6 +2173,9 @@ def _cache_key(
                 "url": row.get("url"),
                 "grounded_sentence": row.get("grounded_sentence"),
                 "grounded_reference_date": row.get("grounded_reference_date"),
+                "source_context": row.get("source_context"),
+                **({"source_overview": row.get("source_overview")} if stage == "candidate_validation" else {}),
+                "reference_date_unverified": row.get("reference_date_unverified", False),
             }
             for row in evidence
         ],
@@ -2104,7 +2183,8 @@ def _cache_key(
     }
     raw = json.dumps(material, sort_keys=True, ensure_ascii=False)
     digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
-    return f"{MODEL}:{_cache_version_for_stage(stage)}:{stage}:{digest}"
+    model = REVIEW_MODEL if stage == "candidate_validation" else MODEL
+    return f"{model}:{_cache_version_for_stage(stage)}:{stage}:{digest}"
 
 
 def _extract_json_object(text: str) -> dict:
@@ -2207,6 +2287,7 @@ def _model_evidence_candidates(
             derived["grounded_time_keys"] = [anchor["key"] for anchor in candidate["anchors"]]
             derived["grounded_reference_date"] = candidate["reference_date"]
             derived["grounded_vague_context"] = bool(candidate.get("vague_context"))
+            derived["source_context"] = candidate["source_context"]
             ranked.append((candidate["score"], position, derived))
 
     ranked.sort(key=lambda item: (-item[0], item[1]))
@@ -2256,7 +2337,7 @@ def _merge_model_evidence(local: list[dict], external: list[dict], limit: int = 
     return ordered[:limit]
 
 
-def _evidence_lines(evidence: list[dict]) -> list[str]:
+def _evidence_lines(evidence: list[dict], *, include_overview: bool = False) -> list[str]:
     lines = []
     for idx, row in enumerate(evidence, start=1):
         parts = [f"[{idx}] ({row.get('origin', 'source')})"]
@@ -2270,6 +2351,12 @@ def _evidence_lines(evidence: list[dict]) -> list[str]:
             parts.append(f"Title: {row['title']}")
         if row.get("description"):
             parts.append(f"Description: {row['description']}")
+        if row.get("source_context"):
+            parts.append(f"Surrounding source context (includes later updates): {row['source_context']}")
+        if include_overview and row.get("source_overview"):
+            parts.append(f"Opening of this same article (check current event status): {row['source_overview']}")
+        if row.get("reference_date_unverified"):
+            parts.append("Publication date unavailable; discovery date cannot date relative schedules.")
         if row.get("grounded_sentence"):
             parts.append(f"Candidate source sentence: {row['grounded_sentence']}")
         if row.get("grounded_time_keys"):
@@ -2318,7 +2405,9 @@ def _grounding_reference_date(date_str: str, row: dict) -> date:
     return _parse_reference_date(row.get("published_at") or "", briefing)
 
 
-def _checkpoint_timing_comparison(date_str: str, evidence: list[dict]) -> str:
+def _checkpoint_timing_comparison(
+    date_str: str, evidence: list[dict], *, include_day_offsets: bool = False,
+) -> str:
     """Show calendar matches for comparison without asserting event relevance/order."""
     rows = []
     for index, row in enumerate(evidence, start=1):
@@ -2350,10 +2439,17 @@ def _checkpoint_timing_comparison(date_str: str, evidence: list[dict]) -> str:
                     resolved = reference + timedelta(days=(weekday - reference.weekday()) % 7)
             if resolved is not None and resolved < date.fromisoformat(date_str):
                 resolved = None
+            if row.get("reference_date_unverified") and anchor["kind"] in {"weekday", "relative", "same_day"}:
+                resolved = None
             label = json.dumps(anchor["text"], ensure_ascii=False)
             if resolved is not None:
                 calendar_dates.append(resolved)
                 label += f" => {resolved.isoformat()} if upcoming"
+                if include_day_offsets:
+                    offset = (resolved - date.fromisoformat(date_str)).days
+                    relation = (f"{offset} calendar day(s) AFTER briefing" if offset
+                                else "SAME briefing day; time-of-day status unverified")
+                    label += f" ({resolved.strftime('%A')}; {relation})"
             else:
                 # A duration, condition, or broad window is not an event date.
                 label += " => unresolved timing; check source"
@@ -2388,6 +2484,43 @@ def _checkpoint_boundary_notes(evidence: list[dict]) -> str:
             "Do not assume an extension or a new decision. Explain relevance or uncertainty.\n" + "\n".join(notes))
 
 
+def _calendar_mentions_match_anchors(sentence: str, anchors: list[dict], *, allow_background_weekdays: bool = False) -> bool:
+    """Account for a weekday spelling out the same adjacent calendar date.
+
+    The extractor deliberately keeps only the explicit date in such a pair.
+    Other missing mentions can be historical dates or range endpoints and must
+    still block full-passage resolution. The separately guarded, full-year date
+    fallback may retain background weekdays. Agreement never proves event status.
+    """
+    weekdays = list(_WEEKDAY_RE.finditer(sentence))
+    dates = list(_NUMERIC_DATE_RE.finditer(sentence))
+    dates += [m for m in _MONTH_RE.finditer(sentence) if m.group("day") or m.group("day_first")]
+    paired = 0
+    for weekday in weekdays:
+        adjacent = [a for a in anchors if a["kind"] == "date" and (
+            0 <= a["start"] - weekday.end() <= 4 or
+            0 <= weekday.start() - a["end"] <= 4)]
+        if not adjacent:
+            continue
+        if len(adjacent) != 1:
+            return False
+        anchor = adjacent[0]
+        start = min(weekday.start(), anchor["start"])
+        gap = (sentence[weekday.end():anchor["start"]] if weekday.end() <= anchor["start"]
+               else sentence[anchor["end"]:weekday.start()])
+        if not re.fullmatch(r"\s*,?\s*", gap):
+            return False  # "Tuesday or November 3" is not an apposition.
+        resolved = date.fromisoformat(anchor["key"].split(":", 1)[1])
+        if _WEEKDAY_NAMES[weekday.group(0).lower()] != resolved.weekday():
+            return False
+        if re.search(r"\b(?:by|before|after|since|within|through|from|between|around|about|until|last|previous|past|next)\s*$",
+                     sentence[:start], re.I):
+            return False  # Do not turn a qualified boundary into one exact day.
+        paired += 1
+    unpaired = 0 if allow_background_weekdays else len(weekdays) - paired
+    return unpaired + len(dates) <= len(anchors)
+
+
 def _comparison_calendar_day(date_str: str, row: dict, timing: str) -> date | None:
     """Resolve a single future day shared by quote and full passage, conservatively.
 
@@ -2404,9 +2537,7 @@ def _comparison_calendar_day(date_str: str, row: dict, timing: str) -> date | No
         return None
     # The future-anchor extractor omits historical dates. Do not accidentally
     # collapse a window spanning past and future into its final day.
-    mentions = list(_WEEKDAY_RE.finditer(sentence)) + list(_NUMERIC_DATE_RE.finditer(sentence))
-    mentions += [m for m in _MONTH_RE.finditer(sentence) if m.group("day") or m.group("day_first")]
-    if len(mentions) > len(anchors):
+    if not _calendar_mentions_match_anchors(sentence, anchors):
         return None
     for anchor in anchors:
         prefix = sentence[max(0, anchor["start"] - 30):anchor["start"]]
@@ -2453,6 +2584,41 @@ def _local_calendar_conflict(date_str: str, evidence: list[dict], comparisons: l
     return ""
 
 
+def _review_calendar_check(date_str: str, row: dict) -> str:
+    """A fixed calendar fact for the reviewer, never an event-status verdict."""
+    sentence = _clean_text(row.get("grounded_sentence") or row.get("description") or "")
+    day = None if row.get("reference_date_unverified") else _comparison_calendar_day(date_str, row, sentence)
+    if day is None:
+        return "Calendar timing is unresolved; do not infer event status or chronology."
+    offset = (day - date.fromisoformat(date_str)).days
+    return f"{day.isoformat()} is {offset} calendar day(s) AFTER briefing {date_str}"
+
+
+def _when_clause_dates_action(sentence: str, boundary, anchor: dict) -> bool:
+    """Allow a simple dated 'when' clause, not a date inside its background.
+
+    'Will meet when the board reconvenes Friday' dates the meeting. Embedded
+    clauses, past narration and dates modifying another noun remain unresolved.
+    The reviewer still decides whether the event is pending and relevant.
+    """
+    clause = sentence[boundary:anchor["start"]]
+    if not re.match(r"when\s+", clause, re.I):
+        return False
+    tail = re.sub(r"^when\s+", "", clause, flags=re.I).strip()
+    if not 2 <= len(tail.split()) <= 12:
+        return False
+    if _PAST_EVENT_RE.search(tail) or re.search(
+        r"[,;.!?]|\b(?:that|which|who|whose|where|about|from|of|for|since|after|before|"
+        r"during|if|unless|while|because|had|has|have|was|were|did|would|could|might|may|not|never)\b",
+        tail, re.I,
+    ):
+        return False
+    return not re.match(r"['’]s\b", sentence[anchor["end"]:])
+
+
+_REVIEW_CURRENT_PERIOD_RE = re.compile(r"\bthis\s+(?:week|month|year)\b", re.I)
+
+
 def _direct_future_anchors(sentence: str, reference: date) -> list[dict]:
     """Find conservative timing links, without borrowing an auxiliary across clauses.
 
@@ -2462,11 +2628,21 @@ def _direct_future_anchors(sentence: str, reference: date) -> list[dict]:
     sentence = _clean_text(sentence)
     frames = list(_FUTURE_FRAMING_RE.finditer(sentence))
     frames += list(re.finditer(r"\b(?:may|might|could)\b(?!\s+have\b)", sentence, re.I))
+    # Reported continuations can hide an earlier expiry in a contextual sentence.
+    # Inventory it for comparison even if pronouns make it unavailable to copy.
+    # This does not bypass source-copy, current-state or uncertainty review.
+    frames += list(re.finditer(r"\bwould\s+remain\b[^.;!?]{0,80}?\buntil\b", sentence, re.I))
     frames = [f for f in frames if not re.search(
         r"\b(?:was|were|had|not|never)\s+(?:\w+\s+){0,2}$",
         sentence[max(0, f.start() - 40):f.start()], re.I)]
     found = []
-    for anchor in _future_anchor_records(sentence, reference):
+    anchors = _future_anchor_records(sentence, reference)
+    # Inventory current-period alternatives conservatively for review only.
+    # Do not expand discovery or infer a precise date within the period.
+    anchors += [{"kind": "relative", "text": m.group(0), "start": m.start(), "end": m.end(),
+                 "key": "relative:" + m.group(0).lower()} for m in _REVIEW_CURRENT_PERIOD_RE.finditer(sentence)
+                if not any(a["start"] <= m.start() and a["end"] >= m.end() for a in anchors)]
+    for anchor in sorted(anchors, key=lambda a: a["start"]):
         if _is_explicit_deadline(sentence, anchor):
             found.append(anchor)
             continue
@@ -2478,8 +2654,18 @@ def _direct_future_anchors(sentence: str, reference: date) -> list[dict]:
                 # establish timing there. Direct "before Friday" remains usable.
                 boundaries = list(re.finditer(r";|\b(?:after|before|since|when|while|whereas|because)\b", between, re.I))
                 if boundaries and between[boundaries[-1].end():].strip():
-                    continue
-                if _PAST_EVENT_RE.search(between):
+                    if len(boundaries) != 1 or not _when_clause_dates_action(
+                        sentence, frame.end() + boundaries[0].start(), anchor
+                    ):
+                        continue
+                # A participle governed by the same future auxiliary is not a
+                # completed event: "will be approved" / "is due to be signed".
+                # Require the entire intervening phrase to be auxiliary grammar;
+                # never borrow "will" across another subject or clause.
+                if any(not re.fullmatch(
+                    r"\s*(?:[a-z]+ly\s+){0,2}(?:to\s+)?be\s+(?:[a-z]+ly\s+){0,2}",
+                    between[:past.start()], re.I,
+                ) for past in _PAST_EVENT_RE.finditer(between)):
                     continue
                 found.append(anchor)
                 break
@@ -2495,35 +2681,166 @@ def _direct_future_anchors(sentence: str, reference: date) -> list[dict]:
     return found
 
 
-def _unresolved_future_alternative(date_str: str, evidence: list[dict], selected: int) -> str:
+def _state_evidence_sentences(row: dict) -> set[str]:
+    """Whole source sentences only; no date inference or semantic verdict here."""
+    return {
+        sentence
+        for field in ("grounded_sentence", "description", "source_context", "source_overview")
+        for sentence in _atomic_sentences(row.get(field) or "")
+        if 3 <= len(sentence.split()) <= 80
+        and re.search(r"[.!?][\"'”’]?$", sentence)
+        and not re.search(r"\.{3,}|…|\.\s+\.\s+\.", sentence)
+    }
+
+
+def _obsolete_state_quotes(row: dict) -> list[str]:
+    """Evidence choices, not state verdicts; the old preview cannot prove a change."""
+    candidate = row.get("grounded_sentence") or row.get("description") or ""
+    return sorted(_state_evidence_sentences(row) - set(_atomic_sentences(candidate)))
+
+
+def _quoted_candidate_event(row: dict, item: dict) -> bool:
+    """Anchor an exclusion to the candidate's timed clause, not its headline.
+
+    This checks quotation provenance only. The reviewer must still establish
+    actor/action identity and whether the status evidence concerns this occurrence.
+    """
+    candidate = _clean_text(row.get("grounded_sentence") or row.get("description") or "")
+    event = _clean_text(item.get("event") or "")
+    timing = _clean_text(item.get("timing") or "")
+    return bool(
+        4 <= len(event.split()) <= 80
+        and timing and timing.casefold() in event.casefold()
+        and re.search(r"(?<!\w)" + re.escape(event) + r"(?!\w)", candidate)
+    )
+
+
+def _obsolete_alternative(row: dict, index: int, comparisons: list[dict] | None) -> bool:
+    """A reviewer exclusion needs an exact, complete quote from its own source.
+
+    Quote matching verifies evidence provenance, not the semantic judgment.
+    The reviewer must establish that it concerns this exact action/occurrence.
+    """
+    if not isinstance(comparisons, list):
+        return False
+    matches = [item for item in comparisons if isinstance(item, dict)
+               and type(item.get("source_index")) is int and item["source_index"] == index]
+    if len(matches) != 1:
+        return False
+    item = matches[0]
+    quote = _clean_text(item.get("state_evidence") or "")
+    return (
+        item.get("checkpoint_state") in {"ALREADY_OCCURRED", "SUPERSEDED"}
+        and item.get("qualifies") is False
+        and item.get("before_selected") is False
+        and bool(_clean_text(item.get("reason") or ""))
+        and _quoted_candidate_event(row, item)
+        and quote in _obsolete_state_quotes(row)
+    )
+
+
+def _explicit_future_month_window(date_str: str, row: dict, timing: str | None = None,
+                                  *, calendar_only: bool = False) -> tuple[str, str] | None:
+    """Calendar bounds only, never evidence that the event is scheduled.
+
+    Keep the source's month precision. Do not infer a year, shift an old month,
+    or treat a deadline/range as an event occurring within that calendar month.
+    """
+    if row.get("reference_date_unverified") and not calendar_only:
+        return None
+    edition = date.fromisoformat(date_str)
+    if not calendar_only and all(_parse_reference_date(row.get(k) or "", date.min) == date.min
+                                for k in ("published_at", "grounded_reference_date")):
+        return None
+    reference = _grounding_reference_date(date_str, row)
+    if reference > edition:
+        return None
+    sentence = _clean_text(row.get("grounded_sentence") or row.get("description") or "")
+    mentions = [m for m in _MONTH_RE.finditer(sentence)
+                if m.group("month").lower() != "may" or m.group("day") or m.group("day_first") or m.group("year")]
+    if (len(mentions) != 1 or _NUMERIC_DATE_RE.search(sentence) or _WEEKDAY_RE.search(sentence)
+            or _RELATIVE_TIME_RE.search(sentence) or _REVIEW_CURRENT_PERIOD_RE.search(sentence)):
+        return None
+    match = mentions[0]
+    if not match.group("year") or match.group("day") or match.group("day_first"):
+        return None
+    if timing is not None and match.group(0) != timing:
+        return None
+    prefix, suffix = sentence[:match.start()], sentence[match.end():]
+    # Support unqualified calendar months only. Other prepositions can mean
+    # "no later than", "not before", a duration, or a range spanning months.
+    if prefix.strip() and not re.search(r"\b(?:in|during|for|beginning|starting)\s*$", prefix, re.I):
+        return None
+    if re.match(r"\s*[,;]?\s*(?:[-–—/]|to\b|through\b|until\b|and\b|or\b|onwards?\b|at\s+the\s+(?:earliest|latest)\b)", suffix, re.I):
+        return None
+    year = int(match.group("year"))
+    month = _MONTH_NAMES[match.group("month").lower()[:3]]
+    first = date(year, month, 1)
+    if first <= edition or first <= reference:
+        return None  # Never clip a partly elapsed month into a future window.
+    following = date(year + (month == 12), month % 12 + 1, 1)
+    return first.isoformat(), (following - timedelta(days=1)).isoformat()
+
+
+def _unresolved_future_alternative(
+    date_str: str, evidence: list[dict], selected: int,
+    comparisons: list[dict] | None = None, *, allow_state_review: bool = False,
+    allow_explicit_month: bool = False,
+    verified_equivalent_quotes: dict | None = None,
+) -> str:
     """Withhold when a competing future passage cannot be proved same/later.
 
-    Deliberately independent of the model's relevance exclusions: an earlier
-    alternative may be relevant even when the reviewer mistakenly dismisses it.
-    This only withholds; it never selects or publishes another event.
+    Relevance exclusions alone never bypass this check. A completed/superseded
+    event can be excluded only with a source-quoted reviewer state assessment.
+    allow_state_review is for preflight only: extra context can reach the existing
+    reviewer, but the final check still requires its supported decision.
     """
     selected_row = evidence[selected - 1]
     selected_text = _clean_text(selected_row.get("grounded_sentence") or selected_row.get("description") or "")
     selected_reference = _grounding_reference_date(date_str, selected_row)
     selected_anchors = _direct_future_anchors(selected_text, selected_reference)
-    if not selected_anchors:
+    selected_month = _explicit_future_month_window(date_str, selected_row) if allow_explicit_month else None
+    if not selected_anchors and not selected_month:
         return "Selected sentence has no unambiguous date linked to a future action."
     selected_keys = {a["key"] for a in selected_anchors}
-    selected_day = _comparison_calendar_day(date_str, selected_row, selected_anchors[0]["text"])
+    selected_day = _comparison_calendar_day(date_str, selected_row, selected_anchors[0]["text"]) if selected_anchors else None
+    selected_window = selected_month or ((selected_day.isoformat(), selected_day.isoformat()) if selected_day else None)
     for index, row in enumerate(evidence, 1):
         if index == selected:
             continue
         text = _clean_text(row.get("grounded_sentence") or row.get("description") or "")
+        equivalent_window = (verified_equivalent_quotes or {}).get((index, text))
+        if (allow_explicit_month and selected_window and equivalent_window
+                and equivalent_window[0] <= selected_window[0] <= selected_window[1] <= equivalent_window[1]):
+            # The checkpoint adapter supplies this only after reciprocal reviews
+            # identify these exact source sentences as the same occurrence.
+            # Other text in the same source row receives no exemption.
+            continue
         reference = _grounding_reference_date(date_str, row)
         anchors = _direct_future_anchors(text, reference)
-        if not anchors:
+        other_month = _explicit_future_month_window(date_str, row) if allow_explicit_month else None
+        if not anchors and not other_month:
             continue
+        other_day = _comparison_calendar_day(date_str, row, anchors[0]["text"]) if anchors else None
+        if selected_month or other_month:
+            other_window = other_month or ((other_day.isoformat(), other_day.isoformat()) if other_day else None)
+            if selected_window and other_window and (
+                other_window[0] > selected_window[1]
+                or (other_window == selected_window and text == selected_text)
+            ):
+                continue
+            if _obsolete_alternative(row, index, comparisons):
+                continue
+            return "Another future passage has earlier or overlapping month timing; the earliest checkpoint is not established."
         # Matching date references with the same publication basis can describe
         # duplicates or overlapping windows; do not invent a strict order.
         if reference == selected_reference and {a["key"] for a in anchors} == selected_keys:
             continue
-        other_day = _comparison_calendar_day(date_str, row, anchors[0]["text"])
         if selected_day is not None and other_day is not None and other_day >= selected_day:
+            continue
+        if _obsolete_alternative(row, index, comparisons):
+            continue
+        if allow_state_review and _state_evidence_sentences(row) - set(_atomic_sentences(text)):
             continue
         return (f"Source {index} contains another future passage with earlier or unresolved timing; "
                 "the earliest checkpoint is not established. Withholding despite any model relevance exclusion.")
@@ -2676,6 +2993,10 @@ def validate_generated_signal_grounding(date_str: str, signal: str, supporting_r
     source_anchors = [a for a in _future_anchor_records(source_sentence, reference_date)
                       if a["kind"] != "same_day" or published_date in {date.min, reference_date}]
     signal_anchors = _future_anchor_records(signal, reference_date)
+    if supporting_row.get("reference_date_unverified") and any(
+        a["kind"] in {"weekday", "relative", "same_day"} for a in signal_anchors
+    ):
+        return False, "Relative schedule has no verified source publication date."
     briefing_date = date.fromisoformat(date_str)
     for anchor in signal_anchors:
         resolved = None
@@ -2760,9 +3081,9 @@ Keep promises attributed to their speaker. A quotation saying "I will" is not in
 Compare all explicitly timed alternatives, including earlier expirations and scheduled events; explain any rejection for relevance rather than saying no future event exists when one is present. Do not automatically prefer a pledge over an earlier material checkpoint.
 REQUIRED SOURCE COMPARISON:
 Return comparisons before the overall decision. Include every source index exactly once, even for rejection or NO_SIGNAL.
-For each source provide: event (short action description, ideally <=8 words), timing (a verbatim timing phrase from its candidate sentence, or empty if absent), qualifies (boolean), and reason (brief evidence-based qualification or exclusion explanation, ideally <=10 words).
+For each source provide: event (short description for the cited source; exact candidate clause for OTHER sources as specified below), timing (a verbatim timing phrase from its candidate sentence, or empty if absent), qualifies (boolean), and reason (brief evidence-based qualification or exclusion explanation).
 qualifies is true only for an explicitly timed future event that materially advances this exact story. Keep completed actions, background dates, and conditional clocks without a confirmed start false. Inventory their timed action/state anyway; empty event/timing fields are only for passages without a timed action/state.
-For an uncited source, assess its earliest qualifying event, if any. For the cited source, assess the selected event. Attach the time phrase to its actual action; an end of lingering effects does not automatically date the start of a change.
+For an uncited source, assess the timed action in its supplied candidate sentence. Context verifies that action's status; it must not substitute a different headline event. For the cited source, assess the selected event. Attach the time phrase to its actual action; an end of lingering effects does not automatically date the start of a change.
 An item with qualifies=false needs a specific reason for exclusion. Calendar hints alone do not establish relevance or order. Do not invent events or timing to fill the format.
 """.strip()
 
@@ -2781,17 +3102,41 @@ _WRITER_SENTENCE_INSTRUCTIONS = """
 """.strip()
 
 _REVIEW_ORDER_INSTRUCTIONS = """
-First inventory the timed action in EVERY passage, then assess relevance, then order. event and timing describe the source even when qualifies=false: quote its timing and identify the associated action or state (including past actions, expirations, background schedules, and conditional plans). Never leave these fields empty merely because the event is irrelevant or not future. If the actor is unclear, describe the unresolved reference and explain the ambiguity; do not claim no event exists. Only a passage without any timed action/state may have empty fields.
+For every OTHER source, event must first copy a contiguous clause (4 to 80 words) from its Candidate source sentence containing the timed actor/action and the timing phrase. Preserve conditions, negation and pronouns; do not stitch fragments together. Assess THIS quoted event, not the headline, article opening, or a nearby action by the same person. A completed announcement or earlier action cannot establish that a different scheduled action occurred. Use context to resolve the quoted event's participants and occurrence, never to substitute a different event. A passage without a timed action can use event="" and timing="" and cannot be dismissed as obsolete.
+Inventory the timed action in EVERY passage, establish its current state, then assess relevance, then order. event and timing describe the source even when qualifies=false, including past actions, expirations, background schedules, and conditional plans. Never leave these fields empty merely because the event is irrelevant or not future. If the actor is unclear, retain the quoted unresolved reference and explain the ambiguity in reason; do not claim no event exists. Only a passage without any timed action/state may have empty fields.
 Rejecting a candidate for relevance requires explaining its relationship to this exact story. Being later is not a relevance exclusion: mark a relevant later event qualifies=true and before_selected=false. A past event should retain its action/time with qualifies=false. Do not use calendar order as a substitute for relevance.
 For each OTHER source's comparison return before_selected (boolean or null): true only for a DISTINCT event strictly before the fixed proposal; false for duplicates, equal/overlapping windows, and later events; null if order cannot be established. Omit this field for the selected source: an event cannot precede itself. A qualifying earlier event prevents approving the later proposal. Explain the relationship briefly in that source's reason. Here selected means the fixed proposed event, even when rejecting it.
 Assess qualification separately from order: overlap or uncertain order does not make an otherwise material, explicitly timed future event unqualified.
+For every OTHER passage, assess checkpoint_state before ordering: FUTURE, ALREADY_OCCURRED, SUPERSEDED, or UNRESOLVED. To use ALREADY_OCCURRED or SUPERSEDED, state_evidence_index must select the numbered ID of ONE COMPLETE sentence from that source's allowed quotations proving completion or a superseding update of the exact quoted event. These choices only establish provenance: many may concern other actions or prove nothing about this event. Never select a quotation merely to fill the field. Do not quote a fragment, a date alone, or another source. Explain in reason how the quotation establishes the same actor, action and occurrence, resolving any references from that source's context. A recurring event on another date, a possibility of cancellation, a reporting date, or merely sharing a person is insufficient. Cancellation or nonattendance is SUPERSEDED, not ALREADY_OCCURRED. If no quotation proves this exact event's status, use UNRESOLVED and state_evidence_index=null. A proven obsolete event has qualifies=false and before_selected=false. FUTURE and UNRESOLVED alternatives still undergo the conservative earlier-checkpoint check even if you call them irrelevant. Never treat the proposed checkpoint as already completed just because an earlier step was completed.
 """.strip()
 
 
-def _comparison_request_options(stage: str, source_count: int, selected_source: int | None = None) -> dict:
+def _source_timing_quotes(row: dict) -> list[str]:
+    """Exact, source-local timing choices; extraction makes no status judgment."""
+    sentence = _clean_text(row.get("grounded_sentence") or row.get("description") or "")
+    matches = sorted(
+        (match.start(), -len(match.group(0)), match.group(0))
+        for pattern in (_MONTH_RE, _WEEKDAY_RE, _DAY_PERIOD_RE, _NUMERIC_DATE_RE,
+                        _RELATIVE_TIME_RE, _UNSUPPORTED_VAGUE_TIME_RE, _REVIEW_CURRENT_PERIOD_RE)
+        for match in pattern.finditer(sentence)
+    )
+    quotes = list(dict.fromkeys(text for _, _, text in matches))
+    # An unrecognized expression can still be assessed from the full source.
+    # This is provenance only: coverage, relevance and ordering checks remain.
+    if sentence and sentence not in quotes:
+        quotes.append(sentence)
+    return quotes
+
+
+def _comparison_request_options(
+    stage: str, source_count: int, selected_source: int | None = None, *, calendar_check: str | None = None,
+    evidence: list[dict] | None = None,
+) -> dict:
     """Bound each response; only the reviewer returns source comparisons."""
     if not 1 <= source_count <= MAX_MODEL_EVIDENCE:
         raise ValueError("Next Signal comparison needs 1 to 8 source passages.")
+    if evidence is not None and len(evidence) != source_count:
+        raise ValueError("Next Signal comparison evidence count does not match.")
 
     def object_schema(properties):
         return {"type": "object", "properties": properties,
@@ -2802,6 +3147,20 @@ def _comparison_request_options(stage: str, source_count: int, selected_source: 
     if is_review:
         if type(selected_source) is not int or not 1 <= selected_source <= source_count:
             raise ValueError("Next Signal review needs the fixed proposal's source index.")
+        # A singleton enum fixes date arithmetic before the model assesses event
+        # status. It does not force FUTURE, relevance, or an approval.
+        properties["calendar_check"] = {"type": "string", "enum": [
+            calendar_check or "Calendar timing is unresolved; do not infer event status or chronology."]}
+        properties["state_evidence"] = {
+            "type": "string",
+            "description": (
+                "Quote the source/headline/summary wording that establishes the exact "
+                "action's status. Copy the words, not a paraphrase or inferred date. "
+                "If no status evidence is available, state that it is unresolved."
+            ),
+        }
+        properties["checkpoint_state"] = {"type": "string", "enum": [
+            "FUTURE", "ALREADY_OCCURRED", "SUPERSEDED", "UNRESOLVED"]}
         item_properties = {
             "source_index": {"type": "integer", "enum": list(range(1, source_count + 1))},
             "event": {"type": "string"},
@@ -2810,11 +3169,47 @@ def _comparison_request_options(stage: str, source_count: int, selected_source: 
             "reason": {"type": "string"},
         }
         selected_item = object_schema({**item_properties, "source_index": {"type": "integer", "enum": [selected_source]}})
-        alternatives = [index for index in range(1, source_count + 1) if index != selected_source]
-        item = {"anyOf": [selected_item, object_schema({
-            **item_properties, "source_index": {"type": "integer", "enum": alternatives},
-            "before_selected": {"type": ["boolean", "null"]},
-        })]} if alternatives else selected_item
+        variants = [selected_item]
+        for index in range(1, source_count + 1):
+            if index == selected_source:
+                continue
+            alternative = {
+                "source_index": {"type": "integer", "enum": [index]},
+                "event": {"type": "string", "description":
+                    "Copy the candidate sentence's exact timed actor/action clause, including its timing; not the headline."},
+                "timing": {"type": "string"},
+                "state_evidence_index": {"type": "null"},
+                "checkpoint_state": {"type": "string", "enum": ["FUTURE", "UNRESOLVED"]},
+                "qualifies": {"type": "boolean"}, "reason": {"type": "string"},
+                "before_selected": {"type": ["boolean", "null"]},
+            }
+            variants.append(object_schema(alternative))
+            quotes = _obsolete_state_quotes(evidence[index - 1]) if evidence is not None else []
+            if quotes:
+                # An obsolete verdict cannot pair with empty/fabricated/foreign
+                # evidence. An unsupported event can always remain UNRESOLVED.
+                variants.append(object_schema({**alternative,
+                    "state_evidence_index": {"type": "integer", "enum": list(range(1, len(quotes) + 1)),
+                        "description": "Choose only proof of this exact event; otherwise use UNRESOLVED."},
+                    "checkpoint_state": {"type": "string", "enum": ["ALREADY_OCCURRED", "SUPERSEDED"]},
+                    "qualifies": {"type": "boolean", "enum": [False]},
+                    "before_selected": {"type": "boolean", "enum": [False]},
+                }))
+        if evidence is not None:
+            for variant in variants:
+                fields = variant["properties"]
+                index = fields["source_index"]["enum"][0]
+                fields.pop("timing")
+                fields["timing_index"] = {"type": ["integer", "null"],
+                    "enum": [None, *range(1, len(_source_timing_quotes(evidence[index - 1])) + 1)],
+                    "description": "Select this source's numbered timing quote; null only when no timed event exists."}
+                # Bind the action and time before deciding status. Choosing a
+                # proof ID first can accidentally force an obsolete-state branch.
+                order = ("source_index", "event", "timing_index", "reason",
+                         "checkpoint_state", "state_evidence_index", "qualifies", "before_selected")
+                variant["properties"] = {key: fields[key] for key in order if key in fields}
+                variant["required"] = list(variant["properties"])
+        item = {"anyOf": variants} if len(variants) > 1 else selected_item
         properties["comparisons"] = {"type": "array", "items": item,
                                      "minItems": source_count, "maxItems": source_count}
     if stage == "triage":
@@ -2828,9 +3223,9 @@ def _comparison_request_options(stage: str, source_count: int, selected_source: 
     if stage == "triage":
         properties.update(research_gap={"type": "string"},
                           search_queries={"type": "array", "items": {"type": "string"}})
-    base_limit = {"triage": 260, "candidate_validation": 240, "final": 220}[stage]
+    base_limit = {"triage": 260, "candidate_validation": 380, "final": 220}[stage]
     return {
-        "max_tokens": base_limit + (90 * source_count if is_review else 0),
+        "max_tokens": base_limit + (90 * source_count + 120 * (source_count - 1) if is_review else 0),
         "response_format": {"type": "json_schema", "json_schema": {
             "name": "next_signal_" + stage, "strict": True, "schema": object_schema(properties),
         }},
@@ -2866,6 +3261,18 @@ def _read_source_comparisons(
         if type(index) is not int or not 1 <= index <= len(evidence) or index in seen:
             raise RuntimeError("Next Signal comparison indices must cover each source exactly once.")
         seen.add(index)
+        if "timing_index" in item:
+            timing_index = item["timing_index"]
+            quotes = _source_timing_quotes(evidence[index - 1])
+            if timing_index is None:
+                timing = ""
+            elif type(timing_index) is int and 1 <= timing_index <= len(quotes):
+                timing = quotes[timing_index - 1]
+            else:
+                raise RuntimeError("Next Signal returned an invalid source timing index.")
+            if "timing" in item and item["timing"] != timing:
+                raise RuntimeError("Next Signal timing disagrees with its source reference.")
+            item = {**item, "timing": timing}
         if type(item.get("qualifies")) is not bool:
             raise RuntimeError("Next Signal comparison lacks a boolean qualification.")
         if review_order and index != selected_source:
@@ -2877,6 +3284,23 @@ def _read_source_comparisons(
         if any(not isinstance(item.get(key), str) for key in ("event", "timing", "reason")):
             raise RuntimeError("Next Signal comparison fields must be strings.")
         clean = {**item, **{key: _clean_text(item[key]) for key in ("event", "timing", "reason")}}
+        if review_order and index != selected_source:
+            # Old/missing status fields cannot silently become an exclusion.
+            state = item.get("checkpoint_state", "UNRESOLVED")
+            quote = item.get("state_evidence", "")
+            if "state_evidence_index" in item:
+                proof_index = item["state_evidence_index"]
+                choices = _obsolete_state_quotes(evidence[index - 1])
+                if proof_index is None:
+                    quote = ""
+                elif type(proof_index) is int and 1 <= proof_index <= len(choices):
+                    quote = choices[proof_index - 1]
+                else:
+                    raise RuntimeError("Next Signal returned an invalid status evidence index.")
+            if state not in {"FUTURE", "ALREADY_OCCURRED", "SUPERSEDED", "UNRESOLVED"} or not isinstance(quote, str):
+                raise RuntimeError("Next Signal comparison has an invalid current-state assessment.")
+            if "checkpoint_state" in item or "state_evidence" in item:
+                clean.update(checkpoint_state=state, state_evidence=_clean_text(quote))
         if not review_order or index == selected_source:
             # Only independent comparisons with other events supply ordering.
             # Ignore stale writer flags and redundant self-ordering metadata.
@@ -2889,6 +3313,24 @@ def _read_source_comparisons(
             raise RuntimeError("Next Signal comparison timing is not quoted from its source sentence.")
         checked.append(clean)
     return sorted(checked, key=lambda item: item["source_index"])
+
+
+def _comparison_event_binding_gap(evidence: list[dict], comparisons: list[dict]) -> str:
+    """A source-local date is insufficient: it must belong to the quoted action.
+
+    This verifies provenance, not semantic truth. Inconsistent comparisons must
+    never authorize publication or dismiss an earlier alternative.
+    """
+    for item in comparisons:
+        if "timing_index" not in item:
+            continue  # Legacy parser callers; live v29 requests require the ID.
+        if not item["event"] and not item["timing"]:
+            continue  # Missing timed actions are checked separately.
+        row = evidence[item["source_index"] - 1]
+        if not _quoted_candidate_event(row, item):
+            return (f"Source {item['source_index']} does not bind its timing to an exact "
+                    "quoted event clause; the comparison cannot support publication.")
+    return ""
 
 
 def _source_comparison_conflict(comparisons: list[dict], selected_source: int) -> str:
@@ -3131,13 +3573,19 @@ def review_signal_for_publication(date_str: str, topic: dict, evidence: list[dic
                     "proposed_signal": proposal.get("signal"), "proposed_source_index": index,
                     "reason": problem, "reason_code": "source_copy", "review_model_called": False,
                     "comparisons": []}
-        problem = _unresolved_future_alternative(date_str, evidence, index)
+        problem = _unresolved_future_alternative(date_str, evidence, index, allow_state_review=True)
         if problem:
             return {"eligible": False, "signal": "", "source_index": None,
                     "proposed_signal": proposal.get("signal"), "proposed_source_index": index,
                     "reason": problem, "reason_code": "unresolved_timing", "review_model_called": False,
                     "comparisons": []}
-    return validate_candidate_signal_semantics(date_str, topic, evidence, proposal)
+    decision = validate_candidate_signal_semantics(date_str, topic, evidence, proposal)
+    if decision.get("eligible"):
+        problem = _unresolved_future_alternative(date_str, evidence, index, decision.get("comparisons"))
+        if problem:
+            decision.update(eligible=False, signal="", source_index=None,
+                            reason=problem, reason_code="unresolved_timing")
+    return decision
 
 
 def validate_candidate_signal_semantics(
@@ -3150,6 +3598,7 @@ def validate_candidate_signal_semantics(
     signal = _clean_text(proposal.get("signal") or "")
     source_index = proposal.get("source_index")
     comparisons = []
+    checkpoint_state, state_evidence = None, None
 
     def decision(eligible: bool, reason: str, code: str, called: bool) -> dict:
         return {
@@ -3162,6 +3611,8 @@ def validate_candidate_signal_semantics(
             "reason_code": code,
             "review_model_called": called,
             "comparisons": comparisons,
+            "checkpoint_state": checkpoint_state,
+            "state_evidence": state_evidence,
         }
 
     if (
@@ -3184,16 +3635,17 @@ def validate_candidate_signal_semantics(
 
     # Supply source context and alternative candidates, but never the first
     # writer's explanation or assertion that the proposal was already validated.
-    evidence_lines = _evidence_lines(evidence)
+    evidence_lines = _evidence_lines(evidence, include_overview=True)
     cited_evidence = evidence_lines[source_index - 1]
     other_evidence = "\n".join(
         line for index, line in enumerate(evidence_lines, start=1)
         if index != source_index
     ) or "(none)"
+    briefing_weekday = date.fromisoformat(date_str).strftime("%A")
     prompt = f"""
 Review the exact proposed Next Signal below. Approve or reject it; do not write a replacement.
 
-BRIEFING DATE: {date_str}
+BRIEFING DATE: {date_str} ({briefing_weekday})
 STORY HEADLINE: {topic.get('topic_title') or ''}
 STORY SUMMARY: {topic.get('summary') or ''}
 
@@ -3208,6 +3660,35 @@ CITED PASSAGE — assess the proposal against this passage first:
 {cited_evidence}
 Reference date for relative timing: {_grounding_reference_date(date_str, evidence[source_index - 1]).isoformat()}
 
+CALENDAR CONTEXT — use these calculated relationships before assessing event status:
+{_checkpoint_timing_comparison(date_str, evidence, include_day_offsets=True)}
+
+A source publication date is not its event date. A matched date AFTER the briefing
+is not today or already past. The calendar calculation alone does not prove the
+event is still pending: check for completion, cancellation or superseding updates.
+Unresolved matches stay unresolved; do not invent a date or same-day ordering.
+
+Then establish the checkpoint's current state, before relevance or event order.
+In state_evidence, first copy the exact wording from the STORY HEADLINE, STORY SUMMARY
+or source context that establishes the proposed action's status. Do not replace the
+quotation with your own explanation, inferred event date, or assertion of completion.
+Use that quotation and the calendar context to set checkpoint_state. Present-tense news headlines and
+descriptions of a future schedule are not proof that the scheduled action has begun.
+Do not infer completion merely because the headline describes the same action as
+the proposal. Then set checkpoint_state:
+- ALREADY_OCCURRED if the proposal describes the same action the current story says
+  happened or is already underway; quote explicit completion/underway evidence.
+  An older "will" schedule does not make a completed action future.
+- SUPERSEDED if a cancellation, correction, replacement or later update overtakes it.
+  Quote the superseding update. Without completion/underway or superseding wording,
+  do not invent that evidence to assign ALREADY_OCCURRED or SUPERSEDED.
+- UNRESOLVED if the evidence cannot establish that this exact action is still pending.
+- FUTURE only when a genuinely upcoming checkpoint remains supported.
+A completed hearing may have a future ruling; an ongoing storm may have a future
+change in track or intensity. Assess the exact action/change, not the whole process.
+Source publication/discovery dates do not override explicit event status. Only FUTURE
+can be eligible. A statement immediately after the candidate may reverse its meaning.
+
 Check the cited passage:
 1. ACTOR AND ACTION — Does the cited source support exactly who acts, how many participants there are, and what happens? Resolve pronouns from their local source context, not the headline. Do not infer an additional action or outcome.
 2. EVENT TIMING — What action does each date actually describe? A date attached to one action does not date another action nearby. Distinguish completed, cancelled, superseded, ongoing, and future actions, including background events and old schedules. A completed step can still have a different explicitly scheduled next step.
@@ -3217,8 +3698,23 @@ Check the cited passage:
 OTHER PASSAGES — compare only after checking the cited support:
 {other_evidence}
 
+NUMBERED TIMING QUOTES — each ID belongs only to its numbered source:
+{chr(10).join(f"Source {i}, timing {j}: {quote}" for i, row in enumerate(evidence, 1) for j, quote in enumerate(_source_timing_quotes(row), 1))}
+Return timing_index instead of copying timing text. The chosen timing quotation must
+also appear inside the exact event clause you copy; a date elsewhere in the same
+sentence cannot date a different action. Your reason must explain the status of
+that exact event. Choose checkpoint_state before state_evidence_index: a future
+schedule or its announcement is not proof that the scheduled event occurred.
+Use null evidence for FUTURE or UNRESOLVED; never select a proof just to fill a field. Select the quotation dating the
+exact event in that source's candidate sentence, never a different passage. Null is
+only for a passage with no timed event. These quotes do not establish future status.
+A full-sentence choice preserves unusual timing; it does not prove event relevance.
+
+NUMBERED STATUS EVIDENCE — select only proof of the same candidate event; otherwise null:
+{chr(10).join(f"Source {i}, evidence {j}: {quote}" for i, row in enumerate(evidence, 1) if i != source_index for j, quote in enumerate(_obsolete_state_quotes(row), 1))}
+
 Compare events before comparing dates:
-{_checkpoint_timing_comparison(date_str, evidence)}
+Use the calendar context above only for date arithmetic, not as evidence of relevance.
 
 {_checkpoint_boundary_notes(evidence)}
 
@@ -3234,11 +3730,17 @@ Other passages can expose contradictions or alternatives, but cannot supply miss
 {_REVIEW_ORDER_INSTRUCTIONS}
 
 Assess the sources independently; the writer's comparisons are not supplied. For the cited source, qualifies assesses the actual source event; eligible separately judges the exact proposed wording.
-Approve only if the exact proposal passes and no comparison identifies an earlier qualifying event. Return comparisons, eligible (boolean), and reason (short overall explanation or null) in the supplied JSON schema. Each comparison's reason is required. Do not return signal text, a replacement source_index, or revised wording.
+Approve only if the exact proposal passes and no comparison identifies an earlier qualifying event. Return state_evidence, checkpoint_state, comparisons, eligible (boolean), and reason (short overall explanation or null) in the supplied JSON schema. Each comparison's reason is required. Do not return signal text, a replacement source_index, or revised wording.
 """.strip()
 
+    review_options = _comparison_request_options(
+        "candidate_validation", len(evidence), source_index,
+        calendar_check=_review_calendar_check(date_str, evidence[source_index - 1]), evidence=evidence,
+    )
+    review_options["max_completion_tokens"] = review_options.pop("max_tokens")
+    review_options["reasoning_effort"] = "none"
     response = openai.ChatCompletion.create(
-        model=MODEL,
+        model=REVIEW_MODEL,
         messages=[
             {
                 "role": "system",
@@ -3247,9 +3749,14 @@ Approve only if the exact proposal passes and no comparison identifies an earlie
             {"role": "user", "content": prompt},
         ],
         temperature=0,
-        **_comparison_request_options("candidate_validation", len(evidence), source_index),
+        **review_options,
     )
     parsed = _read_signal_response(response)
+    checkpoint_state = parsed.get("checkpoint_state")
+    state_evidence = parsed.get("state_evidence")
+    if (checkpoint_state not in {"FUTURE", "ALREADY_OCCURRED", "SUPERSEDED", "UNRESOLVED"}
+            or not isinstance(state_evidence, str) or not state_evidence.strip()):
+        raise RuntimeError("Next Signal review omitted the checkpoint's current state.")
     eligible = parsed.get("eligible")
     if type(eligible) is not bool:
         raise RuntimeError("Next Signal review returned an invalid decision.")
@@ -3262,6 +3769,11 @@ Approve only if the exact proposal passes and no comparison identifies an earlie
         verdict = "approval" if eligible else "rejection"
         reason = f"Reviewer returned {verdict} without an explanation."
     code = "none" if eligible else "review_rejection"
+    if checkpoint_state != "FUTURE":
+        eligible, reason, code = False, state_evidence, "checkpoint_not_future"
+    binding_gap = _comparison_event_binding_gap(evidence, comparisons)
+    if eligible and binding_gap:
+        eligible, reason, code = False, binding_gap, "comparison_event_binding"
     conflict = _source_comparison_conflict(comparisons, source_index)
     if eligible and conflict:
         eligible, reason, code = False, conflict, "comparison_conflict"
@@ -3383,7 +3895,7 @@ def _default_cluster_file(date_str: str) -> str:
     return candidates[0]
 
 
-def main() -> None:
+def _run_next_signals(resources) -> None:
     parser = argparse.ArgumentParser(
         description="Add optional Next Signal fields to existing topic summaries without regenerating summaries."
     )
@@ -3399,7 +3911,25 @@ def main() -> None:
     parser.add_argument("--no-sidecar", action="store_true", help="Disable all signal-only evidence expansion.")
     parser.add_argument("--no-external", action="store_true", help="Disable generic external signal-evidence discovery.")
     parser.add_argument("--dry-run", action="store_true", help="Match topics and rank sidecar candidates but make no API/network calls or file changes.")
+    parser.add_argument("--checkpoint-review", action="store_true",
+                        help="Opt in to checkpoint review. Uses saved receipts unless explicit live limits are supplied.")
+    parser.add_argument("--checkpoint-cache-file", default="outputs/next_signal_checkpoint_cache.json",
+                        help="Separate checkpoint review receipts; legacy decision caches are never reused.")
+    parser.add_argument("--checkpoint-live", action="store_true", help="Allow capped checkpoint calls; requires --checkpoint-review and positive call/dollar limits.")
+    parser.add_argument("--checkpoint-budget-usd", default="0", help="Cumulative checkpoint spending cap for this edition, including saved ledger usage.")
+    parser.add_argument("--checkpoint-max-calls", type=int, default=0, help="Cumulative checkpoint request limit for this edition.")
+    parser.add_argument("--checkpoint-max-output-tokens", type=int, default=1400, help="Reviewer response allowance; part of the exact receipt cache key.")
+    parser.add_argument("--checkpoint-ledger-file", default="", help="Persistent checkpoint spending ledger; defaults to outputs/checkpoint_usage_DATE.json.")
     args = parser.parse_args()
+    if args.checkpoint_live:
+        from decimal import Decimal, InvalidOperation
+        try:
+            limit = Decimal(args.checkpoint_budget_usd)
+            valid_limit = limit.is_finite() and limit > 0
+        except InvalidOperation:
+            valid_limit = False
+        if not args.checkpoint_review or not valid_limit or args.checkpoint_max_calls <= 0:
+            parser.error("Live checkpoint review requires --checkpoint-review and positive dollar/call limits.")
 
     date_str = args.date or datetime.today().strftime("%Y-%m-%d")
     summary_file = args.summary_file or f"topic_summaries_{date_str}.json"
@@ -3424,9 +3954,33 @@ def main() -> None:
         print(f"🔭 Signal-only daily article pool: {article_pool_file} ({len(article_pool)} articles)")
     else:
         print(f"🔭 Signal-only daily article pool: unavailable ({article_pool_file}); receipts/full text only")
-    print(f"🤖 Model: {MODEL} (1 triage call only when timed evidence exists; semantic verification only for proposed signals)")
+    if args.checkpoint_review:
+        print("🔒 Checkpoint review: " + ("explicitly capped live calls" if args.checkpoint_live else "saved receipts only"))
+    else:
+        print(f"🤖 Model: {MODEL} (1 triage call only when timed evidence exists; semantic verification only for proposed signals)")
 
-    cache = _load_json(args.cache_file, {})
+    checkpoint_reviewer = None
+    checkpoint_runtime = None
+    checkpoint_cache = {}
+    if args.checkpoint_review and not args.dry_run:
+        from next_signal_checkpoint_review import ReviewAdapter, Settings
+        checkpoint_reviewer = ReviewAdapter(sys.modules[__name__], Settings(max_completion_tokens=args.checkpoint_max_output_tokens))
+        checkpoint_cache = _load_json(args.checkpoint_cache_file, {})
+        if not isinstance(checkpoint_cache, dict):
+            raise ValueError("Checkpoint receipt cache must be an object; no outputs were replaced.")
+        if args.refresh:
+            raise ValueError("Checkpoint replay requires saved receipts; --refresh cannot be used in this mode.")
+        if args.checkpoint_live:
+            from next_signal_checkpoint_io import CheckpointSession
+            checkpoint_runtime = resources.enter_context(CheckpointSession(
+                edition=date_str, cache_file=args.checkpoint_cache_file,
+                ledger_file=args.checkpoint_ledger_file or f"outputs/checkpoint_usage_{date_str}.json",
+                max_calls=args.checkpoint_max_calls, max_usd=args.checkpoint_budget_usd,
+                api_key=os.getenv("OPENAI_API_KEY"),
+            ))
+            checkpoint_cache = checkpoint_runtime.cache
+
+    cache = {} if args.checkpoint_review else _load_json(args.cache_file, {})
     if not isinstance(cache, dict):
         cache = {}
     sidecar_cache = {} if args.refresh_sidecar else _load_json(args.sidecar_cache_file, {})
@@ -3497,7 +4051,7 @@ def main() -> None:
             continue
 
         cluster = clusters[cluster_idx]
-        frozen_evidence = select_signal_evidence(cluster)
+        frozen_evidence = select_signal_evidence(cluster, date_str)
         frozen_prefilter = prefilter_next_signal(date_str, frozen_evidence)
         sidecar_candidates = _rank_sidecar_candidates(topic, cluster, frozen_evidence, article_pool)
 
@@ -3586,7 +4140,32 @@ def main() -> None:
 
         # Triage proposes a checkpoint from timed candidate passages. The existing
         # second pass sees all evidence but approves or rejects that exact draft.
-        if local_prefilter["passed"] and local_model_evidence:
+        if checkpoint_reviewer is not None:
+            try:
+                reviewed = checkpoint_reviewer.evaluate(
+                    date_str, topic, local_model_evidence, cache=checkpoint_cache,
+                    transport=checkpoint_runtime.send if checkpoint_runtime is not None else None,
+                    budget=checkpoint_runtime.budget if checkpoint_runtime is not None else None,
+                )
+            except Exception as exc:
+                # Operational failure is not a confirmed no-signal result.
+                # Live receipts and reservations are saved as each call finishes.
+                # Preserve sidecar progress without replacing the edition.
+                if sidecar_cache_dirty:
+                    _save_json_atomic(args.sidecar_cache_file, sidecar_cache)
+                raise RuntimeError(
+                    "Checkpoint review incomplete; newsletter outputs were not replaced. "
+                    "Approval requires every review; withholding requires a verified blocker."
+                ) from exc
+            final_decision = reviewed.decision
+            final_evidence = reviewed.evidence
+            candidate_validation = reviewed.decision
+            candidate_validation_cache_hit = reviewed.cache_hits > 0
+            candidate_validation_stage = "checkpoint_review"
+            model_call_count = reviewed.review_calls
+            if reviewed.decision["eligible"]:
+                signal_stage = "checkpoint_review"
+        elif local_prefilter["passed"] and local_model_evidence:
             triage_decision, triage_cache_hit, called = evaluate_cached(
                 topic,
                 local_model_evidence,
@@ -3716,7 +4295,15 @@ def main() -> None:
             if valid:
                 valid, problem = validate_generated_signal_grounding(date_str, signal, final_evidence[selected - 1])
             if valid:
-                problem = _unresolved_future_alternative(date_str, final_evidence, selected)
+                problem = _unresolved_future_alternative(
+                    date_str, final_evidence, selected,
+                    (candidate_validation or {}).get("comparisons"),
+                    allow_explicit_month=checkpoint_reviewer is not None,
+                    verified_equivalent_quotes={
+                        (p['source_index'], p['sentence']): tuple(p['window'])
+                        for p in (candidate_validation or {}).get('verified_equivalent_quotes', [])
+                    } if checkpoint_reviewer is not None else None,
+                )
                 valid = not problem
             if not valid:
                 signal = ""
@@ -3732,6 +4319,8 @@ def main() -> None:
             print(f"✅ {idx}. {title}: {signal} [{signal_stage}]")
         elif triage_decision and triage_decision.get("status") == "RESEARCH_NEEDED":
             print(f"🔎 {idx}. {title}: targeted research requested; no publishable signal found")
+        elif checkpoint_reviewer is not None:
+            print(f"⚪ {idx}. {title}: checkpoint review complete; no publishable signal")
         elif local_prefilter["passed"]:
             print(f"⚪ {idx}. {title}: local evidence reviewed; no qualifying signal")
         else:
@@ -3765,7 +4354,7 @@ def main() -> None:
             "candidate_validation_stage": candidate_validation_stage,
             "research_gap": research_gap,
             "research_queries": research_queries,
-            "external_enrichment_enabled": bool(not args.no_sidecar and not args.no_external),
+            "external_enrichment_enabled": bool(checkpoint_reviewer is None and not args.no_sidecar and not args.no_external),
             "external_search_provider": external_meta.get("provider", "GDELT DOC 2.0 → NewsAPI fallback"),
             "external_search_queries": external_meta.get("queries", []),
             "external_searches": external_meta.get("searches", []),
@@ -3787,11 +4376,12 @@ def main() -> None:
             "supporting_source": supporting,
             "model_called": model_call_count > 0,
             "model_call_count": model_call_count,
-            "model": MODEL,
-            "prompt_version": PROMPT_VERSION,
+            "model": checkpoint_reviewer.settings.model if checkpoint_reviewer is not None else MODEL,
+            "review_model": checkpoint_reviewer.settings.model if checkpoint_reviewer is not None else REVIEW_MODEL,
+            "prompt_version": candidate_validation['review_contract'] if checkpoint_reviewer is not None else PROMPT_VERSION,
             "triage_prompt_version": TRIAGE_PROMPT_VERSION,
             "final_prompt_version": FINAL_PROMPT_VERSION,
-            "validation_prompt_version": VALIDATION_PROMPT_VERSION,
+            "validation_prompt_version": candidate_validation['review_contract'] if checkpoint_reviewer is not None else VALIDATION_PROMPT_VERSION,
         })
 
     if args.dry_run:
@@ -3821,9 +4411,20 @@ def main() -> None:
     zero_call_stories = sum(1 for row in report if int(row.get("model_call_count") or 0) == 0)
     print(f"✅ Added {count} Next Signal{'s' if count != 1 else ''} across {len(summaries)} stories")
     print(f"🔭 Local signals={local_signals}; publisher/raw article fetches={sidecar_fetches}")
+    if checkpoint_reviewer is not None:
+        checkpoint_signals = sum(row.get("signal_stage") == "checkpoint_review" for row in report)
+        print(f"🔒 Checkpoint signals={checkpoint_signals}; live requests enabled={args.checkpoint_live}")
+        if checkpoint_runtime is not None:
+            print(f"💰 Checkpoint cumulative accounted usage=${checkpoint_runtime.budget.accounted_usd} / ${checkpoint_runtime.budget.max_usd}")
     print(f"🌐 Research requested for {research_requests} stories; external signals={external_signals}; external fetches={external_fetches}")
     print(f"💸 GPT calls={model_calls}; zero-call stories={zero_call_stories}/{len(summaries)}")
     print(f"🧾 Wrote Next Signal audit → {report_file}")
+
+
+def main() -> None:
+    from contextlib import ExitStack
+    with ExitStack() as resources:
+        _run_next_signals(resources)
 
 
 if __name__ == "__main__":
