@@ -9,6 +9,14 @@
 </head>
 
 <body>
+  {% macro external_link(url, label, css_class='') -%}
+    {%- set href = url | safe_http_url -%}
+    {%- if href -%}
+      <a{% if css_class %} class="{{ css_class }}"{% endif %} href="{{ href }}" target="_blank" rel="noopener noreferrer">{{ label }}</a>
+    {%- else -%}
+      <span{% if css_class %} class="{{ css_class }}"{% endif %}>{{ label }}</span>
+    {%- endif -%}
+  {%- endmacro %}
   <div class="container">
     <a id="top"></a>
     <div class="theme-preview" hidden>
@@ -131,10 +139,11 @@
       {% for topic in summaries %}
         <div class="card" id="topic-{{ loop.index }}">
           <h2>{{ topic.topic_title }}</h2>
-          {% if topic.image_url %}
+          {% set image_url = topic.image_url | safe_http_url %}
+          {% if image_url %}
             <figure class="topic-image">
               <img
-                src="{{ topic.image_url }}"
+                src="{{ image_url }}"
                 alt="{{ topic.image_alt }}"
                 width="600"
                 height="338"
@@ -148,11 +157,9 @@
                   <span class="image-credit">
                     {% if topic.image_source == 'unsplash' and topic.image_photographer_url %}
                       Photo:
-                      <a href="{{ topic.image_photographer_url }}" target="_blank" rel="noopener noreferrer">
-                        {{ topic.image_credit | replace('Photo: ', '') | replace(' / Unsplash', '') }}
-                      </a>
+                      {{ external_link(topic.image_photographer_url, topic.image_credit | replace('Photo: ', '') | replace(' / Unsplash', '')) }}
                       {% if topic.image_provider_url %}
-                        / <a href="{{ topic.image_provider_url }}" target="_blank" rel="noopener noreferrer">Unsplash</a>
+                        / {{ external_link(topic.image_provider_url, 'Unsplash') }}
                       {% else %}
                         / Unsplash
                       {% endif %}
@@ -162,9 +169,9 @@
                         {% set credit_part = credit_part | trim %}
                         {% if not loop.first %} / {% endif %}
                         {% if credit_part.startswith('https://') or credit_part.startswith('http://') %}
-                          <a href="{{ credit_part }}" target="_blank" rel="noopener noreferrer">Source</a>
+                          {{ external_link(credit_part, 'Source') }}
                         {% elif topic.image_source_url %}
-                          <a href="{{ topic.image_source_url }}" target="_blank" rel="noopener noreferrer">{{ credit_part }}</a>
+                          {{ external_link(topic.image_source_url, credit_part) }}
                         {% else %}
                           {{ credit_part }}
                         {% endif %}
@@ -173,9 +180,7 @@
 
                     {% if topic.image_license %}
                       · {% if topic.image_license_url %}
-                          <a href="{{ topic.image_license_url }}" target="_blank" rel="noopener noreferrer">
-                            {% if topic.image_license == 'Public domain' %}Public Domain{% else %}{{ topic.image_license }}{% endif %}
-                          </a>
+                          {{ external_link(topic.image_license_url, 'Public Domain' if topic.image_license == 'Public domain' else topic.image_license) }}
                         {% else %}
                           {% if topic.image_license == 'Public domain' %}Public Domain{% else %}{{ topic.image_license }}{% endif %}
                         {% endif %}
@@ -288,9 +293,7 @@
                   <p class="source-list-intro">Each link represents a distinct article about this story, prioritizing sources used in our summary. “Similar Versions” groups other outlets carrying the same or closely matching reporting. The linked outlet may not be the original publisher.</p>
                   {% for writeup in topic.coverage_writeups %}
                     <article class="writeup-row">
-                      <a class="writeup-title" href="{{ writeup.url }}" target="_blank" rel="noopener noreferrer">
-                        {{ writeup.title }}
-                      </a>
+                      {{ external_link(writeup.url, writeup.title, 'writeup-title') }}
 
                       <div class="writeup-meta">
                         <span class="writeup-source">{{ writeup.source_name }}</span>
@@ -329,7 +332,13 @@
               <details class="sources-collapsible sources-block">
                 <summary class="coverage-toggle">{{ coverage_chart(true) }}</summary>
                 <div class="sources-list">
-                  {{ topic.html_chips | safe }}
+                  {% for chip in topic.html_chips | legacy_chips %}
+                    {% if chip.url %}
+                      <a class="chip" href="{{ chip.url }}" style="{{ chip.style }}" target="_blank" rel="noopener noreferrer">{{ chip.label }}</a>
+                    {% else %}
+                      <span class="chip" style="{{ chip.style }}">{{ chip.label }}</span>
+                    {% endif %}
+                  {% endfor %}
                 </div>
               </details>
             {% endif %}
@@ -356,9 +365,7 @@
                 <h3 class="worth-knowing-headline">{{ item.headline }}</h3>
                 <p class="worth-knowing-summary">{{ item.summary }}</p>
                 {% if item.source_url %}
-                  <a class="worth-knowing-source" href="{{ item.source_url }}" target="_blank" rel="noopener noreferrer">
-                    Source{% if item.source_name %}: {{ item.source_name }}{% endif %}
-                  </a>
+                  {{ external_link(item.source_url, 'Source: ' ~ item.source_name if item.source_name else 'Source', 'worth-knowing-source') }}
                 {% endif %}
               </article>
             {% endfor %}
@@ -475,7 +482,7 @@
 
       // Transform chips into grouped calm rows (with outlet + domain)
       document.querySelectorAll(".sources-list").forEach((listEl) => {
-        const chips = Array.from(listEl.querySelectorAll("a.chip"));
+        const chips = Array.from(listEl.querySelectorAll(".chip"));
         if (chips.length === 0) return;
 
         const order = ["Far Left", "Left", "Center", "Right", "Far Right", "Uncategorized"];
@@ -500,11 +507,14 @@
           const row = document.createElement("div");
           row.className = "source-row";
 
-          const link = document.createElement("a");
+          const href = chip.getAttribute("href");
+          const link = document.createElement(href ? "a" : "span");
           link.className = "source-link";
-          link.href = chip.href;
-          link.target = chip.target || "_blank";
-          link.rel = chip.rel || "noopener noreferrer";
+          if (href) {
+            link.href = href;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+          }
           link.textContent = chip.textContent.trim(); // outlet name
 
           row.appendChild(link);

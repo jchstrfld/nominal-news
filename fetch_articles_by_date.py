@@ -4,6 +4,7 @@ import os
 import json
 import feedparser
 import requests
+from provider_http import provider_get
 from datetime import datetime
 from dotenv import load_dotenv
 import argparse
@@ -145,13 +146,13 @@ def fetch_newsapi(date_str):
         "sortBy": "publishedAt",
         "from": date_str,
         "to": date_str,
-        "apiKey": NEWS_API_KEY,
     }
     try:
-        res = requests.get(NEWSAPI_URL, params=params)
+        res = provider_get("newsapi", NEWSAPI_URL, params=params,
+                           headers={"X-Api-Key": NEWS_API_KEY or ""}, timeout=15)
         data = res.json()
         if data.get("status") != "ok":
-            print(f"❌ NewsAPI error: {data.get('code')} — {data.get('message')}")
+            print("❌ NewsAPI returned an unsuccessful response")
             return []
         return [
             {

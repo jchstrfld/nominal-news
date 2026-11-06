@@ -480,6 +480,7 @@ class ImageIdentityChecks(unittest.TestCase):
         payloads = iter((wiki, {'results': [photo]}))
         m.requests = SimpleNamespace(get=lambda *a, **kw: SimpleNamespace(
             raise_for_status=lambda: None, json=lambda: next(payloads)))
+        m.provider_get = lambda provider, *a, **kw: m.requests.get(*a, **kw)
         with patch.object(m, '_image_named_entities', return_value=[]), \
              patch.object(m, 'semantic_similarity', return_value=.99), \
              patch.object(m, 'classify_context_anchor', return_value='institution'), \

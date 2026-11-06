@@ -132,6 +132,19 @@ class LiveSessionChecks(unittest.TestCase):
     def read_ledger(self):
         return json.loads(self.ledger_file.read_text(encoding='utf-8'))
 
+    def test_transport_has_no_environment_proxy_and_verifies_tls(self):
+        import ssl
+        from urllib.request import HTTPSHandler, ProxyHandler
+        with patch.dict('os.environ', {'HTTPS_PROXY': 'http://127.0.0.1:8888'}):
+            with self.session() as session:
+                handlers = session._opener.handlers
+                self.assertFalse(any(isinstance(h, ProxyHandler) for h in handlers))
+                https = next(h for h in handlers if isinstance(h, HTTPSHandler))
+                self.assertTrue(https._context.check_hostname)
+                self.assertEqual(https._context.verify_mode, ssl.CERT_REQUIRED)
+                redirect = next(h for h in handlers if isinstance(h, live._NoRedirect))
+                self.assertIsNone(redirect.redirect_request(None, None, 302, '', {}, 'https://elsewhere.example/'))
+
     def test_reservation_precedes_http_and_receipts_resume_without_spending(self):
         with self.session(max_calls=1) as session:
             def send(req, timeout):

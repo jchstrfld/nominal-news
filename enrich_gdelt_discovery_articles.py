@@ -30,6 +30,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
+from public_download import UnsafeDownload, public_get
 
 
 USER_AGENT = (
@@ -360,12 +361,11 @@ def fetch_metadata(
     max_bytes: int,
 ) -> tuple[dict[str, str], str, bool]:
     try:
-        with session.get(
+        with public_get(
             url,
-            stream=True,
             timeout=(6, timeout),
-            allow_redirects=True,
             headers={
+                "User-Agent": USER_AGENT,
                 "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5",
             },
         ) as response:
@@ -384,6 +384,8 @@ def fetch_metadata(
             if metadata.get("description"):
                 return metadata, "ok", True
             return metadata, "no_description", True
+    except UnsafeDownload:
+        return {}, "blocked_destination", False
     except requests.Timeout:
         return {}, "timeout", False
     except requests.RequestException as exc:

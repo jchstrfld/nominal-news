@@ -10,10 +10,13 @@ import os
 import re
 import sys
 from datetime import datetime, date, timedelta
+from email.message import Message
 from html.parser import HTMLParser
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse, urljoin
 from urllib.request import Request, urlopen
+from public_download import public_get
+from provider_http import provider_get
 
 try:
     import openai
@@ -350,17 +353,20 @@ def _fetch_article_text(url: str, sidecar_cache: dict) -> tuple[str, dict, bool]
                 "Accept-Language": "en-US,en;q=0.8",
             },
         )
-        with urlopen(request, timeout=8) as response:
-            final_url = response.geturl() or canonical
+        with public_get(request.full_url, headers=dict(request.header_items()), timeout=(8, 8)) as response:
+            response.raise_for_status()
+            final_url = response.url or canonical
             if not _safe_public_url(final_url):
                 raise ValueError("redirected to a non-public URL")
             content_type = (response.headers.get("Content-Type") or "").lower()
             if content_type and "html" not in content_type and "text/" not in content_type:
                 raise ValueError(f"unsupported content type: {content_type}")
-            raw = response.read(MAX_FETCH_BYTES + 1)
+            raw = response.raw.read(MAX_FETCH_BYTES + 1, decode_content=True)
             if len(raw) > MAX_FETCH_BYTES:
                 raw = raw[:MAX_FETCH_BYTES]
-            charset = response.headers.get_content_charset() or "utf-8"
+            content_headers = Message()
+            content_headers["Content-Type"] = response.headers.get("Content-Type", "")
+            charset = content_headers.get_content_charset() or "utf-8"
             page = raw.decode(charset, errors="replace")
             text = _extract_article_text(page)
             meta = {
@@ -412,14 +418,17 @@ def _fetch_raw_document(url: str, sidecar_cache: dict, cache_prefix: str) -> tup
                 "Accept-Language": "en-US,en;q=0.8",
             },
         )
-        with urlopen(request, timeout=8) as response:
-            final_url = response.geturl() or canonical
+        with public_get(request.full_url, headers=dict(request.header_items()), timeout=(8, 8)) as response:
+            response.raise_for_status()
+            final_url = response.url or canonical
             if not _safe_public_url(final_url):
                 raise ValueError("redirected to a non-public URL")
-            raw_bytes = response.read(MAX_FETCH_BYTES + 1)
+            raw_bytes = response.raw.read(MAX_FETCH_BYTES + 1, decode_content=True)
             if len(raw_bytes) > MAX_FETCH_BYTES:
                 raw_bytes = raw_bytes[:MAX_FETCH_BYTES]
-            charset = response.headers.get_content_charset() or "utf-8"
+            content_headers = Message()
+            content_headers["Content-Type"] = response.headers.get("Content-Type", "")
+            charset = content_headers.get_content_charset() or "utf-8"
             raw = raw_bytes.decode(charset, errors="replace")
             meta = {
                 "status": "ok" if raw else "empty",
@@ -1101,19 +1110,18 @@ def _search_newsapi_articles(
     else:
         raw = ""
         try:
-            request = Request(
-                canonical,
+            response = provider_get("newsapi", canonical,
                 headers={
                     "User-Agent": "NominalNews/1.0",
                     "Accept": "application/json",
                     "X-Api-Key": NEWS_API_KEY,
-                },
+                }, timeout=8,
             )
-            with urlopen(request, timeout=8) as response:
-                raw_bytes = response.read(MAX_FETCH_BYTES + 1)
+            with response:
+                raw_bytes = response.content[:MAX_FETCH_BYTES + 1]
                 if len(raw_bytes) > MAX_FETCH_BYTES:
                     raw_bytes = raw_bytes[:MAX_FETCH_BYTES]
-                charset = response.headers.get_content_charset() or "utf-8"
+                charset = response.encoding or "utf-8"
                 raw = raw_bytes.decode(charset, errors="replace")
                 cache_value = {
                     "status": "ok" if raw else "empty",

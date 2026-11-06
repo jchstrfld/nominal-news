@@ -148,8 +148,8 @@ class FramingTests(unittest.TestCase):
             get.assert_not_called()
 
     def test_template_old_and_new_issues(self):
-        from jinja2 import Environment, FileSystemLoader
-        env = Environment(loader=FileSystemLoader(str(framing.ROOT / 'templates')))
+        from main import templates
+        env = templates.env
         topic = {'topic_title': 'Test', 'image_url': 'https://example.com/image.jpg'}
         template = env.get_template('index.html')
         # Use the actual template to catch compatibility with old saved issues.

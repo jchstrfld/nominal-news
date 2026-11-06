@@ -1,10 +1,12 @@
 """Opt-in checkpoint I/O: durable budget, exact receipts, one HTTP attempt."""
 import json
 import os
+import ssl
+import certifi
 from pathlib import Path
 from decimal import Decimal
 from urllib.error import HTTPError, URLError
-from urllib.request import HTTPRedirectHandler, Request, build_opener
+from urllib.request import HTTPRedirectHandler, HTTPSHandler, ProxyHandler, Request, build_opener
 
 from next_signal_checkpoint_review import Budget, CONTRACT_VERSION, MODEL, ReviewError, _digest
 
@@ -139,7 +141,10 @@ class CheckpointSession:
             context = {'edition': edition, 'model': MODEL, 'contract': CONTRACT_VERSION}
             self.budget = _PersistentBudget(ledger_file, context, max_calls, max_usd)
             self.cache = _ReceiptCache(cache_file, self.budget)
-            self._opener = build_opener(_NoRedirect())
+            self._opener = build_opener(
+                ProxyHandler({}), _NoRedirect(),
+                HTTPSHandler(context=ssl.create_default_context(cafile=certifi.where())),
+            )
         except Exception:
             self.close()
             raise

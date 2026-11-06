@@ -5,7 +5,9 @@ stories, adds Next Signal checkpoints, and selects context images.
 
 ## Install
 
-Use Python 3.13. From the repository directory, in PowerShell:
+Use a security-patched Python 3.13 runtime (3.13.18 or later). Check the Python
+release page when provisioning a host; a virtual environment does not update
+the underlying interpreter. From the repository directory, in PowerShell:
 
 ```powershell
 python -m venv .venv
@@ -24,6 +26,12 @@ use may download model files. The spaCy model supports image subject extraction.
 Keep installed models and operational caches for later runs. On macOS/Linux, use
 `.venv/bin/python` instead of the Windows executable path.
 
+The public reader has a separate, pinned dependency set in `requirements-reader.txt`.
+Install only that file on a reader host. The full `requirements.txt` also uses
+`constraints.txt` to preserve tested worker dependencies. These constraints were
+validated on Windows; additional platform dependencies need auditing on the target
+host. After installing, run `python -m pip check` and the offline tests below.
+
 ## Preview a saved issue
 
 ```powershell
@@ -32,8 +40,11 @@ Keep installed models and operational caches for later runs. On macOS/Linux, use
 
 Open `http://127.0.0.1:8000/`, or select a date with `/?date=YYYY-MM-DD`.
 A fresh clone has no published issues: daily JSON files are excluded from Git.
-Copy your own saved issue data locally or generate an issue. Opening the reader
-does not run the daily pipeline. Keep the development server bound to localhost.
+Copy your own saved issue data locally or generate an issue. The reader accepts
+valid calendar dates in `YYYY-MM-DD` format and never runs the pipeline, even if
+`AUTO_RUN_PIPELINE` is set. Only `static/style.css` is a public static asset;
+local review pages, caches and other private files are not served. Keep the
+development server bound to localhost.
 
 ## Run the daily pipeline
 
@@ -131,17 +142,73 @@ Review the exit status, dated outputs, and rendered issue. Do not import pipelin
 scripts just to inspect them: some execute work at import time. Worth Knowing has
 a separate generator and is not part of the daily runner.
 
+Public article metadata and optional Next Signal page downloads use checked public
+HTTP/HTTPS destinations on standard ports. Each redirect is checked before
+connecting, with at most five redirects and no HTTPS downgrade. Connections use
+the checked IP while retaining hostname-based TLS verification. These anonymous
+fetches do not use environment proxies, stored credentials or cookies. Existing
+content-size limits and editorial checks still apply. Install the pinned HTTP
+dependencies before running; cloud workers also need outbound network restrictions.
+Authenticated provider API calls are separate from this public-page transport.
+NewsAPI and Unsplash requests accept only their fixed HTTPS endpoints, reject
+redirects, disable environment proxies and stored credentials, and bound response
+sizes. API keys belong in headers, never query strings. Provider failures are
+logged without response bodies or request details.
+
 ## Offline regression tests
 
 ```powershell
-.\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -B tests/run_offline.py
 ```
 
-Tests use mocks and fixed fixtures under `tests/fixtures/`. They do not need
+The test runner blocks external networking. Tests use mocks and fixed fixtures
+under `tests/fixtures/`. They do not need
 daily JSON files, local provider caches, credentials, or paid calls. Fixture dates
 are historical regression examples, not runtime configuration. Fixtures retain
 inputs and expected responses needed for regression checks; development journals,
 spending records, and experiment logs remain private.
+
+For a test-only environment, install `requirements-test.txt`; it does not download
+language models. The proposed GitHub checks run these tests on Windows and Linux,
+audit the pinned packages, analyze code with CodeQL, and build the reader container.
+They run after the workflow is pushed, including a weekly scheduled check. They
+do not receive provider secrets, run the pipeline, publish issues, or send emails.
+
+## Operating securely
+
+Keep the public site/reader separate from the private generator. Give the reader
+only published edition files, mounted read-only, with no API keys, subscriber
+records, operational caches, or pipeline scripts. The reader applies a restricted
+script policy, anti-framing and MIME protections, and a no-referrer policy. It
+still loads public image URLs; image hosts can receive visitors' network details.
+
+The public CMS can be Squarespace. Run generation and email delivery separately;
+never put provider keys in Squarespace code blocks, forms, or browser JavaScript.
+Keep subscribers in the chosen email service rather than in edition files or Git.
+Signup consent, unsubscribe/deletion handling, email authentication, analytics
+consent, and privacy notices must be configured and tested before collecting emails.
+
+Before exposure, configure HTTPS, allowed hostnames, trusted proxies, request-rate
+and connection limits at the hosting edge. Restrict worker network access to public
+destinations and approved services. Use separate, least-privilege credentials and
+encrypted backups; test restoring published issues and required operational state.
+Do not deploy by uploading the working project directory.
+
+Review dependency/security alerts weekly and patch the host's Python and OS too.
+Dependabot proposes updates; do not auto-merge them. Run regression tests and an
+installed-environment vulnerability scan before release, for example using
+`pip-audit` in the deployment environment. A clean scan covers known advisories,
+not all possible flaws. Require successful CI checks before merging release changes.
+Also scan the final container's operating-system packages; a clean Python-package
+audit does not clear the base image. Review unresolved advisories and available
+vendor patches before public deployment.
+
+Keep language-model choices and weights fixed between reviewed releases. Check
+provider deprecations regularly. Model or embedding-library changes require saved
+positive/negative cases, multi-edition comparisons, and an approved budget for any
+live checks. Do not update models automatically just because a new version exists.
+Recheck the complete signup-to-delivery system whenever its services or permissions
+change. Never include credentials or subscriber records in public bug reports.
 
 ## Local data and Git
 
@@ -158,15 +225,18 @@ Old local daily data is not required to run the tests.
 
 ## Optional Docker preview
 
-The Dockerfile starts the reader, not a paid pipeline. Its build context excludes
-secrets, caches, daily JSON, and Git history.
+The Dockerfile contains only the reader and its dependencies, running as a
+non-root user, with package installers removed after building. Rebuild the image
+to apply dependency updates. It excludes the pipeline, models, secrets, caches, daily JSON, and
+Git history. Docker is optional; the same separation is required on other hosts.
 
 ```sh
 docker build -t nominal-news .
-docker run --rm -p 127.0.0.1:8000:8000 nominal-news
+docker run --rm --read-only --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:8000:8000 nominal-news
 ```
 
-Mount your saved issue JSON files read-only under `/app/` to view them. The image
+Mount individual published issue JSON files read-only under `/app/` to view them;
+do not mount the entire project. The image
 does not include local issues or downloaded language models. Validate Docker on
 the target host before deployment; this preview setup does not provide production
 hosting or authentication.
