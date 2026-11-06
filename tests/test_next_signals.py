@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import generate_next_signals as review_signals
 import run_pipeline_by_date as daily_pipeline
 from copy import deepcopy
-from datetime import date
+from datetime import date, timedelta
 
 
 def load_fixture(name):
@@ -28,7 +28,92 @@ class Choice(dict):
 
 def response(payload, finish_reason="stop"):
     from types import SimpleNamespace
+    # Existing tests isolate ordering/grounding from the new current-state gate.
+    if "eligible" in payload:
+        payload = {"checkpoint_state": "FUTURE", "state_evidence": "A pending checkpoint is stated.", **payload}
     return SimpleNamespace(choices=[Choice(message={"content": json.dumps(payload)}, finish_reason=finish_reason)])
+
+
+class CalendarDateAppositionChecks(unittest.TestCase):
+    def resolve(self, edition, sentence, timing, published=None):
+        return review_signals._comparison_calendar_day(
+            edition, {'description': sentence, 'published_at': published or edition}, timing)
+
+    def test_matching_weekday_date_pairs_across_years_and_leap_day(self):
+        for start in (date(2027, 6, 1), date(2032, 2, 26), date(2035, 12, 28)):
+            for offset in range(7):
+                target = start + timedelta(days=offset)
+                edition = (target - timedelta(days=1)).isoformat()
+                weekday = target.strftime('%A')
+                for timing in (target.strftime('%B %d, %Y'), target.strftime('%d %B %Y'), target.isoformat()):
+                    for pair in (f'{weekday}, {timing}', f'{weekday} {timing}', f'{timing}, {weekday}'):
+                        with self.subTest(pair=pair):
+                            self.assertEqual(target, self.resolve(edition, f'The panel will meet on {pair}.', timing))
+
+    def test_matching_yearless_pair_uses_existing_verified_reference(self):
+        for timing in ('November 3', '3 November'):
+            self.assertEqual(date(2026, 11, 3), self.resolve(
+                '2026-11-02', f'The panel will meet on Tuesday, {timing}.', timing))
+            self.assertIsNone(self.resolve(
+                '2026-11-02', f'The panel will meet on Tuesday, {timing}.', timing, '2025-11-02'))
+
+    def test_conflicting_weekdays_are_not_ignored(self):
+        for start in (date(2027, 6, 1), date(2032, 2, 26)):
+            for offset in range(7):
+                target = start + timedelta(days=offset)
+                timing = target.strftime('%B %d, %Y')
+                wrong = (target + timedelta(days=1)).strftime('%A')
+                with self.subTest(target=target):
+                    self.assertIsNone(self.resolve((target-timedelta(days=1)).isoformat(),
+                        f'The panel will meet on {wrong}, {timing}.', timing))
+
+    def test_missing_historical_and_same_day_anchors_stay_blocked(self):
+        for text, timing in (
+            ('The panel will meet on Monday, November 2, 2026.', 'November 2, 2026'),
+            ('The panel met on Sunday, November 1, 2026.', 'November 1, 2026'),
+            ('The panel met Sunday, November 1, and will return Tuesday, November 3.', 'November 3'),
+            ('The panel will meet Tuesday or November 3.', 'November 3'),
+            ('The panel will meet Tuesday and November 3.', 'November 3'),
+            ('The panel will meet Tuesday, November 3-5.', 'November 3'),
+            ('The panel will meet Tuesday, November 3, or Wednesday, November 4.', 'November 3'),
+            ('The panel will meet next week.', 'next week'),
+        ):
+            with self.subTest(text=text):
+                self.assertIsNone(self.resolve('2026-11-02', text, timing))
+
+    def test_matching_apposition_does_not_shrink_qualified_timing(self):
+        for qualifier in ('by', 'before', 'after', 'since', 'within', 'through', 'from',
+                          'between', 'around', 'about', 'until', 'last', 'previous', 'past', 'next'):
+            for timing in ('November 3', 'November 3, 2026'):
+                with self.subTest(qualifier=qualifier, timing=timing):
+                    self.assertIsNone(self.resolve('2026-11-02',
+                        f'The panel will meet {qualifier} Tuesday, {timing}.', timing))
+
+
+class FuturePassiveDiscoveryChecks(unittest.TestCase):
+    def test_future_passive_keeps_its_own_weekday_across_dates(self):
+        for edition in (date(2026,11,5), date(2030,5,9), date(2032,2,26)):
+            target=edition+timedelta(days=3)
+            for verb in ('approved','rejected','signed','opened','sentenced'):
+                for frame in ('will be','will probably be','is due to be','is expected to be formally'):
+                    sentence=f'The application {frame} {verb} on {target:%A}.'
+                    with self.subTest(sentence=sentence,edition=edition):
+                        anchors=review_signals._direct_future_anchors(sentence,edition)
+                        self.assertEqual([f'weekday:{target:%A}'.lower()],[a['key'] for a in anchors])
+
+    def test_completed_negative_and_other_clause_dates_stay_out(self):
+        for sentence in (
+            'The permit was approved on Monday.',
+            'The permit had been approved on Monday.',
+            'The permit will not be approved on Monday.',
+            'The permit was expected to be approved on Monday.',
+            'The mayor will speak after the council approved the permit Monday.',
+            'The mayor will announce the permit approved on Monday.',
+            'The office will be ready; the council signed the permit Monday.',
+            'The mayor will be present when the council announced its decision Monday.',
+        ):
+            with self.subTest(sentence=sentence):
+                self.assertEqual([],review_signals._direct_future_anchors(sentence,date(2026,11,5)))
 
 
 class FixedProposalReviewChecks(unittest.TestCase):
@@ -72,7 +157,140 @@ class FixedProposalReviewChecks(unittest.TestCase):
             self.day, self.topic, rows or [self.row], proposal or self.proposal,
         )
 
-    def test_saved_oct27_false_approvals_are_withheld_without_another_paid_review(self):
+    def test_reviewer_model_has_separate_cache_without_invalidating_writer(self):
+        keys = {stage: review_signals._cache_key(self.day, self.topic, [self.row], stage=stage)
+                for stage in ("triage", "final", "candidate_validation")}
+        with patch.object(review_signals, "REVIEW_MODEL", "different-reviewer"):
+            for stage in ("triage", "final"):
+                self.assertEqual(keys[stage], review_signals._cache_key(self.day, self.topic, [self.row], stage=stage))
+            self.assertNotEqual(keys["candidate_validation"], review_signals._cache_key(
+                self.day, self.topic, [self.row], stage="candidate_validation"))
+        self.api.side_effect = None
+        self.api.return_value = response(self.approval)
+        self.review()
+        request = self.api.call_args.kwargs
+        self.assertEqual("gpt-5.4-mini-2026-03-17", request["model"])
+        self.assertEqual("none", request["reasoning_effort"])
+        self.assertNotIn("max_tokens", request)
+        self.api.assert_called_once()
+
+    def test_current_state_overrides_an_inconsistent_approval(self):
+        self.api.side_effect = None
+        for state in ('ALREADY_OCCURRED', 'SUPERSEDED', 'UNRESOLVED'):
+            with self.subTest(state=state):
+                self.api.return_value = response({**self.approval, 'checkpoint_state': state,
+                    'state_evidence': 'The current story overtakes the earlier schedule.'})
+                result = self.review()
+                self.assertFalse(result['eligible'])
+                self.assertEqual('checkpoint_not_future', result['reason_code'])
+        self.api.return_value = response({**self.approval, 'checkpoint_state': None})
+        with self.assertRaisesRegex(RuntimeError, 'current state'):
+            self.review()
+
+    def test_review_calendar_relations_cross_month_year_and_leap_day(self):
+        for edition, target, weekday in (
+            ('2026-11-02', '2026-11-03', 'Tuesday'),
+            ('2031-12-31', '2032-01-01', 'Thursday'),
+            ('2032-02-28', '2032-02-29', 'Sunday'),
+            ('2040-08-14', '2040-08-15', 'Wednesday'),
+        ):
+            with self.subTest(edition=edition):
+                sentence = f'The regional panel will release its findings {weekday}.'
+                row = {**self.row, 'published_at': edition, 'grounded_sentence': sentence}
+                prompt = review_signals._checkpoint_timing_comparison(
+                    edition, [row], include_day_offsets=True)
+                self.assertIn(f'{target} if upcoming ({weekday}; 1 calendar day(s) AFTER briefing)', prompt)
+                # Adding reviewer context must not change the writer's input.
+                self.assertNotIn('AFTER briefing', review_signals._checkpoint_timing_comparison(edition, [row]))
+
+    def test_calendar_context_precedes_state_judgment_in_existing_review_call(self):
+        self.api.side_effect = None
+        self.api.return_value = response(self.approval)
+        self.review()
+        prompt = self.api.call_args.kwargs['messages'][1]['content']
+        self.assertIn('BRIEFING DATE: 2026-09-25 (Friday)', prompt)
+        self.assertIn('2026-09-28 if upcoming (Monday; 3 calendar day(s) AFTER briefing)', prompt)
+        self.assertLess(prompt.index('CALENDAR CONTEXT'), prompt.index('Then establish the checkpoint'))
+        self.assertIn('Present-tense news headlines', prompt)
+        self.assertIn('quote explicit completion/underway evidence', prompt)
+        schema = self.api.call_args.kwargs['response_format']['json_schema']['schema']
+        self.assertEqual('calendar_check', next(iter(schema['properties'])))
+        self.assertEqual(['2026-09-28 is 3 calendar day(s) AFTER briefing 2026-09-25'],
+                         schema['properties']['calendar_check']['enum'])
+        self.assertIn('Copy the words, not a paraphrase or inferred date',
+                      schema['properties']['state_evidence']['description'])
+        self.api.assert_called_once()
+
+    def test_review_calendar_does_not_reanchor_old_or_undated_sources(self):
+        sentence = 'The panel will release its findings Tuesday.'
+        for changes in ({'published_at': '2026-10-26'},
+                        {'published_at': '', 'reference_date_unverified': True}):
+            with self.subTest(changes=changes):
+                row = {**self.row, 'grounded_sentence': sentence, **changes}
+                prompt = review_signals._checkpoint_timing_comparison(
+                    '2026-11-02', [row], include_day_offsets=True)
+                self.assertNotIn('2026-11-03 if upcoming', prompt)
+                self.assertNotIn('AFTER briefing', prompt)
+                self.assertIn('unresolved timing', prompt)
+
+    def test_review_calendar_preserves_same_day_uncertainty(self):
+        row = {**self.row, 'published_at': '2026-11-02',
+               'grounded_sentence': 'The panel will release its findings Monday afternoon.'}
+        prompt = review_signals._checkpoint_timing_comparison(
+            '2026-11-02', [row], include_day_offsets=True)
+        self.assertIn('2026-11-02 if upcoming (Monday; SAME briefing day; time-of-day status unverified)', prompt)
+        self.assertNotIn('AFTER briefing', prompt)
+
+    def test_fixed_calendar_fact_cannot_resolve_ambiguous_or_unverified_schedules(self):
+        day = '2026-11-02'
+        for sentence, changes in (
+            ('The panel will release findings Monday afternoon.', {}),
+            ('The panel will release findings next week.', {}),
+            ('The panel will release findings Tuesday through Friday.', {}),
+            ('The panel will release findings Tuesday.', {'reference_date_unverified': True}),
+            ('The panel will release findings Tuesday.', {'published_at': '2026-10-26'}),
+        ):
+            with self.subTest(sentence=sentence, changes=changes):
+                row = {**self.row, 'published_at': day, 'grounded_sentence': sentence, **changes}
+                self.assertIn('unresolved', review_signals._review_calendar_check(day, row))
+        row = {**self.row, 'published_at': day,
+               'grounded_sentence': 'The panel will release findings Tuesday.'}
+        self.assertEqual('2026-11-03 is 1 calendar day(s) AFTER briefing 2026-11-02',
+                         review_signals._review_calendar_check(day, row))
+
+    def test_following_correction_survives_both_excerpt_reductions(self):
+        text = ('The regional panel met to discuss the application. '
+                'The panel will release its findings Monday. '
+                'Update: The panel cancelled the release. '
+                'The chair said no replacement date has been set.')
+        snippets = review_signals._future_milestone_snippets(text, date.fromisoformat(self.day))
+        hit = next(x for x in snippets if self.row['grounded_sentence'] in x['text'] or 'will release' in x['text'])
+        row = {**self.row, 'description': hit['text'], 'source_context': hit['source_context']}
+        evidence = review_signals._model_evidence_candidates(self.day, [row])
+        self.assertIn('cancelled the release', evidence[0]['source_context'])
+        self.assertIn('no replacement date', review_signals._evidence_lines(evidence)[0])
+        changed = [{**evidence[0], 'source_context': 'A revised source update.'}]
+        self.assertNotEqual(review_signals._cache_key(self.day, self.topic, evidence),
+                            review_signals._cache_key(self.day, self.topic, changed))
+
+    def test_discovery_day_cannot_anchor_an_article_weekday(self):
+        candidate = review_signals._candidate_from_row({
+            'url': 'https://example.org/story', 'title': 'Panel release', 'target_date': self.day,
+        }, 'coverage_receipt')
+        self.assertEqual('', candidate['published_at'])
+        self.assertTrue(candidate['reference_date_unverified'])
+        row = {**self.row, **candidate, 'grounded_sentence': self.row['description']}
+        self.assertFalse(review_signals.validate_generated_signal_grounding(
+            self.day, row['grounded_sentence'], row)[0])
+        # Actual source publication metadata remains usable.
+        candidate = review_signals._candidate_from_row({
+            'url': 'https://example.org/story', 'title': 'Panel release', 'published_at': self.day,
+        }, 'existing_story_source')
+        row.update(candidate)
+        self.assertTrue(review_signals.validate_generated_signal_grounding(
+            self.day, row['grounded_sentence'], row)[0])
+
+    def test_saved_oct27_false_approvals_stay_withheld_after_context_review(self):
         sources = load_fixture("oct27_sentence_selection")
         reviews = load_fixture("oct27_sentence_selection_reviews")
         self.api.side_effect = None
@@ -89,8 +307,11 @@ class FixedProposalReviewChecks(unittest.TestCase):
                     self.api.assert_called_once()
                     self.assertEqual(saved["proposal"]["signal"], result["signal"])
                 else:
-                    self.api.assert_not_called()
-                    self.assertEqual("unresolved_timing", result["reason_code"])
+                    # Context can reach the existing reviewer, but a legacy
+                    # approval without supported obsolete-event status cannot
+                    # bypass the conservative ordering check.
+                    self.assertLessEqual(self.api.call_count, 1)
+                    self.assertIn(result["reason_code"], {"unresolved_timing", "review_rejection"})
         # Isolate the genuine earlier results checkpoint, without the other
         # source's past victory declaration. First-person copy is still useful
         # evidence against choosing the later election.
@@ -118,6 +339,359 @@ class FixedProposalReviewChecks(unittest.TestCase):
                     self.assertFalse(result["eligible"])
                     self.assertEqual("unresolved_timing", result["reason_code"])
         self.api.assert_not_called()
+
+    def test_simple_when_clause_reaches_review_with_source_wording_intact(self):
+        for day in ("2026-11-02", "2031-03-04", "2040-08-14"):
+            for text in (
+                "The committee will consider disciplinary steps when the assembly reconvenes next week.",
+                "The operator will restore service when the terminal reopens next month.",
+                "The board will discuss the findings when delegates meet next year.",
+            ):
+                with self.subTest(day=day, text=text):
+                    row = {"description": text, "grounded_sentence": text, "published_at": day}
+                    proposal = {"eligible": True, "source_index": 1, "signal": text}
+                    rejection = {"eligible": False, "reason": "Independent review remains required."}
+                    with patch.object(review_signals, "validate_candidate_signal_semantics", return_value=rejection) as reviewer:
+                        result = review_signals.review_signal_for_publication(day, self.topic, [row], proposal)
+                        self.assertEqual(rejection, result)
+                        reviewer.assert_called_once_with(day, self.topic, [row], proposal)
+                    self.assertTrue(review_signals.validate_generated_signal_grounding(day, text, row)[0])
+        self.api.assert_not_called()
+
+    def test_when_clause_cannot_borrow_embedded_background_dates(self):
+        for text in (
+            "The panel will act when the hearing that began Monday concludes.",
+            "The board will vote when the report about Friday arrives.",
+            "The board will vote when the report for next week arrives.",
+            "The board will vote when delegates discuss Friday's incident.",
+            "The board will vote when inspectors who arrived Monday finish.",
+            "The board will vote when the office was reopened Monday.",
+            "The board will vote after delegates meet next week.",
+            "The board will vote because delegates meet next week.",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual([], review_signals._direct_future_anchors(text, date(2026, 11, 2)))
+
+    def test_contextual_expiry_blocks_later_signal_without_becoming_copyable(self):
+        self.api.side_effect = None
+        for day in ("2026-10-19", "2027-03-01", "2031-09-01"):
+            early = "Both would remain in effect until 6 am on Tuesday morning."
+            later = "The council will discuss the restrictions Saturday."
+            rows = [{"grounded_sentence": early, "published_at": day,
+                     "source_context": "Police imposed a curfew and protest restrictions. " + early},
+                    {"grounded_sentence": later, "published_at": day}]
+            with self.subTest(day=day):
+                self.api.reset_mock()
+                self.api.return_value = response({"eligible": True, "reason": "Proposed approval.", "comparisons": [
+                    self.comparison(1, "Tuesday", qualifies=False, before=False, checkpoint_state="UNRESOLVED",
+                                    state_evidence="", event="Restrictions expire", reason="Status unclear."),
+                    self.comparison(2, "Saturday", event="Council meeting"),
+                ]})
+                result = review_signals.review_signal_for_publication(day, self.topic, rows,
+                    {"eligible": True, "source_index": 2, "signal": later})
+                self.assertFalse(result["eligible"])
+                self.assertEqual("unresolved_timing", result["reason_code"])
+                self.assertIn("Source 1", result["reason"])
+                self.assertFalse(review_signals.validate_signal_source_copy(early, rows[0])[0])
+                self.api.assert_called_once()
+
+    def test_metadata_selection_recovers_late_source_without_changing_cluster(self):
+        for day in ("2026-11-02", "2031-03-04", "2040-08-14"):
+            articles = [{"title": "Committee investigation", "description": "The committee is reviewing the evidence.",
+                         "published_at": day, "url": f"https://example.com/{i}"} for i in range(14)]
+            articles[12]["description"] = "The committee will consider next steps when the assembly reconvenes next week."
+            cluster = {"articles": articles}
+            before = deepcopy(cluster)
+            selected = review_signals.select_signal_evidence(cluster, day)
+            with self.subTest(day=day):
+                self.assertEqual(before, cluster)
+                self.assertEqual(12, len(selected))
+                self.assertEqual([x["url"] for x in articles[:6]], [x["url"] for x in selected[:6]])
+                self.assertIn(articles[12]["url"], [x["url"] for x in selected])
+                self.assertLessEqual(len(review_signals._model_evidence_candidates(day, selected)), 8)
+                self.assertEqual([x["url"] for x in articles[:12]],
+                                 [x["url"] for x in review_signals.select_signal_evidence(cluster)])
+        self.api.assert_not_called()
+
+    def obsolete_review_case(self, state="ALREADY_OCCURRED"):
+        quote = ("The regional panel completed its preliminary hearing yesterday." if state == "ALREADY_OCCURRED"
+                 else "The regional panel cancelled its preliminary hearing.")
+        early = {"title": "Panel inquiry", "published_at": "", "reference_date_unverified": True,
+                 "description": "The regional panel will hold a preliminary hearing Monday.",
+                 "grounded_sentence": "The regional panel will hold a preliminary hearing Monday.",
+                 "source_overview": quote, "source_context": "The inquiry continues."}
+        later = {**self.row, "description": "The panel will release final findings Wednesday.",
+                 "grounded_sentence": "The panel will release final findings Wednesday."}
+        proposal = {**self.proposal, "source_index": 2, "signal": later["grounded_sentence"]}
+        reply = {"eligible": True, "checkpoint_state": "FUTURE", "state_evidence": later["grounded_sentence"],
+                 "reason": "The initial hearing is obsolete; the later findings remain pending.", "comparisons": [
+                     self.comparison(1, "Monday", qualifies=False, before=False, event=early["grounded_sentence"],
+                                     checkpoint_state=state, state_evidence=quote,
+                                     reason="The same panel's preliminary hearing is explicitly completed or cancelled."),
+                     self.comparison(2, "Wednesday", event="Final findings"),
+                 ]}
+        return [early, later], proposal, reply
+
+    def test_supported_obsolete_alternative_uses_existing_review_once(self):
+        self.api.side_effect = None
+        for state in ("ALREADY_OCCURRED", "SUPERSEDED"):
+            with self.subTest(state=state):
+                self.api.reset_mock()
+                rows, proposal, reply = self.obsolete_review_case(state)
+                before = deepcopy(rows)
+                self.api.return_value = response(reply)
+                result = review_signals.review_signal_for_publication(self.day, self.topic, rows, proposal)
+                self.assertTrue(result["eligible"])
+                self.assertEqual(proposal["signal"], result["signal"])
+                self.assertEqual(before, rows)
+                self.api.assert_called_once()
+                prompt = self.api.call_args.kwargs["messages"][1]["content"]
+                self.assertIn(rows[0]["source_overview"], prompt)
+                self.assertEqual("", review_signals._unresolved_future_alternative(
+                    self.day, rows, 2, result["comparisons"]))
+                # Without reviewer evidence, the publication guard still blocks.
+                self.assertIn("Source 1", review_signals._unresolved_future_alternative(self.day, rows, 2))
+
+    def test_uncertain_or_unsupported_obsolete_assessments_stay_blocked(self):
+        self.api.side_effect = None
+        rows, proposal, original = self.obsolete_review_case()
+        for changes in (
+            {"checkpoint_state": "UNRESOLVED"}, {"checkpoint_state": "FUTURE"},
+            {"state_evidence": ""}, {"state_evidence": "The regional panel cancelled the hearing yesterday."},
+            {"state_evidence": "completed its preliminary hearing yesterday."},
+            {"state_evidence": "The regional panel completed ... yesterday."},
+            {"state_evidence": rows[0]["grounded_sentence"]},  # the old preview itself
+            {"state_evidence": rows[1]["grounded_sentence"]},  # another source
+            {"qualifies": True}, {"before_selected": None}, {"before_selected": True},
+        ):
+            with self.subTest(changes=changes):
+                self.api.reset_mock()
+                reply = deepcopy(original);reply["comparisons"][0].update(changes)
+                self.api.return_value = response(reply)
+                result = review_signals.review_signal_for_publication(self.day, self.topic, rows, proposal)
+                self.assertFalse(result["eligible"])
+                self.assertEqual("", result["signal"])
+                expected_code = "calendar_conflict" if changes.get("qualifies") is True else "unresolved_timing"
+                self.assertEqual(expected_code, result["reason_code"])
+                self.api.assert_called_once()
+
+    def test_missing_status_and_removed_context_cannot_clear_alternative(self):
+        self.api.side_effect = None
+        rows, proposal, reply = self.obsolete_review_case()
+        for key in ("state_evidence", "checkpoint_state"):
+            broken = deepcopy(reply);broken["comparisons"][0].pop(key)
+            self.api.return_value = response(broken)
+            self.assertFalse(review_signals.review_signal_for_publication(self.day, self.topic, rows, proposal)["eligible"])
+        # A quote can no longer justify exclusion if it disappeared from source context.
+        changed = deepcopy(rows);changed[0]["source_overview"] = "The panel has not announced a hearing outcome."
+        self.api.return_value = response(reply)
+        self.assertFalse(review_signals.review_signal_for_publication(self.day, self.topic, changed, proposal)["eligible"])
+
+    def test_obsolete_proof_must_assess_the_candidate_event_not_another_action(self):
+        self.api.side_effect = None
+        rows, proposal, original = self.obsolete_review_case()
+        rows[0]["title"] = "The regional panel announced its new chair Monday."
+        rows[0]["source_context"] += " The regional panel announced its new chair Monday."
+        for event in (
+            "", "Preliminary hearing", "Monday",
+            rows[0]["title"],  # Same source/person/day, different action.
+            rows[1]["grounded_sentence"],  # Another source's action.
+            "The regional panel will hold a preliminary hearing",  # No quoted timing.
+            "The regional panel will hold ... hearing Monday.",
+            "panel will hold a preliminary hearing Mon",  # Partial timing word.
+        ):
+            with self.subTest(event=event):
+                reply = deepcopy(original)
+                reply["comparisons"][0]["event"] = event
+                self.api.return_value = response(reply)
+                result = review_signals.review_signal_for_publication(self.day, self.topic, rows, proposal)
+                self.assertFalse(result["eligible"])
+                self.assertEqual("unresolved_timing" if event else "comparison_incomplete", result["reason_code"])
+
+    def test_exact_event_clause_can_be_quoted_from_a_longer_candidate(self):
+        rows, _, reply = self.obsolete_review_case()
+        row = rows[0]
+        row["grounded_sentence"] = "Background explains the inquiry. " + row["grounded_sentence"]
+        self.assertTrue(review_signals._obsolete_alternative(row, 1, reply["comparisons"]))
+        # Quotation matching cannot certify a model's interpretation of the quote.
+        reply["comparisons"][0]["checkpoint_state"] = "UNRESOLVED"
+        self.assertFalse(review_signals._obsolete_alternative(row, 1, reply["comparisons"]))
+
+    def test_review_schema_requires_own_source_proof_for_an_obsolete_state(self):
+        rows, _, reply = self.obsolete_review_case()
+        foreign = "The other commission cancelled its investigation."
+        rows[1]["source_overview"] = foreign
+        options = review_signals._comparison_request_options("candidate_validation", 2, 2, evidence=rows)
+        schema = options["response_format"]["json_schema"]["schema"]
+        variants = schema["properties"]["comparisons"]["items"]["anyOf"]
+        alternatives = [v["properties"] for v in variants if v["properties"]["source_index"]["enum"] == [1]]
+        self.assertEqual(2, len(alternatives))
+        for item in alternatives:
+            self.assertLess(list(item).index("event"), list(item).index("state_evidence_index"))
+            self.assertLess(list(item).index("checkpoint_state"), list(item).index("state_evidence_index"))
+            states = item["checkpoint_state"]["enum"]
+            indices = item["state_evidence_index"].get("enum", [])
+            quotes = [review_signals._obsolete_state_quotes(rows[0])[i - 1] for i in indices]
+            if "ALREADY_OCCURRED" in states:
+                self.assertCountEqual([rows[0]["source_overview"], "The inquiry continues."], quotes)
+                self.assertNotIn("", quotes)
+                self.assertNotIn(foreign, quotes)
+                self.assertNotIn(rows[0]["grounded_sentence"], quotes)
+                self.assertEqual([False], item["qualifies"]["enum"])
+                self.assertEqual([False], item["before_selected"]["enum"])
+            else:
+                self.assertEqual(["FUTURE", "UNRESOLVED"], states)
+                self.assertEqual([], quotes)
+        self.api.assert_not_called()
+
+    def test_no_status_quotes_means_no_obsolete_response_option(self):
+        rows, _, _ = self.obsolete_review_case()
+        rows[0].pop("source_overview")
+        rows[0].pop("source_context")
+        options = review_signals._comparison_request_options("candidate_validation", 2, 2, evidence=rows)
+        variants = options["response_format"]["json_schema"]["schema"]["properties"]["comparisons"]["items"]["anyOf"]
+        alternatives = [v["properties"] for v in variants if v["properties"]["source_index"]["enum"] == [1]]
+        self.assertEqual(1, len(alternatives))
+        self.assertEqual(["FUTURE", "UNRESOLVED"], alternatives[0]["checkpoint_state"]["enum"])
+        with self.assertRaisesRegex(ValueError, "evidence count"):
+            review_signals._comparison_request_options("candidate_validation", 2, 2, evidence=rows[:1])
+
+    def test_obsolete_contract_reaches_only_the_existing_review_request(self):
+        rows, proposal, reply = self.obsolete_review_case()
+        self.api.side_effect = None
+        self.api.return_value = response(reply)
+        self.assertTrue(review_signals.review_signal_for_publication(self.day, self.topic, rows, proposal)["eligible"])
+        request = self.api.call_args.kwargs
+        self.assertIn("Assess THIS quoted event, not the headline", request["messages"][1]["content"])
+        self.assertIn("Cancellation or nonattendance is SUPERSEDED", request["messages"][1]["content"])
+        variants = request["response_format"]["json_schema"]["schema"]["properties"]["comparisons"]["items"]["anyOf"]
+        self.assertIn(rows[0]["source_overview"], request["messages"][1]["content"])
+        self.assertTrue(any(v["properties"].get("state_evidence_index", {}).get("enum") for v in variants))
+        self.assertEqual(review_signals.REVIEW_MODEL if "max_completion_tokens" in request else review_signals.MODEL, request["model"])
+        self.assertEqual(680, request.get("max_tokens", request.get("max_completion_tokens")))
+        self.api.assert_called_once()
+
+    def test_status_evidence_ids_preserve_quotes_and_reject_invalid_indices(self):
+        rows, proposal, reply = self.obsolete_review_case()
+        quote = 'The panel completed the "preliminary hearing" yesterday.'
+        rows[0]["source_overview"] = quote
+        choices = review_signals._obsolete_state_quotes(rows[0])
+        index = choices.index(quote) + 1
+        item = reply["comparisons"][0]
+        item.pop("state_evidence")
+        item["state_evidence_index"] = index
+        self.api.side_effect = None
+        self.api.return_value = response(reply)
+        result = review_signals.review_signal_for_publication(self.day, self.topic, rows, proposal)
+        self.assertTrue(result["eligible"])
+        self.assertEqual(quote, result["comparisons"][0]["state_evidence"])
+        schema = self.api.call_args.kwargs["response_format"]["json_schema"]["schema"]
+        self.assertNotIn(quote, json.dumps(schema))
+        for invalid in (True, 0, -1, len(choices) + 1, "1"):
+            item["state_evidence_index"] = invalid
+            self.api.return_value = response(reply)
+            with self.assertRaisesRegex(RuntimeError, "status evidence index"):
+                self.review(proposal, rows)
+        item["state_evidence_index"] = None
+        self.api.return_value = response(reply)
+        self.assertFalse(review_signals.review_signal_for_publication(self.day, self.topic, rows, proposal)["eligible"])
+
+    def test_obsolete_quote_cannot_drop_negation_or_join_separate_sentences(self):
+        row = {"source_context": "The panel did not cancel the hearing. A decision remains pending."}
+        for quote in ("cancel the hearing.", "The panel cancelled the hearing.", row["source_context"]):
+            comparisons = [self.comparison(qualifies=False, checkpoint_state="SUPERSEDED", state_evidence=quote)]
+            self.assertFalse(review_signals._obsolete_alternative(row, 1, comparisons))
+
+    def test_opening_context_is_bounded_preserved_and_review_only(self):
+        opening = "The panel completed its preliminary hearing yesterday."
+        text = opening + " " + "Background discussion of the investigation continues. " * 50
+        text += "The panel will hold a preliminary hearing Monday."
+        snippets = review_signals._future_milestone_snippets(text, date.fromisoformat(self.day))
+        self.assertTrue(snippets)
+        self.assertIn(opening, snippets[0]["source_overview"])
+        self.assertLessEqual(len(snippets[0]["source_overview"]), 2000)
+        self.assertTrue(snippets[0]["source_overview"].endswith("."))
+        row = {**self.row, "source_overview": snippets[0]["source_overview"]}
+        self.assertNotIn(opening, "\n".join(review_signals._evidence_lines([row])))
+        self.assertIn(opening, "\n".join(review_signals._evidence_lines([row], include_overview=True)))
+        updated = {**row, "source_overview": "Updated context."}
+        self.assertNotEqual(review_signals._cache_key(self.day, self.topic, [row], stage="candidate_validation"),
+                            review_signals._cache_key(self.day, self.topic, [updated], stage="candidate_validation"))
+        # This extra context is review-only; unchanged writer inputs keep their cache.
+        self.assertEqual(review_signals._cache_key(self.day, self.topic, [row], stage="triage"),
+                         review_signals._cache_key(self.day, self.topic, [updated], stage="triage"))
+
+    def test_cached_obsolete_proof_is_rechecked_at_publication(self):
+        rows, proposal, reply = self.obsolete_review_case()
+        self.api.side_effect = None
+        self.api.return_value = response(reply)
+        with self.pipeline() as (files, _, triage), patch.object(
+            review_signals, "_model_evidence_candidates", return_value=rows,
+        ):
+            triage.return_value = proposal
+            review_signals.main()
+            self.assertEqual(proposal["signal"], files["summary"][0]["next_signal"])
+            self.api.assert_called_once()
+            review_signals.main()
+            self.assertEqual(proposal["signal"], files["summary"][0]["next_signal"])
+            self.api.assert_called_once()  # cached evidence, no extra review
+            key = next(k for k in files["cache"] if ":candidate_validation:" in k)
+            files["cache"][key]["comparisons"][0]["state_evidence"] = "An invented cancellation happened."
+            review_signals.main()
+            self.assertEqual("", files["summary"][0]["next_signal"])
+            self.assertIn("earlier or unresolved timing", files["report"][0]["reason"])
+            self.api.assert_called_once()
+
+    def test_metadata_selection_preserves_late_sentence_and_following_cancellation(self):
+        prefix = "Background information about the investigation. " * 12
+        sentence = "The panel will meet next week."
+        cancellation = "The meeting has since been cancelled."
+        cluster = {"articles": [{"title": "Panel inquiry", "url": "https://example.com/panel",
+                                "description": prefix + sentence + " " + cancellation,
+                                "published_at": self.day}]}
+        selected = review_signals.select_signal_evidence(cluster, self.day)
+        self.assertIn(sentence, selected[0]["description"])
+        self.assertIn(cancellation, selected[0]["source_context"])
+        candidates = review_signals._model_evidence_candidates(self.day, selected)
+        self.assertIn(cancellation, candidates[0]["source_context"])
+
+    def test_metadata_selection_does_not_prioritize_unverified_relative_dates(self):
+        articles = [{"title": "Panel inquiry", "description": "The inquiry is ongoing.",
+                     "published_at": self.day, "url": f"https://example.com/{i}"} for i in range(12)]
+        missing = {"title": "Next hearing", "description": "The panel will meet next week.",
+                   "target_date": self.day, "url": "https://example.com/undated"}
+        selected = review_signals.select_signal_evidence({"articles": articles + [missing]}, self.day)
+        self.assertNotIn(missing["url"], [x["url"] for x in selected])
+        selected = review_signals.select_signal_evidence({"articles": [missing]}, self.day)
+        self.assertEqual("", selected[0]["published_at"])
+        self.assertTrue(selected[0]["reference_date_unverified"])
+        valid, reason = review_signals.validate_generated_signal_grounding(self.day, missing["description"], selected[0])
+        self.assertFalse(valid)
+        self.assertIn("publication date", reason)
+        for invalid_date in ("unknown", "2026-02-30"):
+            rows = review_signals.select_signal_evidence(
+                {"articles": [{**missing, "published_at": invalid_date}]}, self.day)
+            self.assertTrue(rows[0]["reference_date_unverified"])
+            self.assertFalse(review_signals.validate_generated_signal_grounding(
+                self.day, missing["description"], rows[0])[0])
+
+    def test_duplicate_timed_metadata_does_not_fill_the_reserved_slots(self):
+        articles = [{"title": "Panel inquiry", "description": "The inquiry is ongoing.",
+                     "published_at": self.day, "url": f"https://example.com/{i}"} for i in range(6)]
+        articles += [{"title": "Panel inquiry", "description": "The panel will meet next week.",
+                      "published_at": self.day, "url": f"https://example.com/copy{i}"} for i in range(8)]
+        articles.append({"title": "Panel inquiry", "description": "The panel will publish findings next month.",
+                         "published_at": self.day, "url": "https://example.com/distinct"})
+        selected = review_signals.select_signal_evidence({"articles": articles}, self.day)
+        self.assertIn("https://example.com/distinct", [x["url"] for x in selected])
+        self.assertEqual(12, len(selected))
+
+    def test_metadata_selection_keeps_calendar_dates_as_source_dates(self):
+        source = {"title": "Panel inquiry", "description": "The panel will meet Monday.",
+                  "published_at": "2026-10-30T12:00:00Z", "url": "https://example.com/panel"}
+        rows = review_signals.select_signal_evidence({"articles": [source]}, "2026-11-02")
+        self.assertEqual(source["published_at"], rows[0]["published_at"])
+        self.assertFalse(rows[0]["reference_date_unverified"])
 
     def test_direct_future_dates_survive_past_context_and_leading_dates(self):
         for text in (
@@ -475,8 +1049,8 @@ class FixedProposalReviewChecks(unittest.TestCase):
         self.assertNotIn("Grounded future sentence", prompt)
         self.assertIn("Candidate source sentence: " + self.row["description"], prompt)
         self.assertIn("Detected time references (unverified):", prompt)
-        self.assertEqual(review_signals.MODEL, self.api.call_args.kwargs["model"])
-        self.assertEqual(330, self.api.call_args.kwargs["max_tokens"])
+        self.assertEqual(review_signals.REVIEW_MODEL, self.api.call_args.kwargs["model"])
+        self.assertEqual(470, self.api.call_args.kwargs["max_completion_tokens"])
 
     def test_structural_rejections_spend_no_review_call(self):
         source = "The justices halted a federal appeals court ruling for the November elections, which will determine control of Congress."
@@ -821,7 +1395,7 @@ class FixedProposalReviewChecks(unittest.TestCase):
         for function, args, reply, cap, per_source in (
             (review_signals.evaluate_signal_triage, (), writer_reply, 260, 0),
             (review_signals.evaluate_next_signal, (), writer_reply, 220, 0),
-            (review_signals.validate_candidate_signal_semantics, (proposal,), {**self.approval, "comparisons": comparisons}, 240, 90),
+            (review_signals.validate_candidate_signal_semantics, (proposal,), {**self.approval, "comparisons": comparisons}, 380, 90),
         ):
             with self.subTest(stage=function.__name__):
                 self.api.reset_mock()
@@ -829,9 +1403,12 @@ class FixedProposalReviewChecks(unittest.TestCase):
                 result = function(self.day, topic, rows, *args)
                 self.api.assert_called_once()
                 request = self.api.call_args.kwargs
-                self.assertIn(comparison, request["messages"][1]["content"])
-                self.assertEqual(review_signals.MODEL, request["model"])
-                self.assertEqual(cap + per_source * len(rows), request["max_tokens"])
+                expected_comparison = review_signals._checkpoint_timing_comparison(
+                    self.day, rows, include_day_offsets=function == review_signals.validate_candidate_signal_semantics)
+                self.assertIn(expected_comparison, request["messages"][1]["content"])
+                self.assertEqual(review_signals.REVIEW_MODEL if "max_completion_tokens" in request else review_signals.MODEL, request["model"])
+                status_tokens = 120 * (len(rows) - 1) if function == review_signals.validate_candidate_signal_semantics else 0
+                self.assertEqual(cap + per_source * len(rows) + status_tokens, request.get("max_tokens", request.get("max_completion_tokens")))
                 self.assertTrue(request["response_format"]["json_schema"]["strict"])
                 expected = signal if function == review_signals.validate_candidate_signal_semantics else rows[2]["grounded_sentence"]
                 self.assertEqual(expected, result["signal"])
@@ -1146,7 +1723,7 @@ class FixedProposalReviewChecks(unittest.TestCase):
                 self.api.assert_called_once()
 
     def test_response_contract_bounds_comparison_coverage_and_output(self):
-        for stage, base in (("triage", 260), ("candidate_validation", 240), ("final", 220)):
+        for stage, base in (("triage", 260), ("candidate_validation", 380), ("final", 220)):
             for count in (1, 4, 8):
                 selected = count if stage == "candidate_validation" else None
                 options = review_signals._comparison_request_options(stage, count, selected)
@@ -1162,7 +1739,7 @@ class FixedProposalReviewChecks(unittest.TestCase):
                     self.assertNotIn("before_selected", body["properties"])
                     self.assertEqual(base, options["max_tokens"])
                     continue
-                self.assertEqual("comparisons", next(iter(body["properties"])))
+                    self.assertEqual("calendar_check", next(iter(body["properties"])))
                 comparisons = body["properties"]["comparisons"]
                 self.assertEqual(count, comparisons["minItems"])
                 self.assertEqual(count, comparisons["maxItems"])
@@ -1176,11 +1753,16 @@ class FixedProposalReviewChecks(unittest.TestCase):
                     covered.extend(indices)
                     needs_order = stage == "candidate_validation" and selected not in indices
                     self.assertEqual(needs_order, "before_selected" in variant["required"])
+                    self.assertEqual(needs_order, "checkpoint_state" in variant["required"])
+                    self.assertEqual(needs_order, "state_evidence_index" in variant["required"])
+                    if needs_order:
+                        names = list(variant["properties"])
+                        self.assertLess(names.index("state_evidence_index"), names.index("checkpoint_state"))
                     if stage == "candidate_validation" and not needs_order:
                         self.assertEqual([selected], indices)
                 self.assertEqual(list(range(1, count + 1)), sorted(covered))
-                self.assertEqual(base + 90 * count, options["max_tokens"])
-                self.assertLessEqual(options["max_tokens"], 960)
+                self.assertEqual(base + 90 * count + 120 * (count - 1), options["max_tokens"])
+                self.assertLessEqual(options["max_tokens"], 1940)
                 self.assertNotIn("signal", body["properties"])
                 self.assertNotIn("source_index", body["properties"])
         for count in (0, 9):
@@ -1698,7 +2280,8 @@ class DailyPipelineSignalChecks(unittest.TestCase):
     """Exercise orchestration without executing stages, requests, or live writes."""
 
     def check_path(self, *, global_enabled=False, global_success=False,
-                   expanded_age=None, signal_exit=0, dry_run=False, summary_exit=0, global_fail_stage=None):
+                   expanded_age=None, signal_exit=0, dry_run=False, summary_exit=0, global_fail_stage=None,
+                   signal_budget="0.25", signal_max_calls=40):
         from types import SimpleNamespace
         import os
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent) as folder:
@@ -1706,6 +2289,8 @@ class DailyPipelineSignalChecks(unittest.TestCase):
             day = "2030-12-31"
             final = root / f"grouped_articles_final_{day}.json"
             final.write_text("[]")
+            (root / f"grouped_articles_filtered_{day}.json").write_text("[]")
+            (root / f"gdelt_discovery_candidates_{day}.json").write_text("{}")
             os.utime(final, (200, 200))
             if expanded_age is not None:
                 expanded = root / f"grouped_articles_final_expanded_{day}.json"
@@ -1721,9 +2306,13 @@ class DailyPipelineSignalChecks(unittest.TestCase):
                 return 0
             def optional(**kwargs):
                 calls.append(kwargs)
+                if kwargs["script"] == "audit_gdelt_global_discovery.py" and global_success:
+                    (root / f"gdelt_discovery_candidates_{day}.json").write_text("{}")
                 return global_success and kwargs["script"] != global_fail_stage
             args = SimpleNamespace(date=day, with_gdelt_discovery=global_enabled,
-                                   gdelt_discovery_cached_only=False, dry_run=dry_run)
+                                   gdelt_discovery_cached_only=False, dry_run=dry_run,
+                                   resume_story_review=False, story_review_budget_usd="0.90",
+                                   next_signal_budget_usd=signal_budget, next_signal_max_calls=signal_max_calls)
             with patch.object(daily_pipeline, "__file__", str(root / "run_pipeline_by_date.py")), \
                  patch.object(daily_pipeline, "parse_args", return_value=args), \
                  patch.object(daily_pipeline, "run_required", side_effect=required), \
@@ -1748,7 +2337,14 @@ class DailyPipelineSignalChecks(unittest.TestCase):
                 "expanded" if expanded_age is not None and expanded_age >= 200 else None)
             expected = f"grouped_articles_final_{suffix}_{day}.json" if suffix else final.name
             self.assertEqual(["--summary-file", f"topic_summaries_{day}.json",
-                              "--cluster-file", expected], call["extra_args"])
+                              "--cluster-file", expected,
+                              "--checkpoint-review", "--checkpoint-live",
+                              "--checkpoint-budget-usd", signal_budget,
+                              "--checkpoint-max-calls", str(signal_max_calls),
+                              "--checkpoint-max-output-tokens", "2400",
+                              "--checkpoint-cache-file", f"outputs/checkpoint_receipts_{day}.json",
+                              "--checkpoint-ledger-file", f"outputs/checkpoint_usage_{day}.json",
+                              "--no-external"], call["extra_args"])
             self.assertEqual(dry_run, call["dry_run"])
 
     def test_baseline_selects_same_fresh_input_as_summarizer(self):
@@ -1773,6 +2369,101 @@ class DailyPipelineSignalChecks(unittest.TestCase):
         self.check_path(dry_run=True)
         self.check_path(global_enabled=True, global_success=True, dry_run=True)
 
+    def test_custom_checkpoint_limits_reach_baseline_and_global_stage(self):
+        self.check_path(signal_budget="0.06", signal_max_calls=3)
+        self.check_path(global_enabled=True, global_success=True,
+                        signal_budget="0.06", signal_max_calls=3)
+
+    def test_invalid_limits_stop_before_any_pipeline_stage(self):
+        for flag, value in [("--next-signal-budget-usd", v) for v in
+                            ("0", "-0.01", "NaN", "Infinity", "-Infinity", "invalid")] + [
+                            ("--next-signal-max-calls", v) for v in ("0", "-1", "1.5")]:
+            with self.subTest(flag=flag, value=value), \
+                 patch.object(sys, "argv", ["runner", "--date", "2030-12-31", flag, value]), \
+                 patch.object(daily_pipeline.subprocess, "run") as child, \
+                 contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as stop:
+                daily_pipeline.run()
+            self.assertEqual(2, stop.exception.code)
+            child.assert_not_called()
+
+    def test_real_daily_dry_run_selects_new_route_without_executing_stages(self):
+        for mode in ([], ["--no-gdelt-discovery"]):
+            output = io.StringIO()
+            with self.subTest(mode=mode), \
+                 patch.object(sys, "argv", ["runner", "--date", "2030-12-31", "--dry-run", *mode]), \
+                 patch.object(daily_pipeline.subprocess, "run", side_effect=AssertionError("No subprocess")) as child, \
+                 patch("socket.socket.connect", side_effect=AssertionError("Network forbidden")), \
+                 contextlib.redirect_stdout(output):
+                self.assertEqual(0, daily_pipeline.run())
+            child.assert_not_called()
+            commands = [line for line in output.getvalue().splitlines()
+                        if "DRY RUN:" in line and "generate_next_signals.py" in line]
+            self.assertEqual(1, len(commands))
+            self.assertIn("--checkpoint-review --checkpoint-live", commands[0])
+            self.assertIn("--checkpoint-budget-usd 0.25", commands[0])
+            self.assertIn("--checkpoint-max-calls 40", commands[0])
+            self.assertIn("--checkpoint-max-output-tokens 2400", commands[0])
+            self.assertIn("--no-external", commands[0])
+
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SourceTimingReferenceTests(unittest.TestCase):
+    def test_timing_choices_are_bound_to_their_own_source(self):
+        rows = [{"grounded_sentence": "Officials will meet next week."},
+                {"grounded_sentence": "Negotiations will take place on Nov. 10-11."}]
+        quotes = review_signals._source_timing_quotes(rows[1])
+        self.assertNotIn("next week", quotes)
+        idx = next(i for i, q in enumerate(quotes, 1) if "Nov." in q)
+        items = [{"source_index": 1, "event": "Officials will meet next week.",
+                  "timing": "next week", "qualifies": True, "reason": "Scheduled"},
+                 {"source_index": 2, "event": rows[1]["grounded_sentence"],
+                  "timing_index": idx, "qualifies": True, "reason": "Scheduled"}]
+        result = review_signals._read_source_comparisons({"comparisons": items}, rows, 1)
+        self.assertEqual(quotes[idx-1], result[1]["timing"])
+        for invalid in (True, 0, -1, len(quotes)+1, "1"):
+            with self.subTest(invalid=invalid), self.assertRaises(RuntimeError):
+                review_signals._read_source_comparisons(
+                    {"comparisons": [items[0], {**items[1], "timing_index": invalid}]}, rows, 1)
+        with self.assertRaises(RuntimeError):
+            review_signals._read_source_comparisons(
+                {"comparisons": [items[0], {**items[1], "timing": "next week"}]}, rows, 1)
+
+    def test_schema_requires_source_local_timing_ids(self):
+        rows = [{"grounded_sentence": "The board will decide on Friday."},
+                {"grounded_sentence": "The committee will meet tomorrow."}]
+        schema = review_signals._comparison_request_options(
+            "candidate_validation", 2, 1, evidence=rows)["response_format"]["json_schema"]["schema"]
+        for variant in schema["properties"]["comparisons"]["items"]["anyOf"]:
+            fields = variant["properties"]
+            index = fields["source_index"]["enum"][0]
+            self.assertNotIn("timing", fields)
+            self.assertEqual([None, *range(1, len(review_signals._source_timing_quotes(rows[index-1]))+1)],
+                             fields["timing_index"]["enum"])
+
+    def test_earlier_step_remains_blocked_despite_model_relevance_exclusion(self):
+        rows = [{"grounded_sentence": "The delegations will negotiate next week.", "published_at": "2030-06-03"},
+                {"grounded_sentence": "Ahead of next week's negotiations, advisers will meet this week.", "published_at": "2030-06-03"}]
+        comparisons = [{"source_index":1,"qualifies":True},
+                      {"source_index":2,"qualifies":False,"checkpoint_state":"FUTURE"}]
+        self.assertTrue(review_signals._unresolved_future_alternative("2030-06-03",rows,1,comparisons))
+
+
+class BoundEventTimingTests(unittest.TestCase):
+    def test_other_clause_time_cannot_date_the_quoted_event(self):
+        row = {"grounded_sentence": "Ahead of next week's negotiations, advisers will meet this week."}
+        item = {"source_index": 1, "event": "advisers will meet this week",
+                "timing": "next week", "timing_index": 1}
+        self.assertTrue(review_signals._comparison_event_binding_gap([row], [item]))
+        item["timing"] = "this week"
+        self.assertEqual("", review_signals._comparison_event_binding_gap([row], [item]))
+
+    def test_foreign_event_quote_rejected_even_with_correct_source_date(self):
+        row = {"grounded_sentence": "The board will vote on Friday."}
+        item = {"source_index": 1, "event": "The court will rule on Friday",
+                "timing": "Friday", "timing_index": 1}
+        self.assertTrue(review_signals._comparison_event_binding_gap([row], [item]))
+        item["event"] = "The board will vote on Friday"
+        self.assertEqual("", review_signals._comparison_event_binding_gap([row], [item]))

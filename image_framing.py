@@ -16,7 +16,7 @@ import requests
 ROOT = Path(__file__).resolve().parent
 MODEL = ROOT / "models/face_detection/yunet.onnx"
 CACHE = ROOT / "data/image_framing"
-VERSION = "yunet-2023mar-v1"
+VERSION = "yunet-2023mar-v2"
 MODEL_SHA256 = "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
 ALLOWED_HOSTS = {"upload.wikimedia.org", "thumb.wikimedia.org", "images.unsplash.com"}
 MAX_BYTES = 12 * 1024 * 1024
@@ -48,8 +48,21 @@ def position_for_faces(width, height, faces):
     left, right = max(0, x - .2 * w), min(width, x + 1.2 * w)
     top, bottom = max(0, y - .4 * h), min(height, y + 1.15 * h)
     crop_w, crop_h = min(width, height * 16 / 9), min(height, width * 9 / 16)
-    if right - left > crop_w or bottom - top > crop_h:
+    if w > crop_w or h > crop_h:
         return centered("face_exceeds_frame")
+
+    def fit_padding(lo, hi, face_lo, face_hi, crop):
+        if hi - lo <= crop:
+            return lo, hi
+        # The face fits. Reduce only optional padding, preserving its balance
+        # (including extra headroom) without letting it force a centered crop.
+        face_size = face_hi - face_lo
+        scale = (crop - face_size) / (hi - lo - face_size)
+        return (face_lo - (face_lo - lo) * scale,
+                face_hi + (hi - face_hi) * scale)
+
+    left, right = fit_padding(left, right, x, x + w, crop_w)
+    top, bottom = fit_padding(top, bottom, y, y + h, crop_h)
 
     def axis(size, crop, lo, hi):
         overflow = size - crop

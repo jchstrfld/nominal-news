@@ -1,0 +1,185 @@
+{
+  "mixed_development": {
+    "articles": [
+      {
+        "title": "Alaska’s Senate Decoy Candidate Dan Sullivan Refuses to Go Under Oath as DOJ Issues Flurry of Subpoenas in Expanding Criminal Investigation",
+        "description": "Alaska's Senate decoy candidate Daniel J.\nThe post Alaska’s Senate Decoy Candidate Dan Sullivan Refuses to Go Under Oath as DOJ Issues Flurry of Subpoenas in Expanding Criminal Investigation appeared first on The Gateway Pundit.",
+        "url": "https://www.thegatewaypundit.com/2026/10/alaskas-decoy-senate-candidate-dan-sullivan-refused-go/"
+      },
+      {
+        "title": "Ballot stacking: What is it and is it legal?",
+        "description": "<p>Alaska's Senate race faces legal and political scrutiny as two candidates named Dan Sullivan appear on the ballot, prompting accusations of voter confusion and election fraud.</p>",
+        "url": "https://www.wcvb.com/article/ballot-stacking-what-is-it-and-is-it-legal/74287491"
+      },
+      {
+        "title": "Trump Says Peltola Should Be Prosecuted over Dem Scheme to Recruit 2nd Dan Sullivan into Alaska Senate Race",
+        "description": "<p>President Donald Trump believes the reported Democrat scheme to recruit a second Dan Sullivan on the ballot in Alaska to hurt Sen. Dan Sullivan (R-AK) in the general election is \"a criminal act\" and that Alaska's Democrat Senate nominee, Rep. Mary Peltola (D-AK), who was reportedly aware of the scheme, should be prosecuted.</p>\n<p>The post <a href=\"https://www.breitbart.com/politics/2026/10/29/trump-says-peltola-should-be-prosecuted-over-dem-scheme-to-recruit-2nd-dan-sullivan-into-alaska-senate-race/\" rel=\"nofollow\">Trump Says Peltola Should Be Prosecuted over Dem Scheme to Recruit 2nd Dan Sullivan into Alaska Senate Race</a> appeared first on <a href=\"https://www.breitbart.com\" rel=\"nofollow\">Breitbart</a>.</p>",
+        "url": "https://www.breitbart.com/politics/2026/10/29/trump-says-peltola-should-be-prosecuted-over-dem-scheme-to-recruit-2nd-dan-sullivan-into-alaska-senate-race/"
+      },
+      {
+        "title": "AK Sen. Sullivan: Two 'Dan Sullivans' on Ballot Is Corruption at the 'Highest Level'",
+        "description": "<p>On Wednesday, on FNC's \"Hannity,\" Sen. Dan Sullivan (R-AK) commented on a New York Times report that Democrats recruited a second \"Dan Sullivan\" to confuse voters on the November ballot.</p>\n<p>The post <a href=\"https://www.breitbart.com/clips/2026/10/29/ak-sen-sullivan-two-dan-sullivans-on-ballot-is-corruption-at-the-highest-level/\" rel=\"nofollow\">AK Sen. Sullivan: Two &#8216;Dan Sullivans&#8217; on Ballot Is Corruption at the &#8216;Highest Level&#8217;</a> appeared first on <a href=\"https://www.breitbart.com\" rel=\"nofollow\">Breitbart</a>.</p>",
+        "url": "https://www.breitbart.com/clips/2026/10/29/ak-sen-sullivan-two-dan-sullivans-on-ballot-is-corruption-at-the-highest-level/"
+      },
+      {
+        "title": "Is it legal to recruit a candidate with the same name as one's opponent?",
+        "description": "Alaska's governor ordered a new investigation into the alleged plot to siphon votes away from Republican Sen. Dan Sullivan, as the Justice Department issued new subpoenas in the case. CBS News legal analyst Jessica Levinson has more.",
+        "url": "https://www.cbsnews.com/video/is-it-legal-to-recruit-candidate-with-same-name-as-opponent-alaska/"
+      }
+    ],
+    "previous_decision": {
+      "event_type": "DISCRETE_EVENT",
+      "event": "Alaska's Senate Decoy Candidate Dan Sullivan Refuses to Go Under Oath as DOJ Issues Flurry of Subpoenas in Expanding Criminal Investigation",
+      "core_indexes": [
+        1,
+        3,
+        4,
+        5
+      ],
+      "related_indexes": [
+        1,
+        3,
+        4,
+        5
+      ],
+      "why": "The titles report on the same event regarding Dan Sullivan and the legal implications of the Senate race in Alaska."
+    },
+    "legacy_response": {
+      "event_type": "DISCRETE_EVENT",
+      "event": "Alaska's Senate race faces legal scrutiny over two candidates named Dan Sullivan.",
+      "core_indexes": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "related_indexes": [
+        3
+      ],
+      "core_evidence": [
+        {
+          "index": 1,
+          "quote": "DOJ Issues Flurry of Subpoenas in Expanding Criminal Investigation"
+        },
+        {
+          "index": 2,
+          "quote": "Alaska's Senate race faces legal and political scrutiny as two candidates named Dan Sullivan appear on the ballot"
+        },
+        {
+          "index": 4,
+          "quote": "Two 'Dan Sullivans' on Ballot Is Corruption at the 'Highest Level'"
+        },
+        {
+          "index": 5,
+          "quote": "Alaska's governor ordered a new investigation into the alleged plot to siphon votes away from Republican Sen. Dan Sullivan"
+        }
+      ]
+    },
+    "selection_response": {
+      "anchor_id": "1:title",
+      "event_type": "DISCRETE_EVENT",
+      "core_excerpt_ids": [
+        "1:title",
+        "3:title",
+        "4:title",
+        "5:title"
+      ],
+      "related_indexes": [
+        1,
+        3,
+        4,
+        5
+      ],
+      "why": ""
+    },
+    "support_response": {
+      "anchor_is_discrete": true,
+      "support": {
+        "1:title": true,
+        "3:title": false,
+        "4:title": false,
+        "5:title": false
+      }
+    }
+  },
+  "same_development": {
+    "articles": [
+      {
+        "title": "Patrick Stewart, a perceptive patriarch in 'Star Trek' and 'X-Men,' dies at 86",
+        "description": "Stewart was raised by an abusive father but became best known for playing kind, paternal leaders who united families of misfits.",
+        "url": "https://www.npr.org/2026/10/29/1230906945/patrick-stewart-dead"
+      },
+      {
+        "title": "'Star Trek' star Patrick Stewart dies age 86",
+        "description": "The Shakespearean actor landed the role of a lifetime as \"Star Trek\" Captain Picard. He passed away at age 86.",
+        "url": "https://www.dw.com/en/star-trek-star-patrick-stewart-dies-age-86/a-79803071?maca=en-rss-en-all-1573-rdf"
+      },
+      {
+        "title": "Patrick Stewart, Star Trek and X-Men actor, dies at 86",
+        "description": "According to a statement on his X account, the British actor has died at his home in Los Angeles after a period with Alzheimer's disease and Lewy body dementia.",
+        "url": "https://www.abc.net.au/news/2026-10-30/actor-sir-patrick-stewart-dies-aged-86/107326458"
+      },
+      {
+        "title": "Patrick Stewart, ‘Star Trek’ Captain Picard and ‘X-Men’ actor, dies at 86",
+        "description": "Stewart died in Los Angeles after living with Alzheimer&#039;s disease and Lewy body dementia.",
+        "url": "https://www.aljazeera.com/editorial/2026/10/29/patrick-stewart-star-trek-captain-picard-and-x-men-actor-dies-at-86?traffic_source=rss"
+      }
+    ],
+    "event": "Patrick Stewart died at 86.",
+    "legacy_response": {
+      "event_type": "DISCRETE_EVENT",
+      "event": "Patrick Stewart dies at age 86",
+      "core_indexes": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "related_indexes": [],
+      "core_evidence": [
+        {
+          "index": 1,
+          "quote": "Stewart dies at 86"
+        },
+        {
+          "index": 2,
+          "quote": "Patrick Stewart dies age 86"
+        },
+        {
+          "index": 3,
+          "quote": "actor has died at his home in Los Angeles"
+        },
+        {
+          "index": 4,
+          "quote": "Stewart died in Los Angeles"
+        }
+      ]
+    },
+    "selection_response": {
+      "anchor_id": "1:title",
+      "event_type": "DISCRETE_EVENT",
+      "core_excerpt_ids": [
+        "1:title",
+        "2:title",
+        "3:title",
+        "4:title"
+      ],
+      "related_indexes": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "why": ""
+    },
+    "support_response": {
+      "anchor_is_discrete": true,
+      "support": {
+        "1:title": true,
+        "2:title": true,
+        "3:title": true,
+        "4:title": true
+      }
+    }
+  }
+}

@@ -2,6 +2,9 @@
 import ast
 import copy
 import os
+import hashlib
+import json
+from html import unescape
 from pathlib import Path
 import re
 import unittest
@@ -16,6 +19,7 @@ FUNCTIONS = {
     '_gdelt_assignments_may_change', '_gdelt_ranking_can_stop',
     '_gdelt_global_attention_from_articles', '_clusters_for_output',
     'canonicalize_url', '_cluster_sig_urls',
+    '_publication_excerpt', '_publication_cache_key',
 }
 
 
@@ -25,7 +29,8 @@ def load_checks():
     nodes = [n for n in tree.body if
              isinstance(n, ast.FunctionDef) and n.name in FUNCTIONS or
              isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id in names for t in n.targets)]
-    scope = dict(os=os, copy=copy, re=re, urlparse=urlparse)
+    scope = dict(os=os, copy=copy, re=re, urlparse=urlparse, hashlib=hashlib,
+                 json=json, unescape=unescape, EVENT_CACHE_VERSION='test', EVENT_MODEL='test', EVENT_SUPPORT_MODEL='test')
     exec(compile(ast.Module(body=nodes, type_ignores=[]), str(PATH), 'exec'), scope)
 
     # Exercise the actual cache/call-limit branch, stopping before publication.
@@ -123,12 +128,13 @@ class RankingBounds(unittest.TestCase):
         self.assertFalse(stop(11, 10, 40, 50, [], set()))
         self.assertTrue(stop(5, 10, 40, 50, [], set()))
 
-    def test_default_56_and_explicit_environment_override(self):
-        self.assertEqual(56, self.ns['EVENT_MAX_CALLS'])
+    def test_default_uses_budget_and_explicit_group_override_is_preserved(self):
+        self.assertEqual(0, self.ns['EVENT_MAX_CALLS'])
         with patch.dict(os.environ, {'NN_EVENT_MAX_CALLS': '12'}):
             self.assertEqual(12, load_checks()['EVENT_MAX_CALLS'])
 
     def test_limit_allows_56_mock_reviews_but_never_a_57th(self):
+        self.ns['EVENT_MAX_CALLS'] = 56
         queue = [{'articles': [{'url': f'https://outlet.example/{i}'}]} for i in range(60)]
         reviewer = Mock(return_value={'action': 'REJECT', 'event_type': 'TOPIC_WAVE'})
         result = self.ns['simulate_limit'](queue, {}, reviewer)
@@ -136,8 +142,9 @@ class RankingBounds(unittest.TestCase):
         self.assertEqual(56, reviewer.call_count)
 
     def test_cached_decisions_do_not_spend_the_live_call_allowance(self):
+        self.ns['EVENT_MAX_CALLS'] = 56
         queue = [{'articles': [{'url': f'https://outlet.example/{i}'}]} for i in range(58)]
-        cached = {'test::test::' + self.ns['_cluster_sig_urls'](queue[56]):
+        cached = {self.ns['_publication_cache_key'](queue[56]['articles']):
                   {'action': 'REJECT', 'event_type': 'TOPIC_WAVE'}}
         reviewer = Mock(return_value={'action': 'REJECT', 'event_type': 'TOPIC_WAVE'})
         result = self.ns['simulate_limit'](queue, cached, reviewer)
@@ -152,6 +159,15 @@ class RankingBounds(unittest.TestCase):
         self.assertEqual(original, cluster)
         self.assertEqual(80, self.blend(.8, None))
         self.assertEqual(68, self.blend(.8, .2))
+
+    def test_legacy_membership_approval_cannot_bypass_evidence_review(self):
+        cluster = {'articles': [{'url': 'https://outlet.example/event',
+                                 'title': 'A shared subject'}]}
+        old_key = 'v6-discrete-event-anchor-2026-09::test::' + self.ns['_cluster_sig_urls'](cluster)
+        cache = {old_key: {'action': 'KEEP', 'event_type': 'DISCRETE_EVENT'}}
+        reviewer = Mock(return_value={'action': 'REJECT', 'event_type': 'TOPIC_WAVE'})
+        self.assertEqual((1, 0, 1, 'queue_exhausted'), self.ns['simulate_limit']([cluster], cache, reviewer))
+        reviewer.assert_called_once()
 
 
 if __name__ == '__main__':

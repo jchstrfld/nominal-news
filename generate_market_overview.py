@@ -21,7 +21,7 @@ import io
 import json
 import os
 import re
-from collections import Counter, defaultdict
+from collections import defaultdict
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -251,25 +251,52 @@ def _direction(pct: float) -> str:
     return "flat"
 
 
-def _closest_trading_pair(rows: List[Tuple[str, float]], date_str: str) -> Optional[Tuple[float, float, str]]:
-    if len(rows) < 2:
-        return None
+def _aligned_market_closes(
+    series: Dict[str, List[Tuple[str, float]]], date_str: str,
+) -> Dict[str, Tuple[float, float, str, str]]:
+    """Use one shared return period across all usable index histories.
+
+    Adjacent dates in the combined observations establish the trading sessions;
+    weekends/holidays need no inferred calendar. Never bridge a missing session
+    that another index reports, or mix independently selected latest returns.
+    """
     target = _target_date(date_str)
-    parsed = []
-    for ds, value in rows:
-        try:
-            d = datetime.strptime(ds, "%Y-%m-%d").date()
-        except Exception:
-            continue
-        if d <= target:
-            parsed.append((d, value))
-    parsed.sort(key=lambda x: x[0])
-    if len(parsed) < 2:
-        return None
-    return parsed[-2][1], parsed[-1][1], parsed[-1][0].strftime("%Y-%m-%d")
+    histories, sessions = {}, set()
+    for key, rows in series.items():
+        values = {}
+        for ds, value in rows:
+            try:
+                day = datetime.strptime(ds, "%Y-%m-%d").date()
+            except (TypeError, ValueError):
+                continue
+            if day > target:
+                continue
+            ds = day.isoformat()
+            sessions.add(ds)
+            try:
+                price = float(value)
+                if not np.isfinite(price) or price <= 0:
+                    price = None
+            except (TypeError, ValueError):
+                price = None
+            # Conflicting duplicate observations cannot silently choose a price.
+            values[ds] = None if ds in values and values[ds] != price else price
+        if sum(value is not None for value in values.values()) >= 2:
+            histories[key] = values
+    if len(histories) < 2:  # Preserve the existing minimum index coverage.
+        return {}
+    days = sorted(sessions)
+    for previous, close in reversed(list(zip(days, days[1:]))):
+        if all(values.get(previous) is not None and values.get(close) is not None
+               for values in histories.values()):
+            return {key: (values[previous], values[close], previous, close)
+                    for key, values in histories.items()}
+    return {}
 
 
 def _overall_market_state(indexes: Dict[str, Dict[str, Any]]) -> str:
+    if _common_close_date(indexes) is None:
+        return "unknown"
     pcts = [float(x["pct_change"]) for x in indexes.values() if x.get("pct_change") is not None]
     if len(pcts) < 2:
         return "unknown"
@@ -307,6 +334,8 @@ def _market_state_label(state: str) -> str:
 
 
 def _market_stats(indexes: Dict[str, Dict[str, Any]]) -> Dict[str, Optional[float]]:
+    if _common_close_date(indexes) is None:
+        return {"average_pct_change": None, "average_abs_pct_change": None}
     pcts = [float(x["pct_change"]) for x in indexes.values() if x.get("pct_change") is not None]
     if not pcts:
         return {"average_pct_change": None, "average_abs_pct_change": None}
@@ -317,8 +346,20 @@ def _market_stats(indexes: Dict[str, Dict[str, Any]]) -> Dict[str, Optional[floa
 
 
 def _common_close_date(indexes: Dict[str, Dict[str, Any]]) -> Optional[str]:
-    dates = [x.get("close_date") for x in indexes.values() if x.get("close_date")]
-    return Counter(dates).most_common(1)[0][0] if dates else None
+    available = [x for x in indexes.values() if x.get("pct_change") is not None]
+    if len(available) < 2:
+        return None
+    periods = set()
+    for item in available:
+        try:
+            previous = date.fromisoformat(item.get("previous_close_date") or "")
+            close = date.fromisoformat(item.get("close_date") or "")
+            if previous >= close or not np.isfinite(float(item["pct_change"])):
+                return None
+        except (TypeError, ValueError):
+            return None
+        periods.add((previous.isoformat(), close.isoformat()))
+    return next(iter(periods))[1] if len(periods) == 1 else None
 
 
 def _human_date(ds: Optional[str]) -> str:
@@ -343,29 +384,34 @@ def _human_date_with_weekday(ds: Optional[str]) -> str:
 
 def _build_market_context(date_str: str) -> Tuple[Dict[str, Dict[str, Any]], str, Dict[str, Optional[float]], Optional[str]]:
     indexes: Dict[str, Dict[str, Any]] = {}
+    histories, errors = {}, {}
     for key, series_id in MARKET_SERIES.items():
         try:
-            rows = _fetch_fred_series(series_id, date_str, 20)
-            pair = _closest_trading_pair(rows, date_str)
-            if not pair:
-                raise RuntimeError("No trading pair found")
-            prev_close, close, close_date = pair
+            histories[key] = _fetch_fred_series(series_id, date_str, 20)
+        except Exception as exc:
+            errors[key] = str(exc)
+    pairs = _aligned_market_closes(histories, date_str)
+    for key, series_id in MARKET_SERIES.items():
+        if key in pairs:
+            prev_close, close, previous_date, close_date = pairs[key]
             pct = round(_pct_change(prev_close, close), 2)
             indexes[key] = {
                 "series_id": series_id,
+                "previous_close_date": previous_date,
                 "close_date": close_date,
                 "pct_change": pct,
                 "direction": _direction(pct),
                 "source": "FRED",
             }
-        except Exception as exc:
+        else:
             indexes[key] = {
                 "series_id": series_id,
+                "previous_close_date": None,
                 "close_date": None,
                 "pct_change": None,
                 "direction": "unknown",
                 "source": "FRED",
-                "error": str(exc),
+                "error": errors.get(key) or "No shared trading-date pair available",
             }
     state = _overall_market_state(indexes)
     return indexes, state, _market_stats(indexes), _common_close_date(indexes)
@@ -1294,6 +1340,11 @@ def _synthesize_explainer(
             f"REQUIRED MARKET CONTEXT: Broad U.S. stocks posted a {reaction} at {reaction_date}. "
             "Mention this reaction in what_happened, while keeping it clearly separate from the causes or forces behind the move."
         )
+    elif market_state == "unknown":
+        market_reaction_requirement = (
+            "MARKET CONTEXT: A market pulse is unavailable because sufficient aligned index data "
+            "could not be established. Do not infer a gain, decline, or steady market from this absence."
+        )
     else:
         market_reaction_requirement = (
             "MARKET CONTEXT: The market move was not unusually large, so mention it only if it materially improves the explanation."
@@ -1441,6 +1492,8 @@ def main():
     elif market_state == "mixed":
         market_trend_direction = "mixed"
         market_trend_label = "Markets mixed"
+    elif market_state == "unknown":
+        market_trend_label = "Market trend unavailable"
 
     signals = {
         "markets": {

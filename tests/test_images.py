@@ -40,6 +40,71 @@ class ImageIdentityChecks(unittest.TestCase):
         raw = '[<a href="https://example.org/author">https://example.org/author</a> Renée &amp; Jo] / Courtesy Archive'
         self.assertEqual('Renée & Jo / Courtesy Archive', self.images._commons_credit_text(raw))
 
+    def test_person_namesake_qualifier_requires_bound_identity(self):
+        ext = {"Categories": {"value": "Alex Morgan (Canadian actor)|Public domain"}}
+        for story, expected in (
+            ("Canadian actor Alex Morgan announced a new film.", True),
+            ("Alex Morgan, a Canadian actor, announced a new film.", True),
+            ("Alex Morgan is a Canadian actor.", True),
+            ("Australian athlete Alex Morgan won the match.", False),
+            ("Alex Morgan met a Canadian actor.", False),
+            ("A Canadian actor spoke. Alex Morgan won the match.", False),
+            ("Canadian actor Jamie Lee met Alex Morgan.", False),
+            ("", False),
+        ):
+            with self.subTest(story=story):
+                self.assertEqual(expected, self.images._commons_person_identity_matches(
+                    "Alex Morgan", story, "File:Alex Morgan.jpg", ext))
+
+    def test_person_identity_uses_exact_name_and_normalizes_markup_accents(self):
+        ext = {"Categories": {"value": "Rene Garcia (French actor)|Rene Garcia Jr. (Canadian actor)"}}
+        self.assertTrue(self.images._commons_person_identity_matches(
+            "René García", "René García, a French actor, will attend.", "File:René García.jpg", ext))
+        for field in ("ObjectName", "Categories"):
+            with self.subTest(field=field):
+                self.assertFalse(self.images._commons_person_identity_matches(
+                    "René García", "Canadian athlete René García won.", "File:René García.jpg",
+                    {field: {"value": "<b>Ren&eacute; Garc&iacute;a</b> (French actor)"}}))
+
+    def test_photo_year_and_unrelated_categories_are_not_namesake_identity(self):
+        self.assertTrue(self.images._commons_person_identity_matches(
+            "Alex Morgan", "Alex Morgan won.", "File:Alex Morgan (2019).jpg",
+            {"Categories": {"value": "Photos of Alex Morgan in Toronto|Jamie Lee (Canadian actor)"}}))
+        self.assertFalse(self.images._commons_person_identity_matches(
+            "Alex Morgan", "Alex Morgan won.", "File:Alex Morgan (Canadian actor).jpg", {}))
+
+    def test_final_image_check_rechecks_namesake_identity(self):
+        candidate, record = self.rights_fixture()
+        candidate.update(query="Alex Morgan", _anchor_type="person",
+                         _identity_context="Australian athlete Alex Morgan won.")
+        record['imageinfo'][0]['extmetadata']['Categories'] = {"value": "Alex Morgan (Canadian actor)"}
+        with patch.object(self.images, '_image_rights_record', return_value=record):
+            result, review = self.images.final_image_rights_check(candidate)
+            self.assertIsNone(result)
+            self.assertIn('Namesake identity', review['reason'])
+            candidate['_identity_context'] = "Canadian actor Alex Morgan attended."
+            result, review = self.images.final_image_rights_check(candidate)
+            self.assertIsNotNone(result)
+            self.assertEqual('passed', review['status'])
+
+    def test_commons_fetch_withholds_namesake_before_scoring(self):
+        from types import SimpleNamespace
+        m = self.images
+        m.IMAGES_OFF = False
+        payload = {"query": {"pages": {"123": {"pageid": 123, "title": "File:Alex Morgan.jpg",
+            "imageinfo": [{"thumburl": "https://example.test/photo.jpg", "extmetadata": {
+                "LicenseShortName": {"value": "Public domain"},
+                "Categories": {"value": "Alex Morgan (Canadian actor)"}}}]}}}}
+        m.requests = SimpleNamespace(get=lambda *a, **kw: SimpleNamespace(
+            raise_for_status=lambda: None, json=lambda: payload))
+        with patch.object(m, '_wiki_media_is_photo_candidate', return_value=True), \
+             patch.object(m, 'classify_candidate_medium', return_value='photo'), \
+             patch.object(m, '_candidate_context_metrics', return_value={'anchor_type': 'person'}), \
+             patch.object(m, '_context_candidate_is_safe', return_value=True), \
+             patch.object(m, '_temporal_context', side_effect=AssertionError('Must withhold before scoring')):
+            self.assertEqual([], m.fetch_wikimedia_image(
+                'Alex Morgan', 'Australian athlete Alex Morgan won.', all_candidates=True))
+
     def test_final_rights_withholds_unreadable_attribution(self):
         candidate, record = self.rights_fixture()
         record['imageinfo'][0]['extmetadata']['Artist']['value'] = 'Ren\ufffde'
@@ -362,6 +427,68 @@ class ImageIdentityChecks(unittest.TestCase):
                                       ("Iceland", "Iceland landscape", 3)):
             with self.subTest(anchor=anchor, text=text):
                 self.assertEqual(expected, self.images.anchor_match_score(anchor, text))
+
+    def test_common_noun_match_cannot_be_rescued_by_high_similarity(self):
+        metrics = {"anchor_score": 3, "named_subject_match": False,
+                   "anchor_type": "institution", "scene_type": "institution",
+                   "topic_semantic": .99, "anchor_semantic": .99,
+                   "title_focus": 1., "title_anchor_match": True}
+        self.assertFalse(self.images._context_candidate_is_safe(metrics))
+        metrics["named_subject_match"] = True
+        self.assertTrue(self.images._context_candidate_is_safe(metrics))
+
+    def test_single_word_identity_requires_a_complete_named_subject(self):
+        m = self.images
+        for names, expected in (([], False), ([("Swift River", "geographic")], False),
+                                ([("Taylor Swift", "person")], False),
+                                ([("Swift", "other")], True)):
+            with self.subTest(names=names), patch.object(m, '_image_named_entities', return_value=names):
+                self.assertEqual(expected, m._candidate_has_named_anchor(
+                    'Swift', 'Swift on a sign', 'A photograph of the sign.'))
+
+    def test_named_description_can_identify_a_sparse_caption_without_inventing_case(self):
+        m = self.images
+        caption = 'An office building at dusk.'
+        description = 'Headquarters of Beacon, the news magazine.'
+        with patch.object(m, '_image_named_entities', return_value=[('Beacon', 'institution')]) as extract:
+            self.assertTrue(m._candidate_has_named_anchor('Beacon', caption, description))
+            extract.assert_called_once_with(description, caption)
+        for caption in ('a beacon on the coast', 'A Beacon on the coast'):
+            with patch.object(m, '_image_named_entities', return_value=[]) as extract:
+                self.assertFalse(m._candidate_has_named_anchor('Beacon', caption, ''))
+                extract.assert_called_once_with(caption, '')
+
+    def test_missing_entity_model_withholds_single_word_candidate(self):
+        m = self.images
+        m._IMAGE_NLP_ATTEMPTED = True
+        m._IMAGE_NLP = None
+        self.assertFalse(m._candidate_has_named_anchor('Beacon', 'Beacon headquarters', ''))
+        # Longer names still go through the unchanged phrase/context gates.
+        with patch.object(m, '_image_named_entities', side_effect=AssertionError('No extra model work')):
+            self.assertTrue(m._candidate_has_named_anchor('Example University', 'Example University campus', ''))
+
+    def test_both_provider_paths_apply_named_subject_veto_before_ranking(self):
+        from types import SimpleNamespace
+        m = self.images
+        m.IMAGES_OFF = False
+        m.UNSPLASH_ACCESS_KEY = 'offline-placeholder'
+        photo = {'alt_description': 'A beacon on the coast', 'description': 'A beacon shining at sea'}
+        wiki = {'query': {'pages': {'1': {'title': 'File:A beacon on the coast.jpg', 'imageinfo': [{
+            'thumburl': 'https://example.test/photo.jpg', 'mime': 'image/jpeg',
+            'extmetadata': {'ImageDescription': {'value': photo['description']},
+                            'LicenseShortName': {'value': 'Public domain'}}}]}}}}
+        payloads = iter((wiki, {'results': [photo]}))
+        m.requests = SimpleNamespace(get=lambda *a, **kw: SimpleNamespace(
+            raise_for_status=lambda: None, json=lambda: next(payloads)))
+        with patch.object(m, '_image_named_entities', return_value=[]), \
+             patch.object(m, 'semantic_similarity', return_value=.99), \
+             patch.object(m, 'classify_context_anchor', return_value='institution'), \
+             patch.object(m, 'classify_candidate_scene', return_value='institution'), \
+             patch.object(m, 'classify_candidate_medium', return_value='photo'), \
+             patch.object(m, '_wiki_media_is_photo_candidate', return_value=True), \
+             patch.object(m, '_temporal_context', side_effect=AssertionError('Identity must veto before ranking')):
+            for fetch in (m.fetch_wikimedia_image, m.fetch_unsplash_image):
+                self.assertEqual([], fetch('Beacon', 'Beacon is a news magazine.', all_candidates=True))
 
     def test_no_fragment_fallback_when_full_subject_has_no_image(self):
         queries = self.queries(["Christa Pike awaits review", "Review of Christa Pike"],
