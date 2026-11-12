@@ -639,9 +639,10 @@
   "heraldglobe.com": {
     "bias": "Unknown",
     "sources": [
-      "unmapped_bias"
+      "unmapped_bias",
+      "https://www.biasly.com/sources/herald-globe-media-bias/"
     ],
-    "notes": "Big News Network/Midwest Radio Network affiliate; parent network is rated Center. Inheritance audit 2026-10-17: Prior Center rating was explicitly inherited from Big News Network/Midwest Radio Network. No outlet-specific assessment verified in bounded MBFC/AllSides/Ad Fontes searches. Parent/network affiliation does not establish this outlet rating; supersedes the inherited Center assignment."
+    "notes": "Reviewed 2026-11-12: Biasly offers a Herald Globe Medium Left (-44) lead, but corroboration and a representative sample were not established. Retain the existing Unknown hold; Big News Network / Midwest Radio Network ownership or shared wire material does not justify a Center or other inherited rating."
   },
   "hngnews.com": {
     "bias": "Center",
@@ -2827,7 +2828,7 @@
       "https://mediabiasfactcheck.com/ktul-tulsa-news/",
       "https://www.allsides.com/news-source/ktul-8-media-bias"
     ],
-    "notes": "MBFC Right-Center https://mediabiasfactcheck.com/ktul-tulsa-news/ Cross-check 2026-10-17 (supersedes prior assignment where conflicting): MBFC Right-Center conflicts with AllSides Center (Independent Review, low/initial confidence, September 2026). Unknown pending resolution."
+    "notes": "Reviewed 2026-11-12: MBFC's KTUL Tulsa assessment is Right-Center, whereas AllSides KTUL 8 is Center (independent review; low/initial confidence). Retain Unknown for this unresolved outlet-specific disagreement. A local-news format, network affiliation, or parent ownership does not resolve it."
   },
   "foxbaltimore.com": {
     "bias": "Right",
@@ -3494,11 +3495,10 @@
   "news4sanantonio.com": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-auto-seen",
       "https://mediabiasfactcheck.com/woai-san-antonio-news-bias/",
       "https://www.allsides.com/news-source/woai-4-media-bias"
     ],
-    "notes": "MBFC Right-Center https://mediabiasfactcheck.com/woai-san-antonio-news-bias/ Cross-check 2026-10-17 (supersedes prior assignment where conflicting): MBFC Right-Center; indexed AllSides WOAI 4 profile reports Center with low/initial confidence (August 2026), but older fetched page displays Not Rated/loading. Provider disagreement and inconsistent retrievable evidence unresolved. Unknown pending verification. WOAI 4 television website, not News Radio 1200 WOAI."
+    "notes": "Deep review 2026-11-12: WOAI 4 television, not WOAI talk radio. MBFC exact-domain profile rates it Right-Center (updated 2025-08-29). The indexed AllSides WOAI 4 profile reports Center with low/initial confidence; direct retrieval still shows a Not Rated/loading shell. No evidence resolves the provider disagreement or retrieval inconsistency. Retain Unknown rather than inherit Sinclair, NBC or a radio-station rating."
   },
   "dailypress.com": {
     "bias": "Right",
@@ -3547,10 +3547,11 @@
   "ktxs.com": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-auto-seen",
-      "https://mediabiasfactcheck.com/sinclair-broadcast-group/"
+      "https://ktxs.com/station/contact",
+      "https://mediabiasfactcheck.com/sinclair-broadcast-group/",
+      "https://www.perspectify.com/publications/73983/ktxs---texas"
     ],
-    "notes": "Sinclair; MBFC Right https://mediabiasfactcheck.com/sinclair-broadcast-group/ Station cross-check 2026-10-17: Prior Right assignment cited Sinclair parent ownership, not a station-specific rating. No directly verified station rating located in this bounded MBFC/AllSides/Ad Fontes search. Parent ownership and affiliation are insufficient; supersede prior assignment with Unknown."
+    "notes": "Deep review 2026-11-12: KTXS Abilene identity is verified on the station contact page. Exact-name/domain searches did not verify a matching MBFC, AllSides or Ad Fontes assessment. AllSides stories mentioning KTXS rate their publishing outlets, not KTXS. A secondary Center-right label was not traced to a verified accepted-provider assessment. The previous Sinclair-only Right assignment remains withdrawn; ownership and ABC affiliation are insufficient."
   },
   "abc7amarillo.com": {
     "bias": "Right",
@@ -3611,9 +3612,10 @@
   "edenmagnet.com.au": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-auto-seen"
+      "gdelt-auto-seen",
+      "https://www.biasly.com/sources/eden-magnet-media-bias/"
     ],
-    "notes": "ACM regional; MBFC peers Left-Center. Inheritance audit 2026-10-17: Prior Left rating cited ACM regional peers rather than this outlet. No exact-outlet primary rating verified in bounded MBFC/AllSides/Ad Fontes search. Related newspaper ratings are insufficient; supersedes inherited Left assignment."
+    "notes": "Reviewed 2026-11-12: Biasly reports Somewhat Left (-28), but corroborating outlet-specific evidence was not established. Preserve Unknown rather than restore the earlier ACM-peer inference. Shared ownership with other Australian papers does not establish Eden Magnet's political lean."
   },
   "maitlandmercury.com.au": {
     "bias": "Left",
@@ -4371,9 +4373,11 @@
     "bias": "Unknown",
     "sources": [
       "gdelt-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.asiaone.com/about-us",
+      "https://www.biasly.com/sources/asiaone-media-bias/"
     ],
-    "notes": "No reliable rating; Singapore left/right mapping unclear. Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: AsiaOne's About page establishes the publication identity. Biasly reports Center (-8), but its representative sample and corroborating assessment were not established. Retain Unknown; Singapore location, aggregation, or ownership cannot supply a political label."
   },
   "livemint.com": {
     "bias": "Center",
@@ -4741,7 +4745,7 @@
       "gdelt-discovery-auto-seen",
       "https://mediabiasfactcheck.com/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: No verified political assessment of this Gloucestershire Gazette Series was found in the bounded search. Generic Gazette results and commercial press-placement listings are not outlet-bias evidence. Do not inherit a rating from another Gazette title."
   },
   "katu.com": {
     "bias": "Right",
@@ -4773,9 +4777,11 @@
     "bias": "Unknown",
     "sources": [
       "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://medicinehatnews.com/about-medicine-hat-news/",
+      "https://www.biasly.com/sources/medicine-hat-news-media-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: The official About page identifies Medicine Hat News. Biasly reports Center (4), but an adequately corroborated political assessment and representative sample were not established. Local coverage and the publication's own description are not sufficient to assign Center."
   },
   "politico.eu": {
     "bias": "Left",
@@ -4796,12 +4802,13 @@
     "notes": "Directory review 2026-10-17: Verified exact domain in MBFC directory and linked primary profile. Provider political rating: RIGHT-CENTER; stored as Right under the existing mapping. Profile source: https://www.recorder.ca/. Profile updated September 21, 2026. Single-provider evidence, not independently corroborated consensus; political lean is separate from factual reliability. This completed check supersedes earlier missing-profile notes where present."
   },
   "rhyljournal.co.uk": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
       "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://mediabiasfactcheck.com/rhyl-journal-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: MBFC's exact Rhyl Journal profile rates Least Biased (2024-08-02), mapped to Center. Its Source and cited local article identify rhyljournal.co.uk. The review discusses this title's reporting and editorial balance, rather than assigning Newsquest's politics. Single-provider assessment."
   },
   "thedailystar.net": {
     "bias": "Unknown",
@@ -4830,12 +4837,13 @@
     "notes": "Reviewed 2026-10-17. WISN-TV Milwaukee; do not confuse with WISN AM talk radio. Secondary Center claims found, but underlying exact-outlet MBFC or Ad Fontes assessment not verified. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: Verified exact domain in MBFC directory and linked primary profile. Provider political rating: LEAST BIASED; stored as Center under the existing mapping. Profile source: https://www.wisn.com/. Profile updated August 20, 2025. Single-provider evidence, not independently corroborated consensus; political lean is separate from factual reliability. This completed check supersedes earlier missing-profile notes where present."
   },
   "wokv.com": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
-      "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://adfontesmedia.com/democrats-trust-online-print-web-chart-july2025/",
+      "https://adfontesmedia.com/wp-content/uploads/2025/07/MBC-Social-Web-July-25-scaled.jpg",
+      "https://www.wokv.com/contact-us/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: 104.5 WOKV Jacksonville is visibly placed in the Middle column of Ad Fontes Media July 2025 Website Edition chart. Its accompanying official article lists the station, and wokv.com confirms the exact station identity. Map Middle to existing Center. This is a verified historical website-news assessment, not a claim about every radio host or program; no numeric bias score is inferred from the graphic. No conflicting accepted-provider assessment was verified."
   },
   "wtov9.com": {
     "bias": "Right",
@@ -5132,10 +5140,10 @@
   "brandonsun.com": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://www.biasly.com/sources/brandon-sun-media-bias/",
+      "https://adfontesmedia.com/rankings-by-individual-news-source/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: Brandon Sun. Biasly reports Somewhat Left, but no exact-outlet assessment was verified from MBFC, AllSides or Ad Fontes. The Biasly result remains a research lead outside the accepted provider set. A press-council complaint ruling or a shared owner with another Canadian paper would not establish the outlet political lean. Retain Unknown."
   },
   "cecildaily.com": {
     "bias": "Left",
@@ -5175,19 +5183,20 @@
   "hindustantimes.com": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/fake-news/?pg=2",
-      "https://mediabiasfactcheck.com/hindustan-times/"
+      "https://mediabiasfactcheck.com/hindustan-times/",
+      "https://www.allsides.com/news-source/hindustan-times-media-bias"
     ],
-    "notes": "Directory review 2026-10-17: MBFC LEFT-CENTER profile located; possible differing AllSides assessment still needs verification. Keep Unknown pending comparison. Candidate provider label: LEFT-CENTER."
+    "notes": "Deep review 2026-11-12: Direct primary profiles confirm a disagreement: MBFC rates Hindustan Times Left-Center, while AllSides rates it Center with low/initial confidence as of November 2026. Retain Unknown rather than average the labels or pick the preferred provider. MBFC factuality concerns are a separate dimension and do not determine the political category."
   },
   "iowapublicradio.org": {
     "bias": "Unknown",
     "sources": [
       "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.allsides.com/news-source/iowa-public-radio-media-bias",
+      "https://mediabiasfactcheck.com/kicp-npr-patterson-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: AllSides lists Iowa Public Radio Center with low/initial confidence. MBFC's KICP NPR Patterson profile rates Left-Center and explicitly evaluates the shared iowapublicradio.org website, linking it as Source. These differ, so retain Unknown rather than inheriting a national NPR rating or treating an initial Center label as settled."
   },
   "kedm.org": {
     "bias": "Left",
@@ -5297,10 +5306,11 @@
   "wgauradio.com": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://ground.news/interest/wgau",
+      "https://www.allsides.com/media-bias/ratings",
+      "https://adfontesmedia.com/rankings-by-individual-news-source/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: WGAU. Searches using the station name and domain did not verify an outlet-specific assessment from MBFC, AllSides or Ad Fontes. Ground News also lists it as Unknown; that is corroboration of an unresolved lookup, not proof that no assessment exists. Do not copy the WOKV website rating or infer a station-wide lean from individual syndicated programs."
   },
   "wkzo.com": {
     "bias": "Right",
@@ -5332,20 +5342,19 @@
   "foxsanantonio.com": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-auto-seen",
-      "https://mediabiasfactcheck.com/right-center/",
       "https://mediabiasfactcheck.com/kabb-fox-29-bias/",
       "https://www.allsides.com/news-source/fox-29-kabb-media-bias"
     ],
-    "notes": "Directory review 2026-10-17: Verified exact domain in MBFC directory and linked primary profile. Provider political rating: RIGHT-CENTER; stored as Right under the existing mapping. Profile source: https://foxsanantonio.com/. Profile updated March 7, 2025. Single-provider evidence, not independently corroborated consensus; political lean is separate from factual reliability. This completed check supersedes earlier missing-profile notes where present. Station cross-check 2026-10-17: MBFC KABB station profile Right-Center conflicts with the indexed AllSides Fox 29 KABB Center profile (Independent Review; low/initial confidence). Directly opened older AllSides page displays Not Rated/loading. Conflicting/inconsistent available evidence; supersede prior Right assignment with Unknown pending resolution."
+    "notes": "Deep review 2026-11-12: KABB / Fox 29 San Antonio. The previously verified MBFC Right-Center assessment remains in tension with the indexed AllSides Center profile, which identifies foxsanantonio.com and has low/initial confidence. Direct AllSides retrieval still shows a Not Rated/loading shell; the MBFC detail page returned HTTP 429 during this pass. These retrieval limitations do not resolve the prior disagreement. Keep Unknown; Fox affiliation alone is not evidence of Fox News political lean."
   },
   "wvtm13.com": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
       "gdelt-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://mediabiasfactcheck.com/wvtm-birmingham-news-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: MBFC's WVTM Birmingham profile rates Least Biased (updated 2025-09-11), mapped to Center. Its Source link and reviewed local article both identify wvtm13.com; the directory's wvtm.com spelling is not the basis. The analysis covers this station's wording and editorial selection, not just Hearst ownership. Single-provider assessment; factual reliability is separate."
   },
   "assetstore.unity.com": {
     "bias": "Unknown",
@@ -5509,12 +5518,13 @@
     "notes": "Directory review 2026-10-17: Profile label PRO-SCIENCE is not an unambiguous political category in our existing mapping; factuality/science labels are not converted to Center. Candidate provider label: PRO-SCIENCE."
   },
   "techdirt.com": {
-    "bias": "Unknown",
+    "bias": "Left",
     "sources": [
       "auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://mediabiasfactcheck.com/techdirt/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited. Reviewed 2026-11-12: MBFC explicitly identifies techdirt.com and rates Techdirt Left-Center based on its technology-policy positions and story selection; updated 2023-06-30. Store Left (UI: Left Lean). Exact-outlet, single-provider evidence supersedes the prior missing-directory-match note; no assumption from technology coverage or ownership."
   },
   "theintercept.com": {
     "bias": "Left",
@@ -5526,12 +5536,13 @@
     "notes": "Directory review 2026-10-17: Verified exact domain in MBFC directory and linked primary profile. Provider political rating: LEFT; stored as Left under the existing mapping. Profile source: https://theintercept.com/. Profile updated July 2, 2026. Single-provider evidence, not independently corroborated consensus; political lean is separate from factual reliability. This completed check supersedes earlier missing-profile notes where present."
   },
   "theregister.com": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
       "auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://mediabiasfactcheck.com/the-register-uk/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited. Reviewed 2026-11-12: MBFC explicitly links theregister.com and rates The Register UK Least Biased (-1.0), updated 2026-05-22. Store Center using the explicit political assessment, not its High factual-reporting label or a generic pro-science classification. Exact-outlet, single-provider evidence supersedes the prior missing-directory-match note."
   },
   "thoughtcatalog.com": {
     "bias": "Unknown",
@@ -5676,13 +5687,11 @@
     "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
   },
   "cravenherald.co.uk": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
-      "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/center-/?pg=1",
       "https://mediabiasfactcheck.com/craven-herald-pioneer-bias/"
     ],
-    "notes": "Directory review 2026-10-17: Profile source domain (not extracted) does not verify the exact tracker domain; manual identity review needed. Candidate provider label: LEAST BIASED."
+    "notes": "Deep review 2026-11-12: MBFC Craven Herald and Pioneer profile explicitly links www.cravenherald.co.uk and consistently rates it Least Biased; profile updated 2025-10-13. Map Least Biased to existing Center. Its assessment discusses the publication own local reporting and editorial balance, not merely Newsquest ownership. This resolves the prior missing-domain extraction hold; no conflicting accepted-provider assessment was verified."
   },
   "dorsetecho.co.uk": {
     "bias": "Center",
@@ -5706,17 +5715,19 @@
     "bias": "Unknown",
     "sources": [
       "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://mediabias.news/sources/heraldseriescouk"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: No exact primary-provider assessment was verified for Herald Series. A secondary listing claims an Ad Fontes Center rating, but a supporting Ad Fontes profile was not established. The claim is a research lead, not verified evidence; do not substitute another Herald publication."
   },
   "journal-advocate.com": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
       "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://mediabiasfactcheck.com/sterling-journal-advocate-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: MBFC's Sterling Journal-Advocate profile rates Least Biased (updated 2023-06-30), mapped to Center. Both its Source and example article identify journal-advocate.com, and the analysis discusses reporting and opinion balance. Single-provider assessment; older review date retained for future maintenance."
   },
   "kcci.com": {
     "bias": "Center",
@@ -5952,17 +5963,18 @@
       "gdelt-discovery-auto-seen",
       "https://mediabiasfactcheck.com/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: No verified exact-domain political assessment was found in this bounded search. Secondary discovery listings do not establish a rated provider profile. The broad London name must not inherit ratings from other London publications."
   },
   "nbcsandiego.com": {
-    "bias": "Unknown",
+    "bias": "Left",
     "sources": [
       "gdelt-discovery-auto-seen",
       "https://ground.news/interest/nbc-san-diego",
       "https://mediabiasfactcheck.com/leftcenter/?pg=3",
-      "https://mediabiasfactcheck.com/nbc-7-san-diego-bias-and-credibility/"
+      "https://mediabiasfactcheck.com/nbc-7-san-diego-bias-and-credibility/",
+      "https://www.allsides.com/news-source/nbc-7-san-diego-media-bias"
     ],
-    "notes": "Reviewed 2026-10-17. Secondary listings report differing Center and Lean Left assessments. Exact KNSD / NBC 7 provider profiles were not verified; national NBC ratings cannot establish this local outlet rating. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: Exact MBFC local-station profile is now verified, but previously documented possible Center versus Lean Left disagreement remains unresolved. Candidate provider label: LEFT-CENTER."
+    "notes": "Reviewed 2026-11-12: MBFC's exact NBC 7 San Diego profile rates Left-Center (2025-12-27); AllSides independently lists NBC 7 San Diego Lean Left, with low/initial confidence. Both map to Left / Left Lean and agree at the category level. MBFC links nbcsandiego.com and discusses its political coverage. This resolves the earlier unverified secondary Center/Lean Left concern using primary profiles; no national NBC rating inherited."
   },
   "stardem.com": {
     "bias": "Center",
@@ -5974,13 +5986,13 @@
     "notes": "Directory review 2026-10-17: Verified exact domain in MBFC directory and linked primary profile. Provider political rating: LEAST BIASED; stored as Center under the existing mapping. Profile source: http://www.stardem.com. Profile updated May 29, 2026. Single-provider evidence, not independently corroborated consensus; political lean is separate from factual reliability. This completed check supersedes earlier missing-profile notes where present."
   },
   "sthelensstar.co.uk": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
       "gdelt-discovery-auto-seen",
       "https://mediabiasfactcheck.com/leftcenter/?pg=4",
       "https://mediabiasfactcheck.com/st-helens-star-bias/"
     ],
-    "notes": "Directory review 2026-10-17: Directory label and profile political rating disagree; manual review needed. Candidate provider label: LEAST BIASED."
+    "notes": "Directory review 2026-10-17: Directory label and profile political rating disagree; manual review needed. Candidate provider label: LEAST BIASED. Reviewed 2026-11-12: The exact-outlet MBFC profile names sthelensstar.co.uk; its summary, detailed Bias Rating and concluding assessment consistently say Least Biased (updated 2024-10-05). Store Center under the existing mapping. This supersedes the earlier directory/profile mismatch hold: the detailed outlet profile is the evidence, not its category-directory placement. Single-provider assessment based on editorial content, not Newsquest/Gannett ownership."
   },
   "texarkanagazette.com": {
     "bias": "Right",
@@ -6112,11 +6124,10 @@
   "aol.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-discovery-auto-seen",
       "https://www.biasly.com/sources/aol-uk-media-bias/",
-      "https://mediabiasfactcheck.com/"
+      "https://adfontesmedia.com/rankings-by-individual-news-source/"
     ],
-    "notes": "Reviewed 2026-10-17. AOL UK. Biasly candidate located, but no exact-outlet assessment verified within the existing MBFC / AllSides / Ad Fontes source set. Do not transfer AOL US or individual syndicator ratings. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: AOL UK. Biasly currently reports Center, but no exact UK-edition assessment was verified from MBFC, AllSides or Ad Fontes. Ad Fontes lists a separate Aol.com source page; that does not establish coverage of aol.co.uk. Retain Unknown rather than transfer the US portal or individual syndicator ratings."
   },
   "braintreeandwithamtimes.co.uk": {
     "bias": "Center",
@@ -6167,9 +6178,10 @@
     "bias": "Unknown",
     "sources": [
       "gdelt-discovery-auto-seen",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.chelmsfordcitynews.co.uk/publications/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: No verified exact-title political assessment was found. The site's publications page also lists Thurrock Gazette and other products; this does not demonstrate that another title's bias rating applies to Chelmsford City News. Publisher membership and shared content are not rating evidence."
   },
   "chimpreports.com": {
     "bias": "Unknown",
@@ -6392,27 +6404,29 @@
   "2news.com": {
     "bias": "Unknown",
     "sources": [
-      "https://www.2news.com/site/",
-      "https://www.2news.com/site/privacy.html",
-      "https://mediabiasfactcheck.com/"
+      "https://www.2news.com/elections/voterguide/",
+      "https://www.allsides.com/news-source/ktvn-media-bias",
+      "https://www.biasly.com/sources/2-news-nevada-media-bias/"
     ],
-    "notes": "Reviewed 2026-10-17. KTVN / 2 News Nevada identity confirmed; no exact-outlet primary bias assessment verified. Do not transfer another Channel 2 station rating. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: KTVN / 2 News Nevada identity is confirmed by its own voter guide and business profile. AllSides KTVN lookup returns Source Not Found; no exact MBFC or Ad Fontes assessment was verified. Biasly offers a Somewhat Left assessment, recorded only as a lead outside the existing accepted provider set. Do not transfer another Channel 2 station rating or infer Center from a voter guide."
   },
   "gazette-news.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "manual-research-unverified",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabias.news/sources/gazette-news",
+      "https://adfontesmedia.com/rankings-by-individual-news-source/",
+      "https://mediabiasfactcheck.com/center/"
     ],
-    "notes": "Reviewed 2026-10-17. Colchester Gazette. Secondary rating claims found, but no underlying exact-outlet assessment verified from MBFC, AllSides or Ad Fontes. Do not inherit Newsquest ratings. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: Colchester Gazette / Gazette and Essex County Standard. A secondary directory attributes Center to Ad Fontes, but an underlying matching public Ad Fontes assessment was not verified. Exact domain and alias searches also did not verify an MBFC or AllSides profile. Keep the secondary claim as a lead only; neither local coverage nor Newsquest ownership establishes Center."
   },
   "indiatimes.com": {
     "bias": "Unknown",
     "sources": [
       "https://mediabiasfactcheck.com/india-times-bias-rating/",
-      "https://mediabiasfactcheck.com/right-center/"
+      "https://mediabiasfactcheck.com/the-economic-times/",
+      "https://mediabiasfactcheck.com/times-of-india/"
     ],
-    "notes": "Reviewed 2026-10-17. Domain scope is ambiguous in the saved edition: this key groups economictimes.indiatimes.com and timesofindia.indiatimes.com. MBFC rates the separate www.indiatimes.com publication RIGHT-CENTER; that assessment cannot safely classify this combined key. Domain handling unchanged. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: Saved domain key combines different publications; root-site assessment cannot safely classify the combined key. Candidate provider label: RIGHT-CENTER."
+    "notes": "Deep review 2026-11-12: Saved source lists combine economictimes.indiatimes.com and timesofindia.indiatimes.com under this root key. Separate MBFC profiles for Economic Times, Times of India and www.indiatimes.com each currently say Right-Center, but none establishes a rating for every publication covered by the root-domain override. Retain Unknown until publication-specific scope can be preserved; this is a mapping limitation, not a Center judgment. Domain handling remains unchanged."
   },
   "maldonandburnhamstandard.co.uk": {
     "bias": "Center",
@@ -6426,18 +6440,19 @@
   "netscape.com": {
     "bias": "Unknown",
     "sources": [
-      "manual-research-unverified",
-      "https://mediabiasfactcheck.com/"
+      "https://www.allsides.com/news-source/john-gable-allsides-co-founder-media-bias",
+      "https://adfontesmedia.com/rankings-by-individual-news-source/"
     ],
-    "notes": "Reviewed 2026-10-17. No exact-outlet primary bias assessment verified. Portal or republished content does not establish a single outlet lean; do not inherit AOL or wire-service ratings. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: The saved source URLs use isp.netscape.com. Exact Netscape/portal searches did not verify an outlet-specific MBFC, AllSides or Ad Fontes assessment. Search results about an AllSides founder formerly employed at Netscape rate that person, not this news portal. Do not inherit AOL, a contributing publisher or a wire-service rating."
   },
   "webindia123.com": {
     "bias": "Unknown",
     "sources": [
       "https://www.webindia123.com/legal/",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.allsides.com/news-source/webindia123-media-bias"
     ],
-    "notes": "Reviewed 2026-10-17. No exact-outlet primary bias assessment verified. Do not infer political lean from country or syndicated articles. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: Rechecked Webindia123 and the news.webindia123.com publication. No verified outlet-specific primary assessment was found; the apparent AllSides profile returns Source Not Found. Original wire-provider labels and other Indian news sites' ratings do not establish this publisher's lean."
   },
   "1017chuckfm.com": {
     "bias": "Unknown",
@@ -6461,7 +6476,7 @@
       "manual-research-unverified",
       "https://mediabiasfactcheck.com/"
     ],
-    "notes": "Reviewed 2026-10-17. WFEA. Domain and station-name searches did not verify an exact-outlet primary bias assessment. Individual hosts or talk format are insufficient for this website rating. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: No verified outlet-specific political rating was found for WFEA / 1370wfea.com. Search results about similarly abbreviated organizations or articles mentioning the station do not rate this outlet. Neither talk-radio format nor a host's politics establishes the website's general lean."
   },
   "3wv.com": {
     "bias": "Unknown",
@@ -6478,15 +6493,16 @@
       "https://www.allsides.com/news-source/anadolu-agency-media-bias",
       "https://mediabiasfactcheck.com/right/"
     ],
-    "notes": "Reviewed 2026-10-17. Conflicting scope and ratings: MBFC RIGHT (updated 2026-08-25; Turkish political / pro-government context) versus AllSides Center (March 2026 initial independent review emphasizing US politics). Keep Unknown instead of averaging different contexts. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: Previously documented MBFC / AllSides disagreement and differing national scope remain unresolved. Candidate provider label: RIGHT."
+    "notes": "Reviewed 2026-11-12: Reconfirmed MBFC Right versus AllSides Center for Anadolu Agency. The MBFC analysis concerns Turkish pro-government/conservative alignment; AllSides uses a US-oriented political scale and has an initial assessment. Different contexts are not interchangeable. Keep Unknown rather than average them or equate factual reliability with political neutrality."
   },
   "applevalleynewsnow.com": {
     "bias": "Unknown",
     "sources": [
       "https://ground.news/interest/applevalleynewsnowcom",
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.linkedin.com/company/apple-valley-news-now"
     ],
-    "notes": "Reviewed 2026-10-17. No exact-outlet primary rating verified. Ground News also lists Unknown; this is corroboration of missing evidence, not proof no rating exists. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: Checked Apple Valley News Now and KAPP/KVEW naming. The station identity is supported, but no verified exact-publication political assessment was found. Do not transfer a Morgan Murphy, ABC network, or another regional station's rating; affiliation is not outlet-specific evidence."
   },
   "blackamericaweb.com": {
     "bias": "Unknown",
@@ -6495,7 +6511,7 @@
       "https://mediabias.news/sources/black-america-web",
       "https://mediabiasfactcheck.com/left/"
     ],
-    "notes": "Reviewed 2026-10-17. MBFC exact-domain LEFT assessment verified (2025-01-13), but a secondary listing claims a conflicting Ad Fontes Center rating that could not be traced to a primary assessment. Conservatively pending resolution; the alleged conflict is unverified, not established. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: Previously documented potential provider disagreement remains unresolved; the secondary claim is not treated as a verified rating. Candidate provider label: LEFT."
+    "notes": "Reviewed 2026-10-17. MBFC exact-domain LEFT assessment verified (2025-01-13), but a secondary listing claims a conflicting Ad Fontes Center rating that could not be traced to a primary assessment. Conservatively pending resolution; the alleged conflict is unverified, not established. Unknown records insufficient or unresolved evidence, not a Center assessment. Directory review 2026-10-17: Previously documented potential provider disagreement remains unresolved; the secondary claim is not treated as a verified rating. Candidate provider label: LEFT. Reviewed 2026-11-12: MBFC still explicitly rates the exact outlet Left, updated 2025-01-13. The previously recorded secondary claim of an Ad Fontes Center rating has not been resolved with primary evidence. Preserve the existing Unknown hold; the alleged conflicting rating is not treated as verified."
   },
   "boston.com": {
     "bias": "Unknown",
@@ -6566,9 +6582,10 @@
     "bias": "Unknown",
     "sources": [
       "https://mediabiasfactcheck.com/right-center/",
-      "https://mediabiasfactcheck.com/wsyx-abc6onyourside-com-bias/"
+      "https://mediabiasfactcheck.com/wsyx-abc6onyourside-com-bias/",
+      "https://www.allsides.com/news-source/wsyx-media-bias"
     ],
-    "notes": "Directory review 2026-10-17: Profile source domain (kpic.com) does not verify the exact tracker domain; manual identity review needed. Candidate provider label: RIGHT-CENTER."
+    "notes": "Reviewed 2026-11-12: MBFC's WSYX profile rates Right-Center and cites an ABC6 article, but its Source link incorrectly points to kpic.com (updated 2025-09-05). The AllSides WSYX path returns Source Not Found. Identity metadata remains inconsistent and independent corroboration was not verified; no Sinclair/network inheritance."
   },
   "acadiananewsfirst.com": {
     "bias": "Unknown",
@@ -6783,7 +6800,7 @@
       "https://mediabiasfactcheck.com/kgan-cedar-rapids-news/",
       "https://www.allsides.com/news-source/kgan-cbs-2-media-bias"
     ],
-    "notes": "Directory review 2026-10-17: Verified exact domain in MBFC directory and linked primary profile. Provider political rating: RIGHT-CENTER; stored as Right under the existing mapping. Profile source: https://cbs2iowa.com/. Profile updated March 21, 2025. Single-provider evidence, not independently corroborated consensus; political lean is separate from factual reliability. This completed check supersedes earlier missing-profile notes where present. Cross-check 2026-10-17 (supersedes prior assignment where conflicting): MBFC Right-Center conflicts with AllSides Center (Independent Review, low/initial confidence, September 2026). Unknown pending resolution."
+    "notes": "Reviewed 2026-11-12: MBFC's KGAN profile rates Right-Center, while AllSides KGAN CBS 2 rates Center (independent review; low/initial confidence). Both concern the local outlet. Keep Unknown pending resolution; CBS affiliation and Sinclair ownership do not settle this disagreement."
   },
   "cbs58.com": {
     "bias": "Left",
@@ -6799,7 +6816,7 @@
       "https://mediabiasfactcheck.com/right-center/",
       "https://mediabiasfactcheck.com/wrgb-albany-bias/"
     ],
-    "notes": "Directory review 2026-10-17: Profile source domain (turnto10.com) does not verify the exact tracker domain; manual identity review needed. Candidate provider label: RIGHT-CENTER. Station cross-check 2026-10-17: Keep Unknown. MBFC WRGB profile explicitly names cbs6albany.com and Right-Center, but its Source link points to unrelated turnto10.com. Conflicting identity metadata remains unresolved; no independent station rating verified. Do not silently accept the mismatched source link."
+    "notes": "Reviewed 2026-11-12: MBFC's WRGB profile names cbs6albany.com and rates Right-Center, but its Source link still points to unrelated turnto10.com (profile updated 2025-09-05). The identity inconsistency remains unresolved. No corroborating primary assessment was verified; do not inherit Sinclair or CBS ratings."
   },
   "channel3000.com": {
     "bias": "Center",
@@ -6820,16 +6837,19 @@
   "chroniclejournal.com": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.biasly.com/sources/the-chronicle-journal-media-bias/",
+      "https://www.mediacouncil.ca/decisions/2016-25-paul-olsen-vs-chronicle-journal/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: Biasly reports Medium Left (-66), but corroboration and a representative sample were not established for the Thunder Bay Chronicle-Journal. A press-council decision on an individual complaint is not a general political rating. Other Chronicle or Journal publications are not matches."
   },
   "citynews.ca": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/680-news/",
+      "https://mediabiasfactcheck.com/citynews-calgary-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Publication-specific review 2026-11-12: Keep the shared root Unknown. Verified Center mappings now exist separately for toronto.citynews.ca and calgary.citynews.ca, using their exact MBFC profiles. The existing URL lookup already supports these hosts; no code change is needed. The root entry must not assign a blanket rating to other CityNews regional editions or Rogers properties."
   },
   "clactonandfrintongazette.co.uk": {
     "bias": "Center",
@@ -6907,7 +6927,7 @@
       "https://mediabiasfactcheck.com/right/",
       "https://mediabiasfactcheck.com/daily-sabah/"
     ],
-    "notes": "Directory review 2026-10-17: Profile source domain (sabah.com.tr) does not verify the exact tracker domain; manual identity review needed. Candidate provider label: RIGHT."
+    "notes": "Directory review 2026-10-17: Profile source domain (sabah.com.tr) does not verify the exact tracker domain; manual identity review needed. Candidate provider label: RIGHT. Reviewed 2026-11-12: The candidate MBFC page currently assesses Sabah and mentions an English-language edition named Daily Sabah, but its explicit source domain remains sabah.com.tr. The scope of the separate dailysabah.com editorial output is not established by that alone. Retain Unknown; no cross-publication inheritance."
   },
   "deccanchronicle.com": {
     "bias": "Right",
@@ -7113,7 +7133,7 @@
       "https://mediabiasfactcheck.com/wpfo-portland-news-bias/",
       "https://www.biasly.com/sources/wpfo-media-bias/"
     ],
-    "notes": "Directory review 2026-10-17: Verified exact domain in MBFC directory and linked primary profile. Provider political rating: RIGHT-CENTER; stored as Right under the existing mapping. Profile source: https://fox23maine.com/. Profile updated August 31, 2025. Single-provider evidence, not independently corroborated consensus; political lean is separate from factual reliability. This completed check supersedes earlier missing-profile notes where present. Cross-check 2026-10-17 (supersedes prior assignment where conflicting): MBFC Right-Center; indexed Biasly WPFO profile reports -14% Somewhat Left and cautions about limited original political articles. Contrary secondary evidence recorded as a reason for uncertainty, not adopted as a replacement rating or automatic provider. Unknown pending stronger corroboration."
+    "notes": "Deep review 2026-11-12: WPFO / Fox 23 Maine remains listed in the MBFC Right-Center directory, but its detailed profile returned HTTP 429 during this pass. The earlier conflicting Biasly Somewhat Left assessment (-14) is still visible; it is recorded as unresolved contrary evidence, not adopted as a replacement rating. No additional accepted-provider corroboration was verified. Retain the prior Unknown hold; do not infer lean from Sinclair ownership or Fox affiliation."
   },
   "fox2detroit.com": {
     "bias": "Center",
@@ -7173,9 +7193,10 @@
   "freepressseries.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.biasly.com/sources/free-press-series-media-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: Biasly identifies the South Wales Free Press Series and reports Center (0), but corroboration and a representative sample were not established. This is not the US publication The Free Press; neither that title's politics nor local-news status should be inherited."
   },
   "froggyweb.com": {
     "bias": "Unknown",
@@ -7187,9 +7208,10 @@
   "gazetteherald.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/wiltshire-gazette-herald-bias/",
+      "https://www.northyorks.gov.uk/leisure-tourism-and-culture/libraries/libraries-local-and-special-collections"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: Gazette and Herald in North Yorkshire. Exact-domain and Malton/Ryedale name searches did not verify a matching MBFC, AllSides or Ad Fontes assessment. The MBFC Wiltshire Gazette and Herald profile belongs to gazetteandherald.co.uk, a different publication; its Least Biased rating must not be transferred on a similar name or shared ownership."
   },
   "georgetown.edu": {
     "bias": "Unknown",
@@ -7231,16 +7253,18 @@
   "gulfcoastnewsnow.com": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://www.gulfcoastnewsnow.com/article/gulf-coast-news-nbc2-abc7-fort-myers/63677491",
+      "https://www.gulfcoastnewsnow.com/article/about/63592584"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: Official rebranding notice identifies the combined WBBH / Gulf Coast NBC and WZVN / Gulf Coast ABC service. Searches under the current domain, Gulf Coast News, NBC2, WBBH and WZVN did not verify an outlet-specific assessment from MBFC, AllSides or Ad Fontes. Other articles mentioning these stations carry the publishing outlet rating, not a rating of WBBH/WZVN. Do not inherit NBC, ABC or Hearst ratings."
   },
   "halesowennews.co.uk": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://mediabiasfactcheck.com/halesowen-news-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: MBFC's exact Halesowen News profile rates Least Biased (updated 2025-11-14), mapped to Center, with halesowennews.co.uk as its Source. It reviews local reporting and editorial balance, not just Newsquest ownership. Verified from the indexed primary profile; direct retrieval returned a rate limit. Single-provider assessment."
   },
   "hallmarknews.com": {
     "bias": "Unknown",
@@ -7367,9 +7391,11 @@
   "iheart.com": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.allsides.com/media-bias/ratings",
+      "https://adfontesmedia.com/rankings-by-individual-news-source/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: Saved sources under this root key contain many distinct station and show subdomains, including kste.iheart.com, kfiam640.iheart.com, elvisduran.iheart.com and 1075theriver.iheart.com. One company-wide label would apply to different editorial products. No single assessment covering this combined scope was verified. Individual host or station politics must not be inherited by the entire platform; retain Unknown until publication-specific mapping is supported."
   },
   "impartialreporter.com": {
     "bias": "Center",
@@ -7495,9 +7521,11 @@
   "kdhnews.com": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabias.news/sources/the-killeen-daily-herald",
+      "https://adfontesmedia.com/rankings-by-individual-news-source/",
+      "https://www.biasly.com/sources/the-killeen-daily-herald-media-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: Killeen Daily Herald. A secondary directory claims Ad Fontes Center, but no underlying exact-outlet Ad Fontes profile or chart entry was verified in the public search. Biasly separately reports Medium Left; it is not an adopted provider. The secondary attribution is a follow-up lead, not verified Ad Fontes evidence. No exact MBFC or AllSides assessment was verified; retain Unknown."
   },
   "keighleynews.co.uk": {
     "bias": "Center",
@@ -7646,9 +7674,11 @@
   "krmg.com": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.biasly.com/sources/krmg-media-bias/",
+      "https://www.allsides.com/news/2024-10-31-2315/general-news-keith-nichols-talk-conservatives-during-krmg-radio-debate"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: Biasly reports Somewhat Left (-28), but an adequately corroborated outlet-specific assessment was not established. AllSides results about a KRMG debate carry Tulsa World's rating, not KRMG's. Retain Unknown; Cox ownership and talk-radio programming are not substitutes for rating this website."
   },
   "krtv.com": {
     "bias": "Center",
@@ -7863,16 +7893,17 @@
   "mercopress.com": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/mercopress/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Publication-specific review 2026-11-12: MBFC explicitly assesses en.mercopress.com; the verified Left-Center rating is stored as Left on that exact English-edition host. Keep the root Unknown rather than automatically assigning the English assessment to other language editions. The existing URL lookup supports this distinction."
   },
   "messengernewspapers.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://www.abc.org.uk/product/3739",
+      "https://mediabiasfactcheck.com/center/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: The Messenger / Sale and Altrincham Messenger identity is supported by the UK circulation-audit listing. Exact-domain and publication-name searches did not verify a matching MBFC, AllSides or Ad Fontes assessment. Do not inherit Newsquest/Gannett ratings or transfer a rating from a different publication named Messenger."
   },
   "milfordmercury.co.uk": {
     "bias": "Center",
@@ -7993,7 +8024,7 @@
     "sources": [
       "https://mediabiasfactcheck.com/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: No verified exact-outlet political rating was found in the publication/domain search. Circulation and public-body references establish that the paper exists, not its lean. Do not confuse it with other Recorder titles or inherit its publisher's politics."
   },
   "news3lv.com": {
     "bias": "Right",
@@ -8027,11 +8058,12 @@
     "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
   },
   "nwemail.co.uk": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://mediabiasfactcheck.com/north-west-evening-mail-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: MBFC's North-West Evening Mail profile rates Least Biased (2024-12-22), mapped to Center. The Source and reviewed local article both point to nwemail.co.uk. The analysis discusses this publication's reporting and editorial balance. Single-provider assessment, not inherited from other Newsquest titles."
   },
   "ohiostandard.com": {
     "bias": "Unknown",
@@ -8075,9 +8107,11 @@
   "perthnow.com.au": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://www.perthnow.com.au/about-us",
+      "https://ground.news/interest/perthnow",
+      "https://adfontesmedia.com/rankings-by-individual-news-source/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: PerthNow identity is confirmed by its own About page. Ground News attributes a Center rating to Ad Fontes, but no underlying exact-outlet public Ad Fontes assessment was verified. Exact-name searches also did not verify MBFC or AllSides assessments. Keep the secondary attribution as a follow-up lead only; do not inherit a rating from The West Australian, Seven West Media or prior owners."
   },
   "philstar.com": {
     "bias": "Unknown",
@@ -8127,16 +8161,19 @@
   "rewind1051.com": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://rewind1051.com/",
+      "https://rewind1051.com/common/longformrules.php"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: The official site and contest rules identify Rewind 105.1 / Harrisonburg Media Group, but no verified political assessment was found. Entertainment format, shared ownership, and syndicated news are insufficient to assign a general website lean."
   },
   "royston-crow.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.abc.org.uk/product/10157"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: Publication identity is documented by ABC UK, but circulation verification is not a political-bias assessment. No verified outlet-specific political rating was found in the bounded search; no rating inherited from its publisher."
   },
   "rttnews.com": {
     "bias": "Unknown",
@@ -8148,9 +8185,11 @@
   "salisburyjournal.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://mediabiasfactcheck.com/salisbury-journal-bias/",
+      "https://www.biasly.com/sources/salisbury-journal-media-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: Exact-domain MBFC profile rates Least Biased (2024-08-26), while Biasly's Salisbury Journal profile reports Somewhat Left (-18). Record both leads without choosing the preferred category. Biasly's representative sample and the differing assessments were not reconciled; Unknown preserves uncertainty rather than averaging."
   },
   "samaa.tv": {
     "bias": "Unknown",
@@ -8314,16 +8353,19 @@
   "thisisoxfordshire.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.allsides.com/media-bias/ratings",
+      "https://adfontesmedia.com/rankings-by-individual-news-source/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: This is Oxfordshire. Exact-domain and publication-name searches did not verify an MBFC, AllSides or Ad Fontes assessment covering this portal. Oxford Mail, Oxford Times and Oxfordshire Guardian are not automatically interchangeable with this domain. Shared reporters, republished articles or Newsquest ownership are insufficient to transfer their ratings."
   },
   "thisiswiltshire.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.biasly.com/sources/this-is-wiltshire-media-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: No verified assessment of this exact website was found in the bounded publication/domain search. Biasly has a title-specific lead, but its sample and independent corroboration were not established. Do not borrow ratings from other Wiltshire titles or Newsquest."
   },
   "times-series.co.uk": {
     "bias": "Center",
@@ -8351,9 +8393,10 @@
   "tivysideadvertiser.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.biasly.com/sources/tivyside-advertiser-media-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: Biasly lists Center (0), but no sufficiently corroborated outlet-specific assessment was established. A score alone does not establish the representative sample or neutrality of this Welsh local title. Retain Unknown rather than defaulting local news to Center."
   },
   "townandcountrymag.com": {
     "bias": "Left",
@@ -8413,9 +8456,10 @@
   "union-bulletin.com": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/center/",
+      "https://chamberlight.com/sources/union-bulletin.com"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: Walla Walla Union-Bulletin. Exact-name/domain and alias searches did not verify an outlet-specific MBFC, AllSides or Ad Fontes assessment. ChamberLight presents an AI-derived Center assessment but explicitly says provenance is not yet reviewed; this is a research lead, not an adopted provider rating. Local reporting or ownership does not establish Center."
   },
   "upr.org": {
     "bias": "Left",
@@ -8436,9 +8480,10 @@
   "wabx.net": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.biasly.com/sources/wabx-107-5-evansvilles-classic-rock-station-media-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: Biasly reports Somewhat Left (-12), without sufficiently corroborated outlet-specific evidence established here. The site carries Reuters articles, but the wire service's rating applies to the provider, not automatically to WABX's general output. Music-radio format is also not evidence for Center."
   },
   "walb.com": {
     "bias": "Center",
@@ -8451,9 +8496,11 @@
   "wandsworthguardian.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://mediabiasfactcheck.com/wandsworth-times-bias-and-credibility/",
+      "https://www.biasly.com/sources/wandsworth-times-media-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: Matched MBFC's Wandsworth Times profile to its explicit wandsworthguardian.co.uk Source; the profile rates Least Biased (2025-04-22), despite a typo in the directory domain. Biasly's Wandsworth Times profile reports Somewhat Left (-12). The differing assessments remain unresolved; do not choose Center solely from the local-paper format."
   },
   "warringtonguardian.co.uk": {
     "bias": "Center",
@@ -8555,7 +8602,7 @@
       "https://mediabiasfactcheck.com/wgme-cbs-13/",
       "https://www.allsides.com/news-source/wgme-13-media-bias"
     ],
-    "notes": "Directory review 2026-10-17: Verified exact domain in MBFC directory and linked primary profile. Provider political rating: RIGHT-CENTER; stored as Right under the existing mapping. Profile source: https://wgme.com/. Profile updated August 11, 2025. Single-provider evidence, not independently corroborated consensus; political lean is separate from factual reliability. This completed check supersedes earlier missing-profile notes where present. Station cross-check 2026-10-17: MBFC station profile Right-Center conflicts with AllSides WGME 13 Center (Independent Review; low/initial confidence, September 2026). Supersede prior Right assignment with Unknown pending resolution."
+    "notes": "Reviewed 2026-11-12: The outlet-specific MBFC Right-Center assessment still differs from AllSides WGME 13 Center (independent review; low/initial confidence). The providers have not converged. Retain Unknown instead of using ownership, CBS affiliation, or a single story to choose a side."
   },
   "whtimes.co.uk": {
     "bias": "Center",
@@ -8793,9 +8840,12 @@
   "wxxinews.org": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://mediabiasfactcheck.com/",
+      "https://www.wxxi.org/about-wxxi/",
+      "https://www.wxxi.org/editorial-standards-practices/",
+      "https://mediabiasfactcheck.com/city-magazine-bias/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Reviewed 2026-11-12: WXXI's own About page identifies WXXINews.org, but its editorial standards are not an independent political rating. The MBFC CITY Magazine result concerns a different WXXI-owned publication. No exact WXXI News rating was verified; do not inherit CITY Magazine or NPR ratings."
   },
   "wxxv25.com": {
     "bias": "Center",
@@ -8845,9 +8895,10 @@
   "yourlocalguardian.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "https://mediabiasfactcheck.com/"
+      "https://www.biasly.com/sources/your-local-guardian-media-bias/",
+      "https://adfontesmedia.com/rankings-by-individual-news-source/"
     ],
-    "notes": "Directory review 2026-10-17: No exact-domain match found in MBFC Least Biased, Left-Center, Left, Right-Center, Right, Questionable, Conspiracy or Pro-Science directories. This is a bounded directory search, not proof that no published rating exists. Name changes, aliases and other providers remain follow-up work; no parent, network or syndicated-content rating inherited."
+    "notes": "Deep review 2026-11-12: Your Local Guardian. Biasly reports Center, but no matching MBFC, AllSides or Ad Fontes assessment was verified by exact domain/name searches. A rating of The Guardian national newspaper, a nearby local title, or Newsquest would not establish this portal rating. Retain Unknown; the Biasly result is a research lead only."
   },
   "ypradio.org": {
     "bias": "Left",
@@ -8873,15 +8924,16 @@
       "https://adfontesmedia.com/global-news-bias-and-reliability/",
       "https://mediabiasfactcheck.com/global-news/"
     ],
-    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. AllSides rates Lean Left with low/initial confidence; MBFC indexed profile reports Left-Center, but direct retrieval failed. Ad Fontes outlet-specific profile rates Middle (-3.80). Retained Unknown conservatively because the available categories disagree; revisit before choosing Center or Left."
+    "notes": "Reviewed 2026-11-12: Primary providers disagree: MBFC Left-Center and AllSides Lean Left (low/initial confidence), versus Ad Fontes Middle (-3.80 bias; 44.63 reliability at review). All concern globalnews.ca. Keep Unknown instead of averaging or selecting the majority. Reliability is recorded only for context, not used to infer political lean."
   },
   "northwalespioneer.co.uk": {
     "bias": "Unknown",
     "sources": [
       "gdelt-discovery-auto-seen",
-      "https://www.biasly.com/sources/north-wales-pioneer-media-bias/"
+      "https://www.biasly.com/sources/north-wales-pioneer-media-bias/",
+      "https://mediabiasfactcheck.com/north-wales-pioneer-bias/"
     ],
-    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. Biasly reports Medium Left (-62%), but corroborating outlet-specific evidence and a sufficiently clear representative sample were not established in this review. Retained Unknown; not assigned the rating of another North Wales title."
+    "notes": "Reviewed 2026-11-12: Verified the exact MBFC North Wales Pioneer profile and Source: Least Biased (2024-06-30). Biasly's previously recorded Medium Left (-62) differs substantially. Its sample and the discrepancy were not reconciled. Retain Unknown rather than choosing one category or borrowing a North Wales sibling title's rating."
   },
   "santacruzsentinel.com": {
     "bias": "Center",
@@ -8927,9 +8979,11 @@
     "bias": "Unknown",
     "sources": [
       "gdelt-auto-seen",
-      "https://www.biasly.com/sources/midweek-herald-media-bias/"
+      "https://www.biasly.com/sources/midweek-herald-media-bias/",
+      "https://www.abc.org.uk/product/19504",
+      "https://mediabiasfactcheck.com/center-/?pg=4"
     ],
-    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. Biasly reports Center (2%), but the exposed sample/identity evidence was insufficient to confidently adopt that rating. Retained Unknown pending corroboration; local coverage alone does not establish Center."
+    "notes": "Reviewed 2026-11-12: ABC UK identifies this Devon title; Biasly reports Center (2), without corroboration established here. MBFC's The Midweek entry is a different Illinois publication on shawlocal.com. Retain Unknown rather than transfer a similarly named title's rating."
   },
   "bracknellnews.co.uk": {
     "bias": "Unknown",
@@ -8938,7 +8992,7 @@
       "https://mediabiasfactcheck.com/bracknell-news-bias/",
       "https://www.biasly.com/sources/bracknell-news-media-bias/"
     ],
-    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates Least Biased, while Biasly reports Somewhat Left (-26%). Retained Unknown pending resolution of this disagreement rather than selecting the preferred category."
+    "notes": "Reviewed 2026-11-12: Reconfirmed MBFC Least Biased for this exact title, while Biasly reports Somewhat Left (-26). This preserves the earlier unresolved-assessment hold. No sufficiently clear evidence reconciles the difference; do not default to Center because it is local news."
   },
   "harwichandmanningtreestandard.co.uk": {
     "bias": "Center",
@@ -8952,9 +9006,10 @@
     "bias": "Unknown",
     "sources": [
       "gdelt-auto-seen",
-      "https://www.perspectify.com/publications/5405/news-shopper"
+      "https://www.perspectify.com/publications/5405/news-shopper",
+      "https://www.biasly.com/sources/the-news-shopper-online-media-bias/"
     ],
-    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. Perspectify labels News Shopper Neutral, but its description includes ownership/funding/affiliation factors and this review did not establish sufficient outlet-content evidence or corroboration. Retained Unknown."
+    "notes": "Reviewed 2026-11-12: Perspectify labels News Shopper Neutral; Biasly reports Somewhat Left (-16). These leads do not establish a reconciled, sufficiently corroborated outlet assessment under the current process. Ownership/funding-based descriptors or local-news format cannot settle the political label; retain Unknown."
   },
   "bicesteradvertiser.net": {
     "bias": "Center",
@@ -8973,11 +9028,12 @@
     "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. MBFC rates this specific outlet Least Biased, mapped to Center under the existing categories. No rating inherited from ownership, network affiliation, or republished articles. Outlet-specific profile identifies the publication/domain and reports High factual reporting; factuality is separate from political lean."
   },
   "timesandstar.co.uk": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
-      "gdelt-auto-seen"
+      "gdelt-auto-seen",
+      "https://mediabiasfactcheck.com/workington-times-star-bias-and-credibility/"
     ],
-    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. No sufficiently supported outlet-specific political rating located in the name/domain searches. A syndicated Perspectify list labels Times & Star Neutral, but that is insufficient to establish its assessment basis or exact domain identity. Retained Unknown."
+    "notes": "Reviewed 2026-11-12: Matched the Workington Times & Star publication-specific MBFC profile, which lists timesandstar.co.uk as its Source and rates Least Biased (2025-02-23). Mapped to Center under the existing scheme. The assessment discusses local reporting and editorial selection; it is not an inference from Newsquest ownership. Single-provider assessment."
   },
   "northwaleschronicle.co.uk": {
     "bias": "Center",
@@ -9006,9 +9062,11 @@
     "bias": "Unknown",
     "sources": [
       "gdelt-auto-seen",
-      "https://www.biasly.com/sources/irvine-times-media-bias/"
+      "https://www.biasly.com/sources/irvine-times-media-bias/",
+      "https://mediabiasfactcheck.com/center-/?pg=2",
+      "https://mediabiasfactcheck.com/news/page/186/"
     ],
-    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. Biasly reports Somewhat Left (-22%); corroborating outlet-specific evidence and a representative sample were not established. Retained Unknown pending further verification."
+    "notes": "Reviewed 2026-11-12: MBFC's Least Biased directory names irvinetimes.com, and its daily-review archive identifies Irvine Times as Least Biased. The detailed profile returned a rate limit. Biasly reports Somewhat Left (-22), as previously recorded. Detailed scope and the differing assessments remain unresolved; no rating borrowed from other Irvine publications."
   },
   "dunfermlinepress.com": {
     "bias": "Center",
@@ -9038,9 +9096,10 @@
   "northsomersettimes.co.uk": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-auto-seen"
+      "gdelt-auto-seen",
+      "https://www.abc.org.uk/product/752"
     ],
-    "notes": "Reviewed 2026-10-17: outlet-specific bias-rating search by publication name/domain. No verified outlet-specific political rating located. Ground News article listings do not provide an outlet rating; do not inherit the Weston Mercury rating despite shared ownership. Retained Unknown."
+    "notes": "Reviewed 2026-11-12: ABC UK verifies the North Somerset Times publication, not its political lean. No exact outlet-specific political assessment was verified in this search. Do not inherit a Weston Mercury or other Newsquest title's rating."
   },
   "dumbartonreporter.co.uk": {
     "bias": "Center",
@@ -9058,18 +9117,21 @@
     "notes": ""
   },
   "gizmodo.com": {
-    "bias": "Unknown",
+    "bias": "Left",
     "sources": [
-      "auto-seen"
+      "auto-seen",
+      "https://mediabiasfactcheck.com/gizmodo/",
+      "https://www.allsides.com/news-source/gizmodo-media-bias"
     ],
-    "notes": ""
+    "notes": "Reviewed 2026-11-12: Exact-outlet MBFC profile identifies gizmodo.com and rates it Left (profile updated 2023-05-24). AllSides independently rates Gizmodo Lean Left, with low/initial confidence. Both map to Left in our existing categories (UI: Left Lean). This is an outlet-content assessment, not a technology-topic or ownership inference."
   },
   "goodmenproject.com": {
-    "bias": "Unknown",
+    "bias": "Left",
     "sources": [
-      "auto-seen"
+      "auto-seen",
+      "https://mediabiasfactcheck.com/the-good-men-project/"
     ],
-    "notes": ""
+    "notes": "Reviewed 2026-11-12: MBFC explicitly identifies goodmenproject.com and rates The Good Men Project Left (-6.2), based on its progressive editorial positions; profile updated 2025-06-04. Store Left (UI: Left Lean). Single-provider evidence; the separate factual-reliability score is not used as political bias."
   },
   "languagelog.ldc.upenn.edu": {
     "bias": "Unknown",
@@ -9170,18 +9232,24 @@
     "notes": ""
   },
   "middleeasteye.net": {
-    "bias": "Unknown",
+    "bias": "Left",
     "sources": [
-      "gdelt-discovery-auto-seen"
+      "gdelt-discovery-auto-seen",
+      "https://mediabiasfactcheck.com/middle-east-eye/",
+      "https://www.allsides.com/news-source/middle-east-eye-media-bias"
     ],
-    "notes": ""
+    "notes": "Reviewed 2026-11-12: MBFC identifies middleeasteye.net and rates the outlet Left-Center (-3.5), updated 2024-12-15. AllSides rates it Left following an October 2023 independent review, with low/initial confidence. Both fall within our existing Left category (UI: Left Lean); their difference in strength is preserved here. Rating concerns the outlet, not an individual article or our summary."
   },
   "mynews4.com": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-discovery-auto-seen"
+      "gdelt-discovery-auto-seen",
+      "https://mediabiasfactcheck.com/right-center/",
+      "https://mediabiasfactcheck.com/krnv-reno-news-bias/",
+      "https://mediabias.news/sources/krnv",
+      "https://www.allsides.com/news-source/krnv-media-bias"
     ],
-    "notes": ""
+    "notes": "Reviewed 2026-11-12: The indexed full MBFC KRNV Reno profile is now verified: Right-Center, updated 2025-03-28, with mynews4.com as its Source and a local content example. A secondary listing claims a conflicting Ad Fontes Center assessment, but that primary profile could not be verified; AllSides KRNV paths return Source Not Found. Retain Unknown while this possible disagreement is unresolved, rather than treating the secondary claim as a confirmed rating."
   },
   "siasat.com": {
     "bias": "Unknown",
@@ -9191,11 +9259,12 @@
     "notes": ""
   },
   "thetottenhamindependent.co.uk": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
-      "gdelt-discovery-auto-seen"
+      "gdelt-discovery-auto-seen",
+      "https://mediabiasfactcheck.com/tottenham-independent-bias-and-credibility/"
     ],
-    "notes": ""
+    "notes": "Reviewed 2026-11-12: MBFC's exact Tottenham Independent profile rates Least Biased (2025-04-07), mapped to Center, and lists thetottenhamindependent.co.uk as its Source. The review discusses this title's reporting and editorial selection. The profile has an inconsistent Workington location reference in its background; identity is established by the Source and Tottenham-specific analysis, not that sentence. Single-provider assessment."
   },
   "ca.news.yahoo.com": {
     "bias": "Unknown",
@@ -9282,11 +9351,12 @@
     "notes": ""
   },
   "abc7.com": {
-    "bias": "Unknown",
+    "bias": "Center",
     "sources": [
-      "gdelt-discovery-auto-seen"
+      "https://mediabiasfactcheck.com/kabc-los-angeles-news-bias/",
+      "https://www.allsides.com/news-source/abc-7-los-angeles-media-bias"
     ],
-    "notes": ""
+    "notes": "Deep review 2026-11-12: MBFC KABC - Los Angeles News profile explicitly identifies abc7.com and rates it Least Biased, based on its own reporting and editorial selection; profile updated 2025-03-07. Map Least Biased to existing Center. AllSides ABC 7 Los Angeles profile currently says Not Rated, so it supplies no corroborating or conflicting rating. This is KABC-TV Los Angeles, not KABC 790 AM radio or another ABC7 affiliate. No network rating inherited."
   },
   "brisbanetimes.com.au": {
     "bias": "Unknown",
@@ -9303,11 +9373,12 @@
     "notes": ""
   },
   "examiner.com.au": {
-    "bias": "Unknown",
+    "bias": "Left",
     "sources": [
-      "gdelt-discovery-auto-seen"
+      "gdelt-discovery-auto-seen",
+      "https://mediabiasfactcheck.com/launceston-examiner-bias/"
     ],
-    "notes": ""
+    "notes": "Reviewed 2026-11-12: MBFC's Launceston Examiner profile rates Left-Center (2024-10-26), mapped to Left / Left Lean. Its Source and cited articles identify examiner.com.au; it reviews this publication's opinion selection and reporting. This is not the Washington Examiner or another Examiner title, nor an inherited ACM rating. Single-provider assessment."
   },
   "greenevillesun.com": {
     "bias": "Unknown",
@@ -9317,11 +9388,12 @@
     "notes": ""
   },
   "kmuw.org": {
-    "bias": "Unknown",
+    "bias": "Left",
     "sources": [
-      "gdelt-discovery-auto-seen"
+      "gdelt-discovery-auto-seen",
+      "https://mediabiasfactcheck.com/kmuw-npr-wichita-bias/"
     ],
-    "notes": ""
+    "notes": "Reviewed 2026-11-12: MBFC's KMUW NPR Wichita profile rates Left-Center (2024-07-19), mapped to Left / Left Lean. Its Source link is kmuw.org and its analysis cites content on that website and discusses story selection. This is an outlet-specific assessment, not an inherited NPR rating. Single-provider evidence; not a rating of each article."
   },
   "ks95.com": {
     "bias": "Unknown",
@@ -9331,18 +9403,22 @@
     "notes": ""
   },
   "lebanondemocrat.com": {
-    "bias": "Unknown",
+    "bias": "Right",
     "sources": [
-      "gdelt-discovery-auto-seen"
+      "gdelt-discovery-auto-seen",
+      "https://mediabiasfactcheck.com/lebanon-democrat-bias/",
+      "https://mediabiasfactcheck.com/macon-county-times-bias/",
+      "https://mediabiasfactcheck.com/portland-leader-bias/"
     ],
-    "notes": ""
+    "notes": "Reviewed 2026-11-12: MBFC rates The Lebanon Democrat Right-Center from its editorial content (updated 2025-12-16). The same host also publishes Macon County Times (/maconcounty/) and Portland Leader (/portland/); their separate outlet profiles also explicitly rate Right-Center (updated 2025-12-23 and 2025-05-02). Store Right (UI: Right Lean). These are three outlet-specific assessments, not an inherited Paxton ownership rating; single rating provider."
   },
   "littleapplepost.com": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-discovery-auto-seen"
+      "gdelt-discovery-auto-seen",
+      "https://jcpost.com/posts/04ce6592-eeba-47d3-ad54-bb55f4f5cdf5"
     ],
-    "notes": ""
+    "notes": "Reviewed 2026-11-12: No verified outlet-specific political rating was found for the Manhattan, Kansas Little Apple Post. The joint JC / Little Apple Post policy confirms the publication relationship, not a political lean. Do not inherit Eagle Media or another Post title's rating."
   },
   "macombdaily.com": {
     "bias": "Unknown",
@@ -9354,9 +9430,12 @@
   "myfox28columbus.com": {
     "bias": "Unknown",
     "sources": [
-      "gdelt-discovery-auto-seen"
+      "gdelt-discovery-auto-seen",
+      "https://mediabiasfactcheck.com/right-center/",
+      "https://mediabiasfactcheck.com/wtte-columbus-news/",
+      "https://www.allsides.com/news-source/fox-28-wtte-media-bias"
     ],
-    "notes": ""
+    "notes": "Reviewed 2026-11-12: The full indexed MBFC WTTE Columbus profile now verifies this domain and rates Right-Center (2025-09-09). AllSides Fox 28 WTTE instead rates Center (low/initial confidence). Retain Unknown for this actual provider disagreement, superseding the earlier access-only limitation. No rating inferred from Fox affiliation or Sinclair ownership."
   },
   "prpeak.com": {
     "bias": "Unknown",
@@ -9371,5 +9450,26 @@
       "gdelt-discovery-auto-seen"
     ],
     "notes": ""
+  },
+  "toronto.citynews.ca": {
+    "bias": "Center",
+    "sources": [
+      "https://mediabiasfactcheck.com/680-news/"
+    ],
+    "notes": "Publication-specific review 2026-11-12: MBFC explicitly identifies toronto.citynews.ca as CityNews Toronto (formerly 680News) and rates its website/news coverage Least Biased; profile updated 2026-10-23. Map Least Biased to existing Center. This exact-host assessment does not extend to other CityNews editions or Rogers properties. Factuality is a separate dimension."
+  },
+  "calgary.citynews.ca": {
+    "bias": "Center",
+    "sources": [
+      "https://mediabiasfactcheck.com/citynews-calgary-bias/"
+    ],
+    "notes": "Publication-specific review 2026-11-12: MBFC explicitly identifies calgary.citynews.ca as CityNews Calgary (formerly 660News) and rates its website/news coverage Least Biased; profile updated 2025-01-15. Map Least Biased to existing Center. This exact-host assessment does not extend to other CityNews editions or Rogers properties. Factuality is a separate dimension."
+  },
+  "en.mercopress.com": {
+    "bias": "Left",
+    "sources": [
+      "https://mediabiasfactcheck.com/mercopress/"
+    ],
+    "notes": "Publication-specific review 2026-11-12: MBFC links en.mercopress.com and gives its English news edition a Left-Center political rating; profile updated 2025-03-19. Map Left-Center to existing Left (displayed as Left Lean). Its separate Questionable/Mixed factuality assessment is not a political category. Older secondary Center labels do not establish a current contradictory provider assessment. Do not extend this exact-host rating to other language editions."
   }
 }
