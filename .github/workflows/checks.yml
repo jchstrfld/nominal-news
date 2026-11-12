@@ -1,0 +1,93 @@
+name: Checks
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 14 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements-test.txt
+      - run: python -m pip check
+      - run: python -B tests/run_offline.py
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install pip-audit==2.10.1
+      - name: Audit the public reader and its complete pinned dependency set
+        run: python -m pip_audit -r requirements-reader.txt --disable-pip --no-deps
+      - name: Audit the tested worker dependency set
+        # Full installed worker environments must also be scanned before deploy.
+        run: python -m pip_audit -r constraints.txt --disable-pip --no-deps
+
+  reader-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker build --pull -t nominal-news-reader .
+      - name: Check isolated reader starts without privileged access or network
+        run: >-
+          docker run --rm --network none --read-only --cap-drop ALL
+          --security-opt no-new-privileges nominal-news-reader python -B -c
+          "import os, sys, pathlib, importlib.util, main;
+          assert sys.version_info >= (3, 13, 18);
+          assert os.getuid() != 0;
+          assert not pathlib.Path('/app/.env').exists();
+          assert not pathlib.Path('/app/run_pipeline_by_date.py').exists();
+          assert not pathlib.Path('/app/models').exists();
+          assert not pathlib.Path('/app/outputs').exists();
+          assert importlib.util.find_spec('pip') is None;
+          assert importlib.util.find_spec('ensurepip') is None"
+
+  code-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: python
+          build-mode: none
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3

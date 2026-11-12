@@ -2,24 +2,43 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query
 from edition_intro import introduction_for_date, sign_off_for_date
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from datetime import datetime
-import subprocess
-import os
 import json
 import re
 from typing import Optional, List, Dict, Any
+from reader_security import ReaderSecurityHeaders, legacy_chips, safe_http_url, validate_edition_date
 
 BASE_DIR = Path(__file__).resolve().parent
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+app.add_middleware(ReaderSecurityHeaders, template_path=BASE_DIR / "templates" / "index.html")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+templates.env.filters.update(safe_http_url=safe_http_url, legacy_chips=legacy_chips)
+
+
+@app.get("/static/style.css", include_in_schema=False)
+async def stylesheet():
+    # An explicit public asset route, never a mount of the local static tree.
+    expected = BASE_DIR.resolve() / "static" / "style.css"
+    if expected.resolve() != expected or not expected.is_file():
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(expected, media_type="text/css")
+
+
+def edition_path(prefix: str, date_str: str) -> Path:
+    validate_edition_date(date_str)
+    if prefix not in {"topic_summaries", "market_overview", "worth_knowing"}:
+        raise ValueError("Unsupported edition file.")
+    expected = BASE_DIR.resolve() / f"{prefix}_{date_str}.json"
+    # Also reject aliases/symlinks to a different file, even inside BASE_DIR.
+    if expected.resolve() != expected:
+        raise HTTPException(status_code=404, detail="Edition not available")
+    return expected
 
 
 def list_summary_files() -> List[Path]:
@@ -29,7 +48,7 @@ def list_summary_files() -> List[Path]:
 
 def load_market_overview(date_str: str) -> Optional[Dict[str, Any]]:
     """Load market_overview_YYYY-MM-DD.json if present."""
-    path = BASE_DIR / f"market_overview_{date_str}.json"
+    path = edition_path("market_overview", date_str)
     if not path.exists():
         return None
     try:
@@ -41,7 +60,7 @@ def load_market_overview(date_str: str) -> Optional[Dict[str, Any]]:
 
 def load_worth_knowing(date_str: str) -> Optional[Dict[str, Any]]:
     """Load the additive Worth Knowing section for a given date, if present."""
-    path = BASE_DIR / f"worth_knowing_{date_str}.json"
+    path = edition_path("worth_knowing", date_str)
     if not path.exists():
         return None
     try:
@@ -62,13 +81,17 @@ def latest_summary_date() -> Optional[str]:
     for p in list_summary_files():
         m = re.search(r"topic_summaries_(\d{4}-\d{2}-\d{2})\.json$", p.name)
         if m:
-            dates.append(m.group(1))
+            try:
+                if edition_path("topic_summaries", m.group(1)).is_file():
+                    dates.append(m.group(1))
+            except (ValueError, HTTPException):
+                continue
     return max(dates) if dates else None
 
 
 def load_summaries(date: str) -> List[Dict[str, Any]]:
     """Load production summaries for a given YYYY-MM-DD date, or [] if not found."""
-    path = BASE_DIR / f"topic_summaries_{date}.json"
+    path = edition_path("topic_summaries", date)
     if not path.exists():
         return []
     with path.open("r", encoding="utf-8") as f:
@@ -85,11 +108,13 @@ async def homepage(
     - If ?date=YYYY-MM-DD is provided, we use that day.
     - If no date is provided, we auto-pick the latest available
       topic_summaries_*.json.
-    - We DO NOT auto-run the pipeline by default.
-      To allow production auto-run if missing, set AUTO_RUN_PIPELINE=1.
+    - This reader never runs the pipeline, regardless of environment settings.
     """
     status_msg = ""
-    requested_date = date
+    try:
+        requested_date = validate_edition_date(date) if date is not None else None
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Use a valid date in YYYY-MM-DD format.") from None
 
     if not requested_date:
         # No date provided — pick the newest file on disk if available
@@ -101,29 +126,15 @@ async def homepage(
     summaries = load_summaries(requested_date)
 
     if not summaries:
-        if os.getenv("AUTO_RUN_PIPELINE", "0") == "1":
-            try:
-                subprocess.run(
-                    ["python", str(BASE_DIR / "run_pipeline_by_date.py"), "--date", requested_date],
-                    check=True,
-                )
-                summaries = load_summaries(requested_date)
-                status_msg = status_msg or f"Generated summaries for {requested_date}."
-            except Exception as e:
-                status_msg = f"No summaries found for {requested_date}. Pipeline errored: {e}"
-        else:
-            status_msg = (
-                f"No summaries found for {requested_date}. "
-                f"Either pass ?date=YYYY-MM-DD with a day you already ran, "
-                f"or set AUTO_RUN_PIPELINE=1 to generate on demand."
-            )
+        status_msg = f"No published edition is available for {requested_date}."
 
     market_overview = load_market_overview(requested_date) if requested_date else None
     worth_knowing = load_worth_knowing(requested_date) if requested_date else None
     
     return templates.TemplateResponse(
-        "index.html",
-        {
+        request=request,
+        name="index.html",
+        context={
             "request": request,
             "summaries": summaries,
             "requested_date": requested_date,

@@ -10,6 +10,7 @@ import tiktoken
 import difflib
 import re
 import requests
+from provider_http import provider_get
 from image_framing import frame_image
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -1747,7 +1748,7 @@ def _unsplash_full_photo(photo: dict, headers: dict) -> dict:
         return {**(photo or {}), **(detail or {})}
 
     try:
-        r = requests.get(
+        r = provider_get("unsplash",
             f"https://api.unsplash.com/photos/{photo_id}",
             headers=headers,
             timeout=6,
@@ -1775,7 +1776,7 @@ def _track_unsplash_download(candidate: dict) -> None:
         return
 
     try:
-        requests.get(
+        provider_get("unsplash",
             download_location,
             headers={
                 "Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}",
@@ -1862,7 +1863,7 @@ def fetch_unsplash_image(image_query: str, topic_text: str = "", headline: str =
 
     try:
         params = {"query": image_query, "per_page": 16, "orientation": "landscape"}
-        r = requests.get("https://api.unsplash.com/search/photos", headers=headers, params=params, timeout=8)
+        r = provider_get("unsplash", "https://api.unsplash.com/search/photos", headers=headers, params=params, timeout=8)
         r.raise_for_status()
         results = (r.json() or {}).get("results") or []
     except Exception as e:
@@ -2043,7 +2044,7 @@ def _image_rights_record(candidate: dict) -> dict:
             raise ValueError("Missing exact Unsplash identifier")
         if not UNSPLASH_ACCESS_KEY:
             raise ValueError("Unsplash verification unavailable")
-        response = requests.get(f"https://api.unsplash.com/photos/{photo_id}", headers={
+        response = provider_get("unsplash", f"https://api.unsplash.com/photos/{photo_id}", headers={
             **headers, "Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}", "Accept-Version": "v1",
         }, timeout=8)
         response.raise_for_status()

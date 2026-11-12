@@ -1,12 +1,11 @@
 # Include only application files; never bake credentials or run data in.
 *
-!*.py
-!requirements.txt
+!main.py
+!reader_security.py
+!edition_intro.py
+!requirements-reader.txt
 !templates/
 !templates/**
 !static/
-!static/**
-!bias_overrides.json
-!models/
-!models/face_detection/
-!models/face_detection/**
+static/**
+!static/style.css

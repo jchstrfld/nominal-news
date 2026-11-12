@@ -1,0 +1,12 @@
+# Offline tests do not need model downloads or the executable pipeline.
+-c constraints.txt
+-r requirements-reader.txt
+python-dotenv==1.2.4
+openai==0.28.1
+aiohttp==3.14.5
+requests==2.34.2
+urllib3==2.8.0
+certifi==2026.10.23
+numpy==2.3.1
+scikit-learn==1.7.1
+opencv-python-headless==4.11.0.86
