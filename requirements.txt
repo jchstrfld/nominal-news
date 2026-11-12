@@ -17,7 +17,7 @@ sentence-transformers==5.6.1
 transformers==5.10.4
 torch==2.13.0
 pillow==13.0.0
-filelock==4.2.9
+filelock==4.2.10
 fsspec==2026.9.0
 pygments==2.21.0
 setuptools==84.2.1
