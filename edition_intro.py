@@ -1,5 +1,27 @@
-"""Approved introductions, in a stable 31-day rotation with no external calls."""
+"""Approved edition greetings, sign-offs, and banner palettes; no external calls."""
 from datetime import date
+
+# Monday through Sunday. Keep this mapping fixed for archived editions.
+# Each pair is (banner background, accent); cream lettering stays unchanged.
+WEEKDAY_PALETTES = (
+    ("#203F36", "#E8C989"),  # Forest & Wheat
+    ("#26384F", "#F0C29E"),  # Ink & Apricot
+    ("#48364D", "#C5D8B0"),  # Plum & Sage
+    ("#1F4148", "#E1D0AE"),  # Teal & Sand
+    ("#5B3547", "#C8DDD3"),  # Rose & Mint
+    ("#343F4B", "#DDCFED"),  # Slate & Lilac
+    ("#363B58", "#E7D5AF"),  # Indigo & Champagne
+)
+
+
+def banner_palette_for_date(edition_date: str) -> tuple[str, str]:
+    """Select from the edition's weekday, never the viewing date or theme."""
+    try:
+        weekday = date.fromisoformat(edition_date).weekday()
+    except (ValueError, TypeError):
+        return WEEKDAY_PALETTES[0]
+    return WEEKDAY_PALETTES[weekday]
+
 
 # Keep this order and anchor fixed so archived editions retain their phrase.
 ANCHOR = date(2026, 10, 14)

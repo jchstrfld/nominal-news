@@ -1136,21 +1136,21 @@ details[open] > .coverage-toggle .coverage-chevron { transform: rotate(225deg); 
   .coverage-legend li { font-size: .75rem; }
 }
 
-/* Theme surfaces and text only; bias categories retain their established palette. */
+/* Shared neutral dark surfaces; weekday banners and semantic colors stay separate. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --page-background: #171c19;
-    --surface: #222a25;
-    --surface-soft: #29322c;
-    --header-surface: #222a25;
-    --surface-border: #566359;
-    --divider-color: #566359;
+    --page-background: #181818;
+    --surface: #242424;
+    --surface-soft: #2c2c2c;
+    --header-surface: #242424;
+    --surface-border: #777777;
+    --divider-color: #777777;
     --text: #eeeae0;
     --heading: #faf7ef;
-    --muted: #bec8c0;
+    --muted: #c6c6c6;
     --link: #9dcbff;
-    --brand-link: #b5dbc5;
-    --hover: #303c34;
+    --brand-link: #dddddd;
+    --hover: #343434;
     --positive: #94d9ad;
     --negative: #ffb2ad;
     --neutral: #bec8d6;
@@ -1160,18 +1160,18 @@ details[open] > .coverage-toggle .coverage-chevron { transform: rotate(225deg); 
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-    --page-background: #171c19;
-    --surface: #222a25;
-    --surface-soft: #29322c;
-    --header-surface: #222a25;
-    --surface-border: #566359;
-    --divider-color: #566359;
+    --page-background: #181818;
+    --surface: #242424;
+    --surface-soft: #2c2c2c;
+    --header-surface: #242424;
+    --surface-border: #777777;
+    --divider-color: #777777;
     --text: #eeeae0;
     --heading: #faf7ef;
-    --muted: #bec8c0;
+    --muted: #c6c6c6;
     --link: #9dcbff;
-    --brand-link: #b5dbc5;
-    --hover: #303c34;
+    --brand-link: #dddddd;
+    --hover: #343434;
     --positive: #94d9ad;
     --negative: #ffb2ad;
     --neutral: #bec8d6;

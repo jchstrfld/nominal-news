@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException, Request, Query
-from edition_intro import introduction_for_date, sign_off_for_date
+from edition_intro import banner_palette_for_date, introduction_for_date, sign_off_for_date
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
@@ -18,7 +18,10 @@ BASE_DIR = Path(__file__).resolve().parent
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.add_middleware(ReaderSecurityHeaders, template_path=BASE_DIR / "templates" / "index.html")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-templates.env.filters.update(safe_http_url=safe_http_url, legacy_chips=legacy_chips)
+templates.env.filters.update(
+    safe_http_url=safe_http_url, legacy_chips=legacy_chips,
+    banner_palette=banner_palette_for_date,
+)
 
 
 @app.get("/static/style.css", include_in_schema=False)
