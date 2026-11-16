@@ -6,6 +6,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nominal News</title>
   <link rel="stylesheet" href="/static/style.css?v=20261114-weekday-palettes">
+  {%- set dark_banner_primary, dark_banner_accent = requested_date | banner_palette('dark') %}
+  <style id="edition-banner-dark">
+    /* Literal colors keep the light inline styles as a fallback for email clients. */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .newsletter-masthead,
+      :root:not([data-theme="light"]) .footer-banner {
+        background: {{ dark_banner_primary }} !important;
+      }
+      :root:not([data-theme="light"]) .masthead-dot,
+      :root:not([data-theme="light"]) .footer-banner .footer-line:last-child {
+        color: {{ dark_banner_accent }} !important;
+      }
+    }
+    :root[data-theme="dark"] .newsletter-masthead,
+    :root[data-theme="dark"] .footer-banner {
+      background: {{ dark_banner_primary }} !important;
+    }
+    :root[data-theme="dark"] .masthead-dot,
+    :root[data-theme="dark"] .footer-banner .footer-line:last-child {
+      color: {{ dark_banner_accent }} !important;
+    }
+  </style>
 </head>
 
 <body>

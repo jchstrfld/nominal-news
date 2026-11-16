@@ -4,23 +4,35 @@ from datetime import date
 # Monday through Sunday. Keep this mapping fixed for archived editions.
 # Each pair is (banner background, accent); cream lettering stays unchanged.
 WEEKDAY_PALETTES = (
-    ("#203F36", "#E8C989"),  # Forest & Wheat
-    ("#26384F", "#F0C29E"),  # Ink & Apricot
-    ("#48364D", "#C5D8B0"),  # Plum & Sage
-    ("#1F4148", "#E1D0AE"),  # Teal & Sand
-    ("#5B3547", "#C8DDD3"),  # Rose & Mint
-    ("#343F4B", "#DDCFED"),  # Slate & Lilac
-    ("#363B58", "#E7D5AF"),  # Indigo & Champagne
+    ("#1644BD", "#FFE578"),  # Cobalt & Lemon
+    ("#6424B5", "#D6F779"),  # Violet & Lime
+    ("#A61B60", "#FFD0E5"),  # Raspberry & Blush
+    ("#075B91", "#9CEAFF"),  # Ocean & Ice
+    ("#075E63", "#FFE397"),  # Lagoon & Buttercream
+    ("#076247", "#A3F1C6"),  # Emerald & Mint
+    ("#3832AC", "#E2CAFF"),  # Indigo & Lavender
+)
+
+# Same weekdays, softened toward #242424: backgrounds 15%, accents 10%.
+DARK_WEEKDAY_PALETTES = (
+    ("#183FA6", "#E9D270"),  # Cobalt & Lemon
+    ("#5A249F", "#C4E271"),  # Violet & Lime
+    ("#931C57", "#E9BFD2"),  # Raspberry & Blush
+    ("#0B5381", "#90D6E9"),  # Ocean & Ice
+    ("#0B555A", "#E9D08C"),  # Lagoon & Buttercream
+    ("#0B5942", "#96DDB6"),  # Emerald & Mint
+    ("#353098", "#CFB9E9"),  # Indigo & Lavender
 )
 
 
-def banner_palette_for_date(edition_date: str) -> tuple[str, str]:
-    """Select from the edition's weekday, never the viewing date or theme."""
+def banner_palette_for_date(edition_date: str, theme: str = "light") -> tuple[str, str]:
+    """Use the edition's weekday; the display theme only changes its shades."""
+    palettes = DARK_WEEKDAY_PALETTES if theme == "dark" else WEEKDAY_PALETTES
     try:
         weekday = date.fromisoformat(edition_date).weekday()
     except (ValueError, TypeError):
-        return WEEKDAY_PALETTES[0]
-    return WEEKDAY_PALETTES[weekday]
+        return palettes[0]
+    return palettes[weekday]
 
 
 # Keep this order and anchor fixed so archived editions retain their phrase.
