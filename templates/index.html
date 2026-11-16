@@ -5,10 +5,33 @@
   <meta name="color-scheme" content="light dark">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nominal News</title>
-  <link rel="stylesheet" href="/static/style.css?v=20261019-theme-preview">
+  <link rel="stylesheet" href="/static/style.css?v=20261114-weekday-palettes">
+  {%- set dark_banner_primary, dark_banner_accent = requested_date | banner_palette('dark') %}
+  <style id="edition-banner-dark">
+    /* Literal colors keep the light inline styles as a fallback for email clients. */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .newsletter-masthead,
+      :root:not([data-theme="light"]) .footer-banner {
+        background: {{ dark_banner_primary }} !important;
+      }
+      :root:not([data-theme="light"]) .masthead-dot,
+      :root:not([data-theme="light"]) .footer-banner .footer-line:last-child {
+        color: {{ dark_banner_accent }} !important;
+      }
+    }
+    :root[data-theme="dark"] .newsletter-masthead,
+    :root[data-theme="dark"] .footer-banner {
+      background: {{ dark_banner_primary }} !important;
+    }
+    :root[data-theme="dark"] .masthead-dot,
+    :root[data-theme="dark"] .footer-banner .footer-line:last-child {
+      color: {{ dark_banner_accent }} !important;
+    }
+  </style>
 </head>
 
 <body>
+  {%- set banner_primary, banner_accent = requested_date | banner_palette %}
   {% macro external_link(url, label, css_class='') -%}
     {%- set href = url | safe_http_url -%}
     {%- if href -%}
@@ -48,8 +71,8 @@
           <a role="link" aria-disabled="true" title="Sign up coming soon">Sign up</a>
         </nav>
       </div>
-      <div class="newsletter-masthead" aria-label="Nominal News">
-        <h1 class="masthead-name">nominal<span class="masthead-dot">.</span></h1>
+      <div class="newsletter-masthead" aria-label="Nominal News" style="background: {{ banner_primary }};">
+        <h1 class="masthead-name">nominal<span class="masthead-dot" style="color: {{ banner_accent }};">.</span></h1>
         <p class="masthead-descriptor">NEWS, AT A HUMAN PACE</p>
       </div>
     <div class="done-signal">
@@ -386,7 +409,7 @@
     </div>
 
     <footer class="site-footer">
-      <div class="footer-banner">
+      <div class="footer-banner" style="background: {{ banner_primary }};">
         <p class="footer-line">Made in Chicago. Written for normalcy. Designed against outrage.</p>
         <nav class="footer-links" aria-label="Website Information">
           <a role="link" aria-disabled="true" title="Website coming soon">Website</a>
@@ -395,7 +418,7 @@
           <span aria-hidden="true">|</span>
           <a role="link" aria-disabled="true" title="Editorial approach page coming soon">Editorial Approach</a>
         </nav>
-        <p class="footer-line">Copyright © <span id="footerYear"></span> Nominal News. All rights reserved.</p>
+        <p class="footer-line" style="color: {{ banner_accent }};">Copyright © <span id="footerYear"></span> Nominal News. All rights reserved.</p>
       </div>
     </footer>
   </div>
